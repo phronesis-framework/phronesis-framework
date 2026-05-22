@@ -86,7 +86,7 @@ jobs:
       - name: Run pytest with coverage
         run: |
           uv run pytest \
-            --cov=src/phronesis_framework \
+            --cov=src/phronesis \
             --cov-branch \
             --cov-report=xml \
             --cov-report=term-missing \
