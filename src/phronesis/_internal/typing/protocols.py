@@ -17,8 +17,6 @@ from typing import Protocol, runtime_checkable
 
 from phronesis._internal.typing.json import JsonValue
 
-__all__ = ["Identifiable", "SupportsJson"]
-
 
 @runtime_checkable
 class SupportsJson(Protocol):

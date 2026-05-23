@@ -19,8 +19,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Generic, TypeAlias, TypeVar
 
-__all__ = ["Err", "Ok", "Result"]
-
 T = TypeVar("T")
 E = TypeVar("E")
 

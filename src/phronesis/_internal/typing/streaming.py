@@ -15,8 +15,6 @@ from collections.abc import AsyncIterator
 from dataclasses import dataclass
 from typing import Generic, TypeAlias, TypeVar
 
-__all__ = ["Stream", "StreamChunk"]
-
 T = TypeVar("T")
 
 
