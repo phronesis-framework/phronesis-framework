@@ -5,9 +5,20 @@ on:
     branches:
       - "feat/**"
       - "feature/**"
+      - "fix/**"
       - "bugfix/**"
       - "hotfix/**"
       - "release/**"
+      - "refactor/**"
+      - "perf/**"
+      - "docs/**"
+      - "test/**"
+      - "build/**"
+      - "ci/**"
+      - "chore/**"
+      - "chores/**"
+      - "style/**"
+      - "revert/**"
 
 concurrency:
   group: branch-ci-${{ github.ref }}
