@@ -22,6 +22,7 @@ from phronesis._internal.typing.newtypes import (
     Seconds,
     TokenCount,
 )
+from phronesis._internal.typing.protocols import Identifiable, SupportsJson
 from phronesis._internal.typing.result import Err, Ok, Result
 from phronesis._internal.typing.sentinels import MISSING, MissingType
 
@@ -32,6 +33,7 @@ __all__ = [
     "CompletionTokens",
     "Cost",
     "Err",
+    "Identifiable",
     "JsonArray",
     "JsonObject",
     "JsonValue",
@@ -44,5 +46,6 @@ __all__ = [
     "Result",
     "Seconds",
     "Some",
+    "SupportsJson",
     "TokenCount",
 ]
