@@ -14,6 +14,7 @@ class TestSupportsJson:
                 return {"k": "v"}
 
         instance = Serialisable()
+
         assert isinstance(instance, SupportsJson)
         assert instance.to_json() == {"k": "v"}
 

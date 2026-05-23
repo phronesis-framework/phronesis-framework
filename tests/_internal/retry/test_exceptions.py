@@ -21,6 +21,7 @@ class TestRetryExhaustedError:
             AttemptInfo(1, RuntimeError("a"), 1.0, 100.0),
             AttemptInfo(2, last, 1.0, None),
         ]
+
         with pytest.raises(RetryExhaustedError) as info:
             raise RetryExhaustedError(
                 attempts=2,
@@ -28,7 +29,9 @@ class TestRetryExhaustedError:
                 last_exception=last,
                 attempt_history=history,
             )
+
         exc = info.value
+
         assert exc.attempts == 2
         assert exc.total_duration_ms == 10.0
         assert exc.last_exception is last

@@ -13,6 +13,7 @@ class TestHttpRequest:
             headers={"User-Agent": "p"},
             content=b"{}",
         )
+
         assert r.method == "POST"
         assert r.url == "https://example.com/x"
         assert r.headers["User-Agent"] == "p"
@@ -28,6 +29,7 @@ class TestHttpResponse:
             text='{"ok": true}',
             duration_ms=12.5,
         )
+
         assert r.status_code == 200
         assert r.duration_ms == 12.5
 
@@ -39,4 +41,5 @@ class TestHttpResponse:
             text='{"a": 1}',
             duration_ms=0.0,
         )
+
         assert r.json() == {"a": 1}

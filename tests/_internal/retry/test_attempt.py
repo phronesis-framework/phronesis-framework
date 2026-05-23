@@ -14,6 +14,7 @@ class TestAttemptInfo:
             duration_ms=12.0,
             delay_before_next_ms=500.0,
         )
+
         assert a.attempt_number == 2
         assert a.exception is exc
         assert a.duration_ms == 12.0
@@ -23,4 +24,5 @@ class TestAttemptInfo:
         a = AttemptInfo(
             attempt_number=3, exception=None, duration_ms=5.0, delay_before_next_ms=None
         )
+
         assert a.delay_before_next_ms is None

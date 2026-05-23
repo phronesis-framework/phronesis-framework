@@ -26,6 +26,7 @@ class _Permanent(Exception):
 class _WithRetryAfter(Exception):
     def __init__(self, message: str, retry_after_seconds: float) -> None:
         super().__init__(message)
+
         self.retry_after_seconds = retry_after_seconds
 
 
@@ -38,6 +39,7 @@ def _capture_sleeps(monkeypatch: pytest.MonkeyPatch) -> list[float]:
         delays.append(delay)
 
     monkeypatch.setattr(asyncio, "sleep", fake_sleep)
+
     return delays
 
 
@@ -51,6 +53,7 @@ class TestHappyPath:
         async def fn() -> int:
             nonlocal calls
             calls += 1
+
             return 42
 
         assert await fn() == 42
@@ -64,8 +67,10 @@ class TestHappyPath:
         async def fn() -> str:
             nonlocal calls
             calls += 1
+
             if calls < 3:
                 raise _Transient("retry me")
+
             return "ok"
 
         assert await fn() == "ok"
@@ -83,6 +88,7 @@ class TestRetryPolicy:
 
         with pytest.raises(_Permanent):
             await fn()
+
         assert _capture_sleeps == []
 
     async def test_should_retry_false_propagates(self, _capture_sleeps: list[float]) -> None:
@@ -96,6 +102,7 @@ class TestRetryPolicy:
 
         with pytest.raises(_Transient):
             await fn()
+
         assert _capture_sleeps == []
 
     async def test_should_retry_true_allows_retry(self, _capture_sleeps: list[float]) -> None:
@@ -109,8 +116,10 @@ class TestRetryPolicy:
         async def fn() -> int:
             nonlocal calls
             calls += 1
+
             if calls < 2:
                 raise _Transient("retry")
+
             return 1
 
         assert await fn() == 1
@@ -125,7 +134,9 @@ class TestExhaustion:
 
         with pytest.raises(RetryExhaustedError) as info:
             await fn()
+
         exc = info.value
+
         assert exc.attempts == 3
         assert isinstance(exc.last_exception, _Transient)
         assert len(exc.attempt_history) == 3
@@ -143,6 +154,7 @@ class TestExhaustion:
 
         with pytest.raises(RetryExhaustedError):
             await fn()
+
         assert _capture_sleeps == []
 
 
@@ -158,6 +170,7 @@ class TestBackoffUsage:
 
         with pytest.raises(RetryExhaustedError):
             await fn()
+
         assert _capture_sleeps == [1.0, 2.0, 4.0]
 
     async def test_uses_fixed_backoff(self, _capture_sleeps: list[float]) -> None:
@@ -167,6 +180,7 @@ class TestBackoffUsage:
 
         with pytest.raises(RetryExhaustedError):
             await fn()
+
         assert _capture_sleeps == [0.25, 0.25]
 
 
@@ -183,6 +197,7 @@ class TestRetryAfter:
 
         with pytest.raises(RetryExhaustedError):
             await fn()
+
         assert _capture_sleeps == [3.0]
 
     async def test_ignores_retry_after_when_disabled(self, _capture_sleeps: list[float]) -> None:
@@ -197,6 +212,7 @@ class TestRetryAfter:
 
         with pytest.raises(RetryExhaustedError):
             await fn()
+
         assert _capture_sleeps == [7.0]
 
     async def test_uses_backoff_when_attribute_missing(self, _capture_sleeps: list[float]) -> None:
@@ -211,6 +227,7 @@ class TestRetryAfter:
 
         with pytest.raises(RetryExhaustedError):
             await fn()
+
         assert _capture_sleeps == [5.0]
 
 
@@ -227,6 +244,7 @@ class TestDelayHook:
 
         with pytest.raises(RetryExhaustedError):
             await fn()
+
         assert _capture_sleeps == [1.5]
 
     async def test_hook_returns_none_falls_back_to_backoff(
@@ -243,6 +261,7 @@ class TestDelayHook:
 
         with pytest.raises(RetryExhaustedError):
             await fn()
+
         assert _capture_sleeps == [2.0]
 
     async def test_hook_takes_priority_over_retry_after(self, _capture_sleeps: list[float]) -> None:
@@ -258,6 +277,7 @@ class TestDelayHook:
 
         with pytest.raises(RetryExhaustedError):
             await fn()
+
         assert _capture_sleeps == [0.1]
 
 
@@ -270,9 +290,12 @@ class TestConcurrency:
         @with_retries(retry_on=(_Transient,), backoff=FixedBackoff(0.0))
         async def fn(key: str) -> int:
             counters[key] = counters.get(key, 0) + 1
+
             if counters[key] < 2:
                 raise _Transient(key)
+
             return counters[key]
 
         results: list[Any] = await asyncio.gather(fn("a"), fn("b"), fn("c"))
+
         assert results == [2, 2, 2]

@@ -10,10 +10,12 @@ from phronesis._internal.typing import Err, Ok, Result
 class TestOk:
     def test_holds_value(self) -> None:
         ok: Ok[int] = Ok(42)
+
         assert ok.value == 42
 
     def test_is_frozen(self) -> None:
         ok: Ok[int] = Ok(1)
+
         with pytest.raises(FrozenInstanceError):
             ok.value = 2  # type: ignore[misc]
 
@@ -25,10 +27,12 @@ class TestOk:
 class TestErr:
     def test_holds_error(self) -> None:
         err: Err[str] = Err("boom")
+
         assert err.error == "boom"
 
     def test_is_frozen(self) -> None:
         err: Err[str] = Err("x")
+
         with pytest.raises(FrozenInstanceError):
             err.error = "y"  # type: ignore[misc]
 
@@ -40,6 +44,7 @@ class TestErr:
 class TestResultPatternMatch:
     def test_match_ok(self) -> None:
         result: Result[int, str] = Ok(10)
+
         match result:
             case Ok(value):
                 assert value == 10
@@ -48,6 +53,7 @@ class TestResultPatternMatch:
 
     def test_match_err(self) -> None:
         result: Result[int, str] = Err("oops")
+
         match result:
             case Ok(_):
                 pytest.fail("should not match Ok")

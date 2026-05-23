@@ -10,10 +10,12 @@ from phronesis._internal.typing import NOTHING, Maybe, Some
 class TestSome:
     def test_holds_value(self) -> None:
         some: Some[int] = Some(5)
+
         assert some.value == 5
 
     def test_is_frozen(self) -> None:
         some: Some[int] = Some(1)
+
         with pytest.raises(FrozenInstanceError):
             some.value = 2  # type: ignore[misc]
 
@@ -38,6 +40,7 @@ class TestNothing:
 class TestMaybePatternMatch:
     def test_match_some(self) -> None:
         m: Maybe[int] = Some(7)
+
         match m:
             case Some(v):
                 assert v == 7
@@ -46,6 +49,7 @@ class TestMaybePatternMatch:
 
     def test_match_nothing(self) -> None:
         m: Maybe[int] = NOTHING
+
         match m:
             case Some(_):
                 pytest.fail("should not match Some")

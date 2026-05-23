@@ -23,9 +23,11 @@ class TestStreamSuccess:
 
         async with _make_client(handler) as c, c.stream("GET", "/x") as stream:
             assert stream.status_code == 200
+
             collected = b""
             async for chunk in stream.iter_bytes():
                 collected += chunk
+
         assert collected == b"chunk-1chunk-2"
 
     async def test_iter_lines(self) -> None:
@@ -34,6 +36,7 @@ class TestStreamSuccess:
 
         async with _make_client(handler) as c, c.stream("GET", "/x") as stream:
             lines = [line async for line in stream.iter_lines()]
+
         assert "line-1" in lines
         assert "line-2" in lines
 
@@ -47,6 +50,7 @@ class TestStreamErrors:
             with pytest.raises(HttpClientError) as info:
                 async with c.stream("POST", "/x") as _:
                     pytest.fail("should not enter stream body")
+
         assert info.value.status_code == 400
         assert info.value.response.json() == {"err": "bad"}
 
@@ -58,4 +62,5 @@ class TestStreamErrors:
             with pytest.raises(HttpServerError) as info:
                 async with c.stream("GET", "/x") as _:
                     pytest.fail("should not enter stream body")
+
         assert info.value.status_code == 500

@@ -51,8 +51,10 @@ class TestResponseErrorAttributes:
     def test_holds_status_response_and_request(self) -> None:
         req = _req()
         resp = _resp(404)
+
         with pytest.raises(HttpClientError) as info:
             raise HttpClientError("not found", status_code=404, response=resp, request=req)
+
         assert info.value.status_code == 404
         assert info.value.response is resp
         assert info.value.request is req
@@ -63,8 +65,10 @@ class TestTransportErrorAttributes:
     def test_holds_request_and_cause(self) -> None:
         req = _req()
         cause = RuntimeError("boom")
+
         with pytest.raises(HttpTimeoutError) as info:
             raise HttpTimeoutError("timed out", request=req, cause=cause)
+
         assert info.value.request is req
         assert info.value.cause is cause
         assert info.value.message == "timed out"
