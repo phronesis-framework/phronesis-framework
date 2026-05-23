@@ -1,4 +1,4 @@
-"""``@with_retries`` decorator for async callables."""
+"""``@retry`` decorator for async callables."""
 
 from __future__ import annotations
 
@@ -46,9 +46,9 @@ def _calculate_delay(
     return backoff.get_delay(attempt)
 
 
-def with_retries(
+def retry(
     *,
-    retry_on: tuple[type[BaseException], ...],
+    on: tuple[type[BaseException], ...],
     max_attempts: int = 3,
     should_retry: Callable[[Exception], bool] | None = None,
     backoff: BackoffStrategy | None = None,
@@ -59,7 +59,7 @@ def with_retries(
     """Wrap an async callable so it is retried on transient failures.
 
     Raises :class:`RetryExhaustedError` with the full attempt history when
-    ``max_attempts`` is reached. Exceptions outside ``retry_on`` are propagated
+    ``max_attempts`` is reached. Exceptions outside ``on`` are propagated
     immediately, as are exceptions for which ``should_retry`` returns ``False``.
     """
     effective_backoff: BackoffStrategy = backoff or ExponentialBackoff()
@@ -81,7 +81,7 @@ def with_retries(
                 except Exception as exc:
                     attempt_duration_ms = (time.perf_counter() - attempt_started) * 1000
 
-                    if not isinstance(exc, retry_on):
+                    if not isinstance(exc, on):
                         raise
 
                     if should_retry is not None and not should_retry(exc):

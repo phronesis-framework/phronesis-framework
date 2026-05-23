@@ -1,4 +1,4 @@
-"""Tests for the @with_retries decorator."""
+"""Tests for the @retry decorator."""
 
 from __future__ import annotations
 
@@ -11,7 +11,7 @@ from phronesis._internal.retry import (
     ExponentialBackoff,
     FixedBackoff,
     RetryExhaustedError,
-    with_retries,
+    retry,
 )
 
 
@@ -49,7 +49,7 @@ class TestHappyPath:
     ) -> None:
         calls = 0
 
-        @with_retries(retry_on=(_Transient,))
+        @retry(on=(_Transient,))
         async def fn() -> int:
             nonlocal calls
             calls += 1
@@ -63,7 +63,7 @@ class TestHappyPath:
     async def test_succeeds_after_some_failures(self, _capture_sleeps: list[float]) -> None:
         calls = 0
 
-        @with_retries(retry_on=(_Transient,), backoff=FixedBackoff(0.0))
+        @retry(on=(_Transient,), backoff=FixedBackoff(0.0))
         async def fn() -> str:
             nonlocal calls
             calls += 1
@@ -79,10 +79,10 @@ class TestHappyPath:
 
 
 class TestRetryPolicy:
-    async def test_does_not_retry_when_exception_not_in_retry_on(
+    async def test_does_not_retry_when_exception_not_in_on(
         self, _capture_sleeps: list[float]
     ) -> None:
-        @with_retries(retry_on=(_Transient,), backoff=FixedBackoff(0.0))
+        @retry(on=(_Transient,), backoff=FixedBackoff(0.0))
         async def fn() -> None:
             raise _Permanent("nope")
 
@@ -92,8 +92,8 @@ class TestRetryPolicy:
         assert _capture_sleeps == []
 
     async def test_should_retry_false_propagates(self, _capture_sleeps: list[float]) -> None:
-        @with_retries(
-            retry_on=(_Transient,),
+        @retry(
+            on=(_Transient,),
             should_retry=lambda exc: False,
             backoff=FixedBackoff(0.0),
         )
@@ -108,8 +108,8 @@ class TestRetryPolicy:
     async def test_should_retry_true_allows_retry(self, _capture_sleeps: list[float]) -> None:
         calls = 0
 
-        @with_retries(
-            retry_on=(_Transient,),
+        @retry(
+            on=(_Transient,),
             should_retry=lambda exc: True,
             backoff=FixedBackoff(0.0),
         )
@@ -128,7 +128,7 @@ class TestRetryPolicy:
 
 class TestExhaustion:
     async def test_raises_retry_exhausted_with_history(self, _capture_sleeps: list[float]) -> None:
-        @with_retries(retry_on=(_Transient,), max_attempts=3, backoff=FixedBackoff(0.0))
+        @retry(on=(_Transient,), max_attempts=3, backoff=FixedBackoff(0.0))
         async def fn() -> None:
             raise _Transient("always fails")
 
@@ -148,7 +148,7 @@ class TestExhaustion:
     async def test_max_attempts_one_raises_after_first_failure(
         self, _capture_sleeps: list[float]
     ) -> None:
-        @with_retries(retry_on=(_Transient,), max_attempts=1, backoff=FixedBackoff(0.0))
+        @retry(on=(_Transient,), max_attempts=1, backoff=FixedBackoff(0.0))
         async def fn() -> None:
             raise _Transient("once")
 
@@ -160,8 +160,8 @@ class TestExhaustion:
 
 class TestBackoffUsage:
     async def test_uses_exponential_backoff_by_default(self, _capture_sleeps: list[float]) -> None:
-        @with_retries(
-            retry_on=(_Transient,),
+        @retry(
+            on=(_Transient,),
             max_attempts=4,
             backoff=ExponentialBackoff(initial=1.0, max_delay=100.0, jitter=False),
         )
@@ -174,7 +174,7 @@ class TestBackoffUsage:
         assert _capture_sleeps == [1.0, 2.0, 4.0]
 
     async def test_uses_fixed_backoff(self, _capture_sleeps: list[float]) -> None:
-        @with_retries(retry_on=(_Transient,), max_attempts=3, backoff=FixedBackoff(0.25))
+        @retry(on=(_Transient,), max_attempts=3, backoff=FixedBackoff(0.25))
         async def fn() -> None:
             raise _Transient("x")
 
@@ -186,8 +186,8 @@ class TestBackoffUsage:
 
 class TestRetryAfter:
     async def test_honors_retry_after_when_enabled(self, _capture_sleeps: list[float]) -> None:
-        @with_retries(
-            retry_on=(_WithRetryAfter,),
+        @retry(
+            on=(_WithRetryAfter,),
             max_attempts=2,
             backoff=FixedBackoff(99.0),
             honor_retry_after=True,
@@ -201,8 +201,8 @@ class TestRetryAfter:
         assert _capture_sleeps == [3.0]
 
     async def test_ignores_retry_after_when_disabled(self, _capture_sleeps: list[float]) -> None:
-        @with_retries(
-            retry_on=(_WithRetryAfter,),
+        @retry(
+            on=(_WithRetryAfter,),
             max_attempts=2,
             backoff=FixedBackoff(7.0),
             honor_retry_after=False,
@@ -216,8 +216,8 @@ class TestRetryAfter:
         assert _capture_sleeps == [7.0]
 
     async def test_uses_backoff_when_attribute_missing(self, _capture_sleeps: list[float]) -> None:
-        @with_retries(
-            retry_on=(_Transient,),
+        @retry(
+            on=(_Transient,),
             max_attempts=2,
             backoff=FixedBackoff(5.0),
             honor_retry_after=True,
@@ -233,8 +233,8 @@ class TestRetryAfter:
 
 class TestDelayHook:
     async def test_hook_value_is_used(self, _capture_sleeps: list[float]) -> None:
-        @with_retries(
-            retry_on=(_Transient,),
+        @retry(
+            on=(_Transient,),
             max_attempts=2,
             backoff=FixedBackoff(99.0),
             delay_hook=lambda exc: 1.5,
@@ -250,8 +250,8 @@ class TestDelayHook:
     async def test_hook_returns_none_falls_back_to_backoff(
         self, _capture_sleeps: list[float]
     ) -> None:
-        @with_retries(
-            retry_on=(_Transient,),
+        @retry(
+            on=(_Transient,),
             max_attempts=2,
             backoff=FixedBackoff(2.0),
             delay_hook=lambda exc: None,
@@ -265,8 +265,8 @@ class TestDelayHook:
         assert _capture_sleeps == [2.0]
 
     async def test_hook_takes_priority_over_retry_after(self, _capture_sleeps: list[float]) -> None:
-        @with_retries(
-            retry_on=(_WithRetryAfter,),
+        @retry(
+            on=(_WithRetryAfter,),
             max_attempts=2,
             backoff=FixedBackoff(99.0),
             honor_retry_after=True,
@@ -287,7 +287,7 @@ class TestConcurrency:
     ) -> None:
         counters: dict[str, int] = {}
 
-        @with_retries(retry_on=(_Transient,), backoff=FixedBackoff(0.0))
+        @retry(on=(_Transient,), backoff=FixedBackoff(0.0))
         async def fn(key: str) -> int:
             counters[key] = counters.get(key, 0) + 1
 
