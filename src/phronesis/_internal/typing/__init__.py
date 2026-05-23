@@ -12,5 +12,12 @@ Design rules:
 """
 
 from phronesis._internal.typing.json import JsonArray, JsonObject, JsonValue
+from phronesis._internal.typing.sentinels import MISSING, MissingType
 
-__all__ = ["JsonArray", "JsonObject", "JsonValue"]
+__all__ = [
+    "MISSING",
+    "JsonArray",
+    "JsonObject",
+    "JsonValue",
+    "MissingType",
+]
