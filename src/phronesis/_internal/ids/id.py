@@ -1,13 +1,4 @@
-"""Base for definition-time identifiers.
-
-A definition id is the stable, derivable identifier of an entity declared
-in code (a tool, an agent, a pipeline, etc.). It exposes:
-
-- `canonical`: the stable identity used internally and in serialized specs.
-- `short`: a compact, human-readable representation prefixed by entity type.
-
-Subclasses only declare the prefix.
-"""
+"""Base class for definition-time identifiers."""
 
 import hashlib
 from dataclasses import dataclass
@@ -20,8 +11,9 @@ from phronesis._internal.ids.validator import CanonicalIdValidator
 class Id:
     """Stable identifier for a declared entity.
 
-    Subclasses must override `prefix` with their entity type prefix
-    (e.g. "TID" for tools, "AID" for agents).
+    Subclasses set :attr:`prefix` (e.g. ``"TID"`` for tools, ``"AID"`` for
+    agents). :attr:`canonical` is the validated identity string;
+    :attr:`short` is a compact ``<PREFIX>-XXXXXXXX`` hash for display.
     """
 
     canonical: str
@@ -34,7 +26,7 @@ class Id:
 
     @property
     def short(self) -> str:
-        """Short representation: <PREFIX>-XXXXXXXX (SHA-256 truncated)."""
+        """``<PREFIX>-XXXXXXXX`` where ``XXXXXXXX`` is the SHA-256 prefix."""
         digest = hashlib.sha256(self.canonical.encode()).hexdigest()
         return f"{self.prefix}-{digest[:8].upper()}"
 

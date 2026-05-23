@@ -1,4 +1,4 @@
-"""Identifier primitives for Phronesis entities."""
+"""Stable identifier primitives for declared entities."""
 
 from phronesis._internal.ids.derivation import canonical_from_function
 from phronesis._internal.ids.generator import IdGenerator
