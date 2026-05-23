@@ -11,6 +11,7 @@ Design rules:
 * No runtime overhead beyond what stdlib provides.
 """
 
+from phronesis._internal.typing.binary import BinaryContent
 from phronesis._internal.typing.json import JsonArray, JsonObject, JsonValue
 from phronesis._internal.typing.maybe import NOTHING, Maybe, NothingType, Some
 from phronesis._internal.typing.newtypes import (
@@ -30,6 +31,7 @@ from phronesis._internal.typing.streaming import Stream, StreamChunk
 __all__ = [
     "MISSING",
     "NOTHING",
+    "BinaryContent",
     "ByteSize",
     "CompletionTokens",
     "Cost",
