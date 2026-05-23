@@ -21,6 +21,7 @@ class HttpResponseError(HttpError):
         request: HttpRequest,
     ) -> None:
         super().__init__(message)
+
         self.message = message
         self.status_code = status_code
         self.response = response
@@ -46,6 +47,7 @@ class HttpTransportError(HttpError):
         cause: Exception,
     ) -> None:
         super().__init__(message)
+
         self.message = message
         self.request = request
         self.cause = cause

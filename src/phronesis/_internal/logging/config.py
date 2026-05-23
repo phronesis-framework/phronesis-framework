@@ -33,7 +33,9 @@ def configure_logging(
             root.removeHandler(handler)
 
     formatter: logging.Formatter = StructuredFormatter() if structured else HumanReadableFormatter()
+
     handler = logging.StreamHandler(stream or sys.stderr)
     setattr(handler, _HANDLER_MARKER, True)
     handler.setFormatter(formatter)
+
     root.addHandler(handler)

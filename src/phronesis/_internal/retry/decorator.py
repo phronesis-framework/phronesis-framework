@@ -33,12 +33,16 @@ def _calculate_delay(
     """
     if delay_hook is not None:
         hooked = delay_hook(exc)
+
         if hooked is not None:
             return hooked
+
     if honor_retry_after:
         retry_after = getattr(exc, "retry_after_seconds", None)
+
         if retry_after is not None:
             return float(retry_after)
+
     return backoff.get_delay(attempt)
 
 
@@ -54,11 +58,11 @@ def with_retries(
 ) -> Callable[[Callable[P, Awaitable[T]]], Callable[P, Awaitable[T]]]:
     """Wrap an async callable so it is retried on transient failures.
 
-    Raises :class:`RetryExhaustedError` (with the full attempt history) when
+    Raises :class:`RetryExhaustedError` with the full attempt history when
     ``max_attempts`` is reached. Exceptions outside ``retry_on`` are propagated
     immediately, as are exceptions for which ``should_retry`` returns ``False``.
     """
-    effective_backoff: BackoffStrategy = backoff if backoff is not None else ExponentialBackoff()
+    effective_backoff: BackoffStrategy = backoff or ExponentialBackoff()
     log = get_logger(_LOGGER_NAME)
 
     def decorator(fn: Callable[P, Awaitable[T]]) -> Callable[P, Awaitable[T]]:
@@ -67,16 +71,22 @@ def with_retries(
             history: list[AttemptInfo] = []
             started = time.perf_counter()
             attempt = 1
+
             while True:
                 attempt_started = time.perf_counter()
+
                 try:
                     return await fn(*args, **kwargs)
+
                 except Exception as exc:
                     attempt_duration_ms = (time.perf_counter() - attempt_started) * 1000
+
                     if not isinstance(exc, retry_on):
                         raise
+
                     if should_retry is not None and not should_retry(exc):
                         raise
+
                     if attempt >= max_attempts:
                         history.append(
                             AttemptInfo(
@@ -86,7 +96,9 @@ def with_retries(
                                 delay_before_next_ms=None,
                             )
                         )
+
                         total_ms = (time.perf_counter() - started) * 1000
+
                         log.error(
                             "retries exhausted",
                             extra={
@@ -95,6 +107,7 @@ def with_retries(
                                 "error": str(exc),
                             },
                         )
+
                         raise RetryExhaustedError(
                             attempts=attempt,
                             total_duration_ms=total_ms,
@@ -103,8 +116,13 @@ def with_retries(
                         ) from exc
 
                     delay = _calculate_delay(
-                        exc, attempt, effective_backoff, honor_retry_after, delay_hook
+                        exc,
+                        attempt,
+                        effective_backoff,
+                        honor_retry_after,
+                        delay_hook,
                     )
+
                     history.append(
                         AttemptInfo(
                             attempt_number=attempt,
@@ -113,6 +131,7 @@ def with_retries(
                             delay_before_next_ms=delay * 1000,
                         )
                     )
+
                     log.log(
                         log_level,
                         "retrying",
@@ -123,6 +142,7 @@ def with_retries(
                             "error": str(exc),
                         },
                     )
+
                     await asyncio.sleep(delay)
                     attempt += 1
 

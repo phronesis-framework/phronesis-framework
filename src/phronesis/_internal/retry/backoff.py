@@ -39,6 +39,8 @@ class ExponentialBackoff:
     def get_delay(self, attempt: int) -> float:
         base: float = self.initial * (2 ** (attempt - 1))
         capped: float = base if base < self.max_delay else self.max_delay
+
         if self.jitter:
             return capped * (0.5 + random.random())
+
         return capped

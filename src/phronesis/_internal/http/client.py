@@ -45,7 +45,9 @@ def _to_response(response: httpx.Response, *, duration_ms: float) -> HttpRespons
 def _raise_for_status(response: HttpResponse, request: HttpRequest) -> None:
     if response.status_code < 400:
         return
+
     message = f"HTTP {response.status_code} for {request.method} {request.url}"
+
     if response.status_code < 500:
         raise HttpClientError(
             message,
@@ -53,6 +55,7 @@ def _raise_for_status(response: HttpResponse, request: HttpRequest) -> None:
             response=response,
             request=request,
         )
+
     raise HttpServerError(
         message,
         status_code=response.status_code,
@@ -113,30 +116,39 @@ class _StreamContext:
         self._params = params
         self._headers = headers
         self._timeouts = timeouts
+
         self._ctx: Any = None
         self._stream: HttpStreamResponse | None = None
         self._started: float = 0.0
 
     async def __aenter__(self) -> HttpStreamResponse:
         kwargs: dict[str, Any] = {}
+
         if self._json is not None:
             kwargs["json"] = self._json
+
         if self._content is not None:
             kwargs["content"] = self._content
+
         if self._params is not None:
             kwargs["params"] = self._params
+
         if self._headers is not None:
             kwargs["headers"] = dict(self._headers)
+
         if self._timeouts is not None:
             kwargs["timeout"] = self._timeouts.to_httpx()
 
         self._started = time.perf_counter()
         self._ctx = self._client._httpx.stream(self._method, self._url, **kwargs)
+
         try:
             response = await self._ctx.__aenter__()
+
         except httpx.TimeoutException as exc:
             req = HttpRequest(method=self._method, url=self._url, headers={}, content=None)
             raise HttpTimeoutError(str(exc) or "request timed out", request=req, cause=exc) from exc
+
         except (httpx.ConnectError, httpx.NetworkError) as exc:
             req = HttpRequest(method=self._method, url=self._url, headers={}, content=None)
             raise HttpConnectionError(
@@ -145,15 +157,19 @@ class _StreamContext:
 
         if response.status_code >= 400:
             await response.aread()
+
             duration_ms = (time.perf_counter() - self._started) * 1000
             req = _to_request(response.request)
             resp = _to_response(response, duration_ms=duration_ms)
+
             await self._ctx.__aexit__(None, None, None)
             self._ctx = None
+
             _raise_for_status(resp, req)
 
         duration_ms = (time.perf_counter() - self._started) * 1000
         self._stream = HttpStreamResponse(response, duration_ms=duration_ms)
+
         self._client._log.debug(
             "http stream opened",
             extra={
@@ -163,6 +179,7 @@ class _StreamContext:
                 "duration_ms": duration_ms,
             },
         )
+
         return self._stream
 
     async def __aexit__(
@@ -193,15 +210,19 @@ class HttpClient:
         transport: httpx.AsyncBaseTransport | None = None,
     ) -> None:
         merged_headers = build_default_headers()
+
         if headers:
             merged_headers.update(headers)
+
         self._timeouts = timeouts or HttpTimeouts()
+
         self._httpx = httpx.AsyncClient(
             base_url=base_url,
             timeout=self._timeouts.to_httpx(),
             headers=merged_headers,
             transport=transport,
         )
+
         self._log = get_logger(_LOGGER_NAME)
 
     async def __aenter__(self) -> Self:
@@ -237,14 +258,19 @@ class HttpClient:
         :class:`HttpConnectionError` for transport failures.
         """
         kwargs: dict[str, Any] = {}
+
         if json is not None:
             kwargs["json"] = json
+
         if content is not None:
             kwargs["content"] = content
+
         if params is not None:
             kwargs["params"] = params
+
         if headers is not None:
             kwargs["headers"] = dict(headers)
+
         if timeouts is not None:
             kwargs["timeout"] = timeouts.to_httpx()
 
@@ -259,26 +285,34 @@ class HttpClient:
         )
 
         started = time.perf_counter()
+
         try:
             response = await self._httpx.request(method, url, **kwargs)
+
         except httpx.TimeoutException as exc:
             req = HttpRequest(method=method, url=url, headers={}, content=None)
+
             self._log.warning(
                 "http timeout",
                 extra={"method": method, "url": url, "error": str(exc)},
             )
+
             raise HttpTimeoutError(str(exc) or "request timed out", request=req, cause=exc) from exc
+
         except (httpx.ConnectError, httpx.NetworkError) as exc:
             req = HttpRequest(method=method, url=url, headers={}, content=None)
+
             self._log.warning(
                 "http connection failure",
                 extra={"method": method, "url": url, "error": str(exc)},
             )
+
             raise HttpConnectionError(
                 str(exc) or "connection failed", request=req, cause=exc
             ) from exc
 
         duration_ms = (time.perf_counter() - started) * 1000
+
         framework_request = _to_request(response.request)
         framework_response = _to_response(response, duration_ms=duration_ms)
 
@@ -294,6 +328,7 @@ class HttpClient:
         )
 
         _raise_for_status(framework_response, framework_request)
+
         return framework_response
 
     async def get(self, url: str, **kwargs: Any) -> HttpResponse:

@@ -39,6 +39,7 @@ _STANDARD_LOGRECORD_ATTRS: Final[frozenset[str]] = frozenset(
 def _utc_timestamp(record: logging.LogRecord) -> str:
     """Return ``record.created`` as ISO 8601 UTC with milliseconds."""
     dt = datetime.fromtimestamp(record.created, tz=UTC)
+
     return f"{dt.strftime('%Y-%m-%dT%H:%M:%S')}.{dt.microsecond // 1000:03d}Z"
 
 
@@ -61,11 +62,15 @@ class StructuredFormatter(logging.Formatter):
             "logger": record.name,
             "message": record.getMessage(),
         }
+
         payload.update(_extract_extras(record))
+
         if record.exc_info:
             payload["exc_info"] = self.formatException(record.exc_info)
+
         if record.stack_info:
             payload["stack_info"] = self.formatStack(record.stack_info)
+
         return json.dumps(payload, ensure_ascii=False, default=str)
 
 
@@ -77,9 +82,13 @@ class HumanReadableFormatter(logging.Formatter):
         extras = _extract_extras(record)
         extras_str = " ".join(f"{key}={value}" for key, value in extras.items())
         suffix = f"  [{extras_str}]" if extras_str else ""
+
         line = f"{timestamp} {record.levelname:<8} {record.name}  {record.getMessage()}{suffix}"
+
         if record.exc_info:
             line += "\n" + self.formatException(record.exc_info)
+
         if record.stack_info:
             line += "\n" + self.formatStack(record.stack_info)
+
         return line

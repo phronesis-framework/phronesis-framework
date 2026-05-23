@@ -21,7 +21,10 @@ class ContextLoggerAdapter(logging.LoggerAdapter):  # type: ignore[type-arg]
     ) -> tuple[Any, MutableMapping[str, Any]]:
         merged: dict[str, Any] = dict(self.extra or {})
         call_site_extra = kwargs.get("extra")
+
         if call_site_extra:
             merged.update(call_site_extra)
+
         kwargs["extra"] = merged
+
         return msg, kwargs
