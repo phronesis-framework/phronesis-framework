@@ -25,6 +25,7 @@ from phronesis._internal.typing.newtypes import (
 from phronesis._internal.typing.protocols import Identifiable, SupportsJson
 from phronesis._internal.typing.result import Err, Ok, Result
 from phronesis._internal.typing.sentinels import MISSING, MissingType
+from phronesis._internal.typing.streaming import Stream, StreamChunk
 
 __all__ = [
     "MISSING",
@@ -46,6 +47,8 @@ __all__ = [
     "Result",
     "Seconds",
     "Some",
+    "Stream",
+    "StreamChunk",
     "SupportsJson",
     "TokenCount",
 ]
