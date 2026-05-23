@@ -41,6 +41,6 @@ class ExponentialBackoff:
         capped: float = base if base < self.max_delay else self.max_delay
 
         if self.jitter:
-            return capped * (0.5 + random.random())
+            return capped * (0.5 + random.random())  # NOSONAR
 
         return capped
