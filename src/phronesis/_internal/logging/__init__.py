@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+from .adapter import ContextLoggerAdapter
 from .constants import DEFAULT_LEVEL, PHRONESIS_LOGGER_PREFIX
 from .formatters import HumanReadableFormatter, StructuredFormatter
 
 __all__ = [
     "DEFAULT_LEVEL",
     "PHRONESIS_LOGGER_PREFIX",
+    "ContextLoggerAdapter",
     "HumanReadableFormatter",
     "StructuredFormatter",
 ]
