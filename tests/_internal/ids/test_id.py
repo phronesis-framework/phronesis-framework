@@ -2,7 +2,7 @@
 
 import pytest
 
-from phronesis._internal import Id
+from phronesis._internal.ids import Id
 
 
 class _FakeId(Id):

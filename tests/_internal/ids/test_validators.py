@@ -2,7 +2,7 @@
 
 import pytest
 
-from phronesis._internal import CanonicalIdValidator
+from phronesis._internal.ids import CanonicalIdValidator
 
 
 class TestCanonicalIdValidator:

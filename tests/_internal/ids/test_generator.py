@@ -2,8 +2,7 @@
 
 from typing import ClassVar
 
-from phronesis._internal import Id
-from phronesis._internal.ids.generator import IdGenerator
+from phronesis._internal.ids import Id, IdGenerator
 
 
 class _FakeId(Id):
