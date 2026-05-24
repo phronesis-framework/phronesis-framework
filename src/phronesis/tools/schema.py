@@ -16,6 +16,8 @@ from typing import Annotated, Any, get_args, get_origin, get_type_hints
 
 from pydantic import Field, create_model
 
+from phronesis.tools.injection import detect_context_param
+
 _IDENT_RE = re.compile(r"[^A-Za-z0-9_]")
 _ARGS_HEADER_RE = re.compile(r"^\s*Args?:\s*$", re.MULTILINE)
 _ARG_LINE_RE = re.compile(r"^\s*([A-Za-z_][A-Za-z0-9_]*)\s*(?:\([^)]*\))?\s*:\s*(.+?)\s*$")
@@ -132,14 +134,23 @@ def _strip_null_from_optional(schema: dict[str, Any]) -> dict[str, Any]:
 
 
 def build_canonical_schema(fn: Callable[..., Any]) -> dict[str, Any]:
-    """Build the canonical JSON schema describing ``fn``'s inputs."""
+    """Build the canonical JSON schema describing ``fn``'s inputs.
+
+    A parameter typed as :class:`Context` is filtered out: it is injected
+    by the runtime, not provided by the LLM, so it must not appear in
+    the schema.
+    """
     signature = inspect.signature(fn)
     hints = get_type_hints(fn, include_extras=True)
     docstring_descriptions = _parse_google_args(inspect.getdoc(fn))
+    context_param = detect_context_param(fn)
     fields: dict[str, Any] = {}
 
     for name, param in signature.parameters.items():
         if not _is_schemable(param):
+            continue
+
+        if name == context_param:
             continue
 
         annotation = hints.get(name, Any)

@@ -7,6 +7,7 @@ from typing import Annotated, Literal
 
 from pydantic import BaseModel
 
+from phronesis.context.context import Context
 from phronesis.tools.schema import build_canonical_schema
 
 
@@ -58,6 +59,12 @@ class _Nested(BaseModel):
 
 
 def _nested_model(payload: _Nested) -> None: ...
+
+
+def _with_context(ctx: Context, name: str) -> None: ...
+
+
+def _only_context(ctx: Context) -> None: ...
 
 
 class TestBasicTypes:
@@ -151,3 +158,21 @@ class TestRefInlining:
 
         assert prop.get("type") == "object"
         assert "field" in prop.get("properties", {})
+
+
+class TestContextFiltering:
+    def test_context_param_is_excluded_from_properties(self) -> None:
+        schema = build_canonical_schema(_with_context)
+
+        assert "ctx" not in schema.get("properties", {})
+        assert "name" in schema.get("properties", {})
+
+    def test_context_param_is_excluded_from_required(self) -> None:
+        schema = build_canonical_schema(_with_context)
+
+        assert "ctx" not in schema.get("required", [])
+
+    def test_only_context_param_yields_empty_properties(self) -> None:
+        schema = build_canonical_schema(_only_context)
+
+        assert schema.get("properties", {}) == {}
