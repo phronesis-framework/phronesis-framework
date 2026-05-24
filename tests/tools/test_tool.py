@@ -7,7 +7,12 @@ import inspect
 
 import pytest
 
-from phronesis.tools.errors import ToolValidationError
+from phronesis.tools.errors import (
+    ToolError,
+    ToolNotFoundError,
+    ToolPermissionError,
+    ToolValidationError,
+)
 from phronesis.tools.spec import ToolSpec
 from phronesis.tools.tool import Tool
 from phronesis.tools.tool_id import ToolId, ToolName
@@ -186,3 +191,84 @@ class TestToolGetSchema:
 
         with pytest.raises(NotImplementedError):
             wrapped.get_schema(provider="anthropic")
+
+
+class TestToolErrorChannel:
+    def test_tool_error_propagates_unchanged(self) -> None:
+        def raises_tool_error() -> None:
+            raise ToolError("boom", details={"k": "v"})
+
+        wrapped = Tool(raises_tool_error, _spec())
+
+        with pytest.raises(ToolError) as exc_info:
+            wrapped()
+
+        assert exc_info.value.message == "boom"
+        assert exc_info.value.details == {"k": "v"}
+
+    def test_file_not_found_is_mapped(self) -> None:
+        def raises_fnf() -> None:
+            raise FileNotFoundError(2, "missing", "/tmp/x.txt")
+
+        wrapped = Tool(raises_fnf, _spec())
+
+        with pytest.raises(ToolNotFoundError) as exc_info:
+            wrapped()
+
+        assert exc_info.value.details == {"path": "/tmp/x.txt"}
+
+    def test_permission_error_is_mapped(self) -> None:
+        def raises_perm() -> None:
+            raise PermissionError(13, "denied", "/etc/shadow")
+
+        wrapped = Tool(raises_perm, _spec())
+
+        with pytest.raises(ToolPermissionError):
+            wrapped()
+
+    def test_unlisted_exception_propagates(self) -> None:
+        def raises_value() -> None:
+            raise ValueError("not in allowlist")
+
+        wrapped = Tool(raises_value, _spec())
+
+        with pytest.raises(ValueError):
+            wrapped()
+
+    def test_async_tool_error_propagates_unchanged(self) -> None:
+        async def raises_tool_error() -> None:
+            raise ToolError("async boom")
+
+        wrapped = Tool(raises_tool_error, _spec())
+
+        with pytest.raises(ToolError) as exc_info:
+            asyncio.run(wrapped())
+
+        assert exc_info.value.message == "async boom"
+
+    def test_async_file_not_found_is_mapped(self) -> None:
+        async def raises_fnf() -> None:
+            raise FileNotFoundError(2, "missing", "/tmp/y.txt")
+
+        wrapped = Tool(raises_fnf, _spec())
+
+        with pytest.raises(ToolNotFoundError):
+            asyncio.run(wrapped())
+
+    def test_async_cancellation_always_propagates(self) -> None:
+        async def gets_cancelled() -> None:
+            raise asyncio.CancelledError
+
+        wrapped = Tool(gets_cancelled, _spec())
+
+        with pytest.raises(asyncio.CancelledError):
+            asyncio.run(wrapped())
+
+    def test_async_unlisted_exception_propagates(self) -> None:
+        async def raises_value() -> None:
+            raise ValueError("nope")
+
+        wrapped = Tool(raises_value, _spec())
+
+        with pytest.raises(ValueError):
+            asyncio.run(wrapped())
