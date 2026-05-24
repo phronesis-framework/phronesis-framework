@@ -10,6 +10,12 @@ from ._internal.logging import (
     get_logger_with_context,
 )
 from ._internal.logging.constants import PHRONESIS_LOGGER_PREFIX as _ROOT
+from .context.context import Context
+from .tools.decorator import tool
+from .tools.discover import discover
+from .tools.effects import ToolEffect
+from .tools.errors import ToolError
+from .tools.registry import tool_scope
 
 __version__ = "0.1.0"
 
@@ -19,8 +25,14 @@ __version__ = "0.1.0"
 _logging.getLogger(_ROOT).addHandler(_logging.NullHandler())
 
 __all__ = [
+    "Context",
+    "ToolEffect",
+    "ToolError",
     "__version__",
     "configure_logging",
+    "discover",
     "get_logger",
     "get_logger_with_context",
+    "tool",
+    "tool_scope",
 ]
