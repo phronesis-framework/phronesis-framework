@@ -50,6 +50,7 @@ class Tool:
         self._lazy = lazy
         self._canonical_schema: dict[str, Any] | None = None
         self._provider_schemas: dict[str, dict[str, Any]] = {}
+        self._schema_override: Callable[[], dict[str, Any]] | None = None
 
         functools.update_wrapper(self, fn)
 
@@ -136,7 +137,10 @@ class Tool:
         :class:`UnsupportedProviderError`.
         """
         if self._canonical_schema is None:
-            self._canonical_schema = build_canonical_schema(self._fn)
+            if self._schema_override is not None:
+                self._canonical_schema = self._schema_override()
+            else:
+                self._canonical_schema = build_canonical_schema(self._fn)
 
         if provider is None:
             return self._canonical_schema
@@ -153,6 +157,25 @@ class Tool:
         self._provider_schemas[provider] = adapted
 
         return adapted
+
+    def schema(
+        self,
+        factory: Callable[[], dict[str, Any]],
+    ) -> Callable[[], dict[str, Any]]:
+        """Register an explicit schema factory, overriding the canonical one.
+
+        Use as a paired decorator on the tool (see ``docs/TOOLS-DECISIONS.md``,
+        D-19) for the rare cases where the auto-generated schema is not
+        expressive enough. The validator is **not** replaced: overrides are
+        purely presentational for the LLM. Any cached schemas (canonical and
+        provider-adapted) are invalidated so the new override takes effect
+        immediately.
+        """
+        self._schema_override = factory
+        self._canonical_schema = None
+        self._provider_schemas.clear()
+
+        return factory
 
     def __repr__(self) -> str:
         return f"Tool(id={self.spec.id.canonical!r}, name={str(self.spec.name)!r})"
