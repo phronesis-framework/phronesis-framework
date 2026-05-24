@@ -17,6 +17,7 @@ from typing import Annotated, Any, get_args, get_origin, get_type_hints
 from pydantic import Field, create_model
 
 from phronesis.tools.injection import detect_context_param
+from phronesis.tools.single_model import get_single_model
 
 _IDENT_RE = re.compile(r"[^A-Za-z0-9_]")
 _ARGS_HEADER_RE = re.compile(r"^\s*Args?:\s*$", re.MULTILINE)
@@ -138,8 +139,18 @@ def build_canonical_schema(fn: Callable[..., Any]) -> dict[str, Any]:
 
     A parameter typed as :class:`Context` is filtered out: it is injected
     by the runtime, not provided by the LLM, so it must not appear in
-    the schema.
+    the schema. Single-model tools (D-12) report the declared
+    :class:`BaseModel`'s own schema verbatim (post-processed).
     """
+    single = get_single_model(fn)
+
+    if single is not None:
+        _, model = single
+        raw_schema = model.model_json_schema()
+        inlined = _inline_refs(raw_schema)
+
+        return _strip_null_from_optional(inlined)
+
     signature = inspect.signature(fn)
     hints = get_type_hints(fn, include_extras=True)
     docstring_descriptions = _parse_google_args(inspect.getdoc(fn))
