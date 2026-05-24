@@ -7,6 +7,7 @@ import json
 import pytest
 
 from phronesis.tools.errors import (
+    DuplicateToolError,
     ToolError,
     ToolNotFoundError,
     ToolPermissionError,
@@ -23,6 +24,7 @@ class TestHierarchy:
             ToolNotFoundError,
             ToolTimeoutError,
             ToolPermissionError,
+            DuplicateToolError,
         ],
     )
     def test_subclasses_inherit_from_tool_error(self, cls: type[ToolError]) -> None:
@@ -41,6 +43,7 @@ class TestCodes:
             (ToolNotFoundError, "tool_not_found"),
             (ToolTimeoutError, "tool_timeout"),
             (ToolPermissionError, "tool_permission_denied"),
+            (DuplicateToolError, "duplicate_tool"),
         ],
     )
     def test_each_class_has_stable_code(self, cls: type[ToolError], code: str) -> None:
