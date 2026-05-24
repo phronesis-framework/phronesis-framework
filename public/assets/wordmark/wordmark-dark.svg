@@ -1,0 +1,5 @@
+<svg viewBox="0 0 600 100" xmlns="http://www.w3.org/2000/svg">
+  <!-- Wordmark only (dark background) -->
+  <text x="10" y="87" font-family="system-ui, -apple-system, sans-serif" font-size="60" font-weight="700" fill="#ffffff" letter-spacing="-0.02em">phronesis</text>
+  <text x="12" y="122" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="400" fill="#999999" letter-spacing="0.3em">FRAMEWORK</text>
+</svg>

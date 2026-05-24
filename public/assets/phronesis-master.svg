@@ -1,0 +1,19 @@
+<svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Symbol Component -->
+    <g id="symbol">
+      <circle cx="200" cy="512" r="120" fill="none" stroke="#000000" stroke-width="20"/>
+      <line x1="200" y1="352" x2="200" y2="672" stroke="#000000" stroke-width="20"/>
+    </g>
+
+    <!-- Wordmark Component (very tight spacing, FRAMEWORK offset) -->
+    <g id="wordmark">
+      <text x="330" y="590" font-family="system-ui, -apple-system, sans-serif" font-size="120" font-weight="700" fill="#000000" letter-spacing="-0.02em">phronesis</text>
+      <text x="336" y="644" font-family="system-ui, -apple-system, sans-serif" font-size="24" font-weight="400" fill="#666666" letter-spacing="0.3em" text-transform="uppercase">FRAMEWORK</text>
+    </g>
+  </defs>
+
+  <!-- Lockup: Symbol + Wordmark -->
+  <use href="#symbol"/>
+  <use href="#wordmark"/>
+</svg>
