@@ -60,3 +60,9 @@ class ToolPermissionError(ToolError):
     """Tool was denied access to a required resource."""
 
     code = "tool_permission_denied"
+
+
+class DuplicateToolError(ToolError):
+    """Two distinct tools were registered under the same canonical id."""
+
+    code = "duplicate_tool"
