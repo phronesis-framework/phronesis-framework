@@ -7,6 +7,7 @@ import inspect
 
 import pytest
 
+from phronesis.context.context import Context
 from phronesis.tools.errors import (
     ToolError,
     ToolNotFoundError,
@@ -272,3 +273,68 @@ class TestToolErrorChannel:
 
         with pytest.raises(ValueError):
             asyncio.run(wrapped())
+
+
+def _greet(name: str, ctx: Context) -> str:
+    trace = ctx.trace_id or "no-trace"
+    return f"hello {name} [{trace}]"
+
+
+async def _greet_async(name: str, ctx: Context) -> str:
+    trace = ctx.trace_id or "no-trace"
+    return f"hello {name} [{trace}]"
+
+
+def _no_context_tool(x: int) -> int:
+    return x + 1
+
+
+class TestToolContextInjection:
+    def test_invoke_injects_context(self) -> None:
+        wrapped = Tool(_greet, _spec())
+        ctx = Context(trace_id="abc")
+
+        result = wrapped.invoke({"name": "alice"}, context=ctx)
+
+        assert result == "hello alice [abc]"
+
+    def test_invoke_async_injects_context(self) -> None:
+        wrapped = Tool(_greet_async, _spec())
+        ctx = Context(trace_id="xyz")
+
+        result = asyncio.run(wrapped.invoke({"name": "bob"}, context=ctx))
+
+        assert result == "hello bob [xyz]"
+
+    def test_invoke_without_context_omits_injection(self) -> None:
+        wrapped = Tool(_greet, _spec())
+
+        with pytest.raises(TypeError):
+            wrapped.invoke({"name": "alice"})
+
+    def test_invoke_on_tool_without_context_param(self) -> None:
+        wrapped = Tool(_no_context_tool, _spec())
+
+        assert wrapped.invoke({"x": 1}) == 2
+
+    def test_direct_call_does_not_auto_inject_context(self) -> None:
+        wrapped = Tool(_greet, _spec())
+
+        with pytest.raises(TypeError):
+            wrapped(name="alice")
+
+    def test_direct_call_accepts_context_as_kwarg(self) -> None:
+        wrapped = Tool(_greet, _spec())
+        ctx = Context(trace_id="direct")
+
+        assert wrapped(name="alice", ctx=ctx) == "hello alice [direct]"
+
+    def test_context_param_name_is_detected(self) -> None:
+        wrapped = Tool(_greet, _spec())
+
+        assert wrapped._context_param == "ctx"
+
+    def test_no_context_param_when_absent(self) -> None:
+        wrapped = Tool(_no_context_tool, _spec())
+
+        assert wrapped._context_param is None
