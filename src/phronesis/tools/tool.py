@@ -12,7 +12,9 @@ import inspect
 from collections.abc import Callable
 from typing import Any
 
+from phronesis.tools.errors import ToolValidationError
 from phronesis.tools.spec import ToolSpec
+from phronesis.tools.validation import build_validator
 
 
 class Tool:
@@ -30,11 +32,20 @@ class Tool:
         self._fn = fn
         self.spec = spec
         self.is_async = inspect.iscoroutinefunction(fn)
+        self._signature = inspect.signature(fn)
+        self._validator = build_validator(fn)
 
         functools.update_wrapper(self, fn)
 
     def __call__(self, *args: Any, **kwargs: Any) -> Any:
-        return self._fn(*args, **kwargs)
+        try:
+            bound = self._signature.bind_partial(*args, **kwargs)
+        except TypeError as exc:
+            raise ToolValidationError(str(exc), details={}) from exc
+
+        validated = self._validator(dict(bound.arguments))
+
+        return self._fn(**validated)
 
     def __repr__(self) -> str:
         return f"Tool(id={self.spec.id.canonical!r}, name={str(self.spec.name)!r})"
