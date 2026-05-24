@@ -5,6 +5,9 @@ from __future__ import annotations
 import asyncio
 import inspect
 
+import pytest
+
+from phronesis.tools.errors import ToolValidationError
 from phronesis.tools.spec import ToolSpec
 from phronesis.tools.tool import Tool
 from phronesis.tools.tool_id import ToolId, ToolName
@@ -106,3 +109,53 @@ class TestToolRepr:
 
         assert "phronesis.tools.echo" in text
         assert "echo" in text
+
+
+class TestToolValidation:
+    def test_valid_args_invoke_function(self) -> None:
+        wrapped = Tool(_sum, _spec())
+
+        assert wrapped(2, 3) == 5
+
+    def test_positional_and_keyword_are_bound_then_validated(self) -> None:
+        wrapped = Tool(_sum, _spec())
+
+        assert wrapped(2, b=4) == 6
+
+    def test_wrong_type_raises_tool_validation_error(self) -> None:
+        wrapped = Tool(_sum, _spec())
+
+        with pytest.raises(ToolValidationError):
+            wrapped("not a number", 3)
+
+    def test_missing_required_raises_tool_validation_error(self) -> None:
+        def needs_arg(a: int) -> int:
+            return a
+
+        wrapped = Tool(needs_arg, _spec())
+
+        with pytest.raises(ToolValidationError):
+            wrapped()
+
+    def test_invalid_signature_binding_raises_tool_validation_error(self) -> None:
+        wrapped = Tool(_sum, _spec())
+
+        with pytest.raises(ToolValidationError):
+            wrapped(1, 2, 3)
+
+    def test_async_tool_validates_before_returning_coroutine(self) -> None:
+        async def afn(x: int) -> int:
+            return x + 1
+
+        wrapped = Tool(afn, _spec())
+
+        with pytest.raises(ToolValidationError):
+            wrapped("bad")
+
+    def test_async_tool_runs_when_valid(self) -> None:
+        async def afn(x: int) -> int:
+            return x + 1
+
+        wrapped = Tool(afn, _spec())
+
+        assert asyncio.run(wrapped(1)) == 2
