@@ -159,3 +159,30 @@ class TestToolValidation:
         wrapped = Tool(afn, _spec())
 
         assert asyncio.run(wrapped(1)) == 2
+
+
+def _schema_target(x: int) -> int:
+    return x
+
+
+class TestToolGetSchema:
+    def test_returns_canonical_dict_without_provider(self) -> None:
+        wrapped = Tool(_schema_target, _spec())
+
+        schema = wrapped.get_schema()
+
+        assert schema["properties"]["x"]["type"] == "integer"
+
+    def test_second_call_returns_cached_object(self) -> None:
+        wrapped = Tool(_schema_target, _spec())
+
+        first = wrapped.get_schema()
+        second = wrapped.get_schema()
+
+        assert first is second
+
+    def test_provider_argument_is_not_implemented_yet(self) -> None:
+        wrapped = Tool(_schema_target, _spec())
+
+        with pytest.raises(NotImplementedError):
+            wrapped.get_schema(provider="anthropic")

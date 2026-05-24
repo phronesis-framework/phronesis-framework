@@ -151,3 +151,26 @@ class TestPreservesSignatureAndInvocability:
 
     def test_is_async_flag_for_sync_decorated(self) -> None:
         assert add_sync.is_async is False
+
+
+@tool
+def schema_eager(x: int) -> int:
+    return x
+
+
+@tool(lazy=True)
+def schema_lazy(x: int) -> int:
+    return x
+
+
+class TestEagerCanonicalSchema:
+    def test_eager_decoration_populates_input_schema(self) -> None:
+        assert "x" in schema_eager.spec.input_schema.get("properties", {})
+
+    def test_lazy_decoration_leaves_input_schema_empty(self) -> None:
+        assert dict(schema_lazy.spec.input_schema) == {}
+
+    def test_lazy_get_schema_builds_on_demand(self) -> None:
+        built = schema_lazy.get_schema()
+
+        assert "x" in built.get("properties", {})
