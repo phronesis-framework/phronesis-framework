@@ -17,6 +17,7 @@ from pydantic import ValidationError, create_model
 
 from phronesis.tools.errors import ToolValidationError
 from phronesis.tools.injection import detect_context_param
+from phronesis.tools.single_model import get_single_model
 
 _IDENT_RE = re.compile(r"[^A-Za-z0-9_]")
 
@@ -32,14 +33,52 @@ def _is_validatable(param: inspect.Parameter) -> bool:
     )
 
 
+def _build_single_model_validator(
+    param_name: str,
+    model: type[Any],
+) -> Callable[[dict[str, Any]], dict[str, Any]]:
+    def validate(values: dict[str, Any]) -> dict[str, Any]:
+        raw = values.get(param_name, {})
+
+        if isinstance(raw, model):
+            return {param_name: raw}
+
+        try:
+            instance = model.model_validate(raw)
+        except ValidationError as exc:
+            first = exc.errors()[0]
+            loc = first.get("loc") or ()
+            field = ".".join(str(p) for p in loc) if loc else ""
+
+            raise ToolValidationError(
+                f"Invalid argument {field!r}: {first['msg']}" if field else first["msg"],
+                details={
+                    "field": field,
+                    "got_value": first.get("input"),
+                },
+            ) from exc
+
+        return {param_name: instance}
+
+    return validate
+
+
 def build_validator(
     fn: Callable[..., Any],
 ) -> Callable[[dict[str, Any]], dict[str, Any]]:
     """Return a callable that validates a kwargs dict against ``fn``'s signature.
 
     Variadic ``*args`` and ``**kwargs`` are skipped: only named parameters
-    are validated.
+    are validated. Single-model tools (D-12) delegate validation to the
+    declared :class:`BaseModel`.
     """
+    single = get_single_model(fn)
+
+    if single is not None:
+        param_name, model = single
+
+        return _build_single_model_validator(param_name, model)
+
     signature = inspect.signature(fn)
     hints = get_type_hints(fn, include_extras=True)
     context_param = detect_context_param(fn)

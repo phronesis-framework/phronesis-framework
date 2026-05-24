@@ -16,6 +16,7 @@ from phronesis.context.context import Context
 from phronesis.tools.errors import ToolError, ToolValidationError, auto_map_exception
 from phronesis.tools.injection import detect_context_param
 from phronesis.tools.schema import build_canonical_schema
+from phronesis.tools.single_model import get_single_model
 from phronesis.tools.spec import ToolSpec
 from phronesis.tools.validation import build_validator
 
@@ -44,6 +45,8 @@ class Tool:
         self._signature = inspect.signature(fn)
         self._validator = build_validator(fn)
         self._context_param = detect_context_param(fn)
+        single = get_single_model(fn)
+        self._single_model_param: str | None = single[0] if single is not None else None
         self._lazy = lazy
         self._canonical_schema: dict[str, Any] | None = None
         self._provider_schemas: dict[str, dict[str, Any]] = {}
@@ -82,7 +85,12 @@ class Tool:
         (Context is **not** in it), and ``context`` is the runtime context.
         For sync tools returns the value; for async tools returns a coroutine.
         """
-        validated = self._validator(dict(args) if args else {})
+        raw = dict(args) if args else {}
+
+        if self._single_model_param is not None:
+            raw = {self._single_model_param: raw}
+
+        validated = self._validator(raw)
 
         if self._context_param is not None and context is not None:
             validated[self._context_param] = context
