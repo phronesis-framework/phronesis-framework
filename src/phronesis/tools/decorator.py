@@ -13,6 +13,7 @@ from typing import Any, overload
 
 from phronesis._internal.ids.derivation import canonical_from_function
 from phronesis.tools.effects import ToolEffect
+from phronesis.tools.registry import current_registry
 from phronesis.tools.spec import ToolSpec
 from phronesis.tools.tool import Tool
 from phronesis.tools.tool_id import ToolId, ToolName
@@ -83,8 +84,11 @@ def tool(
             effects=effects,
             version=version,
         )
+        built = Tool(target, spec)
 
-        return Tool(target, spec)
+        current_registry().register(built)
+
+        return built
 
     if fn is not None:
         return wrap(fn)
