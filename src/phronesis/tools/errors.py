@@ -62,6 +62,12 @@ class ToolPermissionError(ToolError):
     code = "tool_permission_denied"
 
 
+class ToolHTTPError(ToolError):
+    """A downstream HTTP call returned a client-side (4xx) status."""
+
+    code = "tool_http_error"
+
+
 class DuplicateToolError(ToolError):
     """Two distinct tools were registered under the same canonical id."""
 
