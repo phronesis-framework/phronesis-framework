@@ -7,6 +7,7 @@ from typing import Any, Literal
 
 import pytest
 
+from phronesis.context.context import Context
 from phronesis.tools.errors import ToolValidationError
 from phronesis.tools.validation import build_validator
 
@@ -145,3 +146,17 @@ class TestVariadic:
         def fn(a: int, *args: int, **kwargs: int) -> None: ...
 
         assert _validator(fn)({"a": 5}) == {"a": 5}
+
+
+def _with_context(ctx: Context, name: str) -> None: ...
+
+
+def _only_context(ctx: Context) -> None: ...
+
+
+class TestContextFiltering:
+    def test_context_param_is_not_required(self) -> None:
+        assert _validator(_with_context)({"name": "alice"}) == {"name": "alice"}
+
+    def test_only_context_param_validates_empty_dict(self) -> None:
+        assert _validator(_only_context)({}) == {}

@@ -16,6 +16,7 @@ from typing import Any, get_type_hints
 from pydantic import ValidationError, create_model
 
 from phronesis.tools.errors import ToolValidationError
+from phronesis.tools.injection import detect_context_param
 
 _IDENT_RE = re.compile(r"[^A-Za-z0-9_]")
 
@@ -41,10 +42,14 @@ def build_validator(
     """
     signature = inspect.signature(fn)
     hints = get_type_hints(fn, include_extras=True)
+    context_param = detect_context_param(fn)
     fields: dict[str, Any] = {}
 
     for name, param in signature.parameters.items():
         if not _is_validatable(param):
+            continue
+
+        if name == context_param:
             continue
 
         annotation = hints.get(name, Any)
