@@ -75,6 +75,12 @@ class DuplicateToolError(ToolError):
     code = "duplicate_tool"
 
 
+class ToolDefinitionError(ToolError):
+    """A tool definition is structurally invalid (decoration-time error)."""
+
+    code = "tool_definition_error"
+
+
 def auto_map_exception(exc: BaseException) -> ToolError | None:
     """Map a small, closed set of standard exceptions to :class:`ToolError`.
 
