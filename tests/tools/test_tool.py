@@ -232,6 +232,85 @@ class TestToolGetSchemaProvider:
         assert "anthropic" in exc_info.value.details["available"]
 
 
+def _override_payload() -> dict[str, object]:
+    return {
+        "type": "object",
+        "properties": {"x": {"type": "string", "description": "overridden"}},
+        "required": ["x"],
+    }
+
+
+def _override_payload_v2() -> dict[str, object]:
+    return {
+        "type": "object",
+        "properties": {"x": {"type": "boolean"}},
+        "required": ["x"],
+    }
+
+
+class TestToolSchemaOverride:
+    def test_override_replaces_canonical_schema(self) -> None:
+        wrapped = Tool(_schema_target, _spec())
+        wrapped.schema(_override_payload)
+
+        schema = wrapped.get_schema()
+
+        assert schema["properties"]["x"]["type"] == "string"
+        assert schema["properties"]["x"]["description"] == "overridden"
+
+    def test_decorator_returns_factory_unchanged(self) -> None:
+        wrapped = Tool(_schema_target, _spec())
+
+        returned = wrapped.schema(_override_payload)
+
+        assert returned is _override_payload
+
+    def test_override_invalidates_canonical_cache(self) -> None:
+        wrapped = Tool(_schema_target, _spec())
+
+        before = wrapped.get_schema()
+        wrapped.schema(_override_payload)
+        after = wrapped.get_schema()
+
+        assert before["properties"]["x"]["type"] == "integer"
+        assert after["properties"]["x"]["type"] == "string"
+
+    def test_override_invalidates_provider_cache(self) -> None:
+        wrapped = Tool(_schema_target, _spec())
+
+        before = wrapped.get_schema(provider="anthropic")
+        wrapped.schema(_override_payload)
+        after = wrapped.get_schema(provider="anthropic")
+
+        assert before["input_schema"]["properties"]["x"]["type"] == "integer"
+        assert after["input_schema"]["properties"]["x"]["type"] == "string"
+
+    def test_provider_adapter_runs_on_override(self) -> None:
+        wrapped = Tool(_schema_target, _spec())
+        wrapped.schema(_override_payload)
+
+        adapted = wrapped.get_schema(provider="openai")
+
+        assert adapted["type"] == "function"
+        assert adapted["function"]["parameters"]["properties"]["x"]["type"] == "string"
+
+    def test_override_does_not_replace_validator(self) -> None:
+        wrapped = Tool(_schema_target, _spec())
+        wrapped.schema(_override_payload)
+
+        with pytest.raises(ToolValidationError):
+            wrapped(x="not-an-int")
+
+    def test_second_override_replaces_first(self) -> None:
+        wrapped = Tool(_schema_target, _spec())
+        wrapped.schema(_override_payload)
+        wrapped.schema(_override_payload_v2)
+
+        schema = wrapped.get_schema()
+
+        assert schema["properties"]["x"]["type"] == "boolean"
+
+
 class TestToolErrorChannel:
     def test_tool_error_propagates_unchanged(self) -> None:
         def raises_tool_error() -> None:
