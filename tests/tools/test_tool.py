@@ -13,6 +13,7 @@ from phronesis.tools.errors import (
     ToolNotFoundError,
     ToolPermissionError,
     ToolValidationError,
+    UnsupportedProviderError,
 )
 from phronesis.tools.spec import ToolSpec
 from phronesis.tools.tool import Tool
@@ -187,11 +188,48 @@ class TestToolGetSchema:
 
         assert first is second
 
-    def test_provider_argument_is_not_implemented_yet(self) -> None:
+
+class TestToolGetSchemaProvider:
+    def test_anthropic_returns_anthropic_shape(self) -> None:
         wrapped = Tool(_schema_target, _spec())
 
-        with pytest.raises(NotImplementedError):
-            wrapped.get_schema(provider="anthropic")
+        schema = wrapped.get_schema(provider="anthropic")
+
+        assert set(schema.keys()) == {"name", "description", "input_schema"}
+        assert schema["name"] == "echo"
+
+    def test_openai_returns_function_envelope(self) -> None:
+        wrapped = Tool(_schema_target, _spec())
+
+        schema = wrapped.get_schema(provider="openai")
+
+        assert schema["type"] == "function"
+        assert schema["function"]["name"] == "echo"
+
+    def test_second_call_same_provider_returns_cached_object(self) -> None:
+        wrapped = Tool(_schema_target, _spec())
+
+        first = wrapped.get_schema(provider="anthropic")
+        second = wrapped.get_schema(provider="anthropic")
+
+        assert first is second
+
+    def test_canonical_and_provider_schemas_are_distinct(self) -> None:
+        wrapped = Tool(_schema_target, _spec())
+
+        canonical = wrapped.get_schema()
+        adapted = wrapped.get_schema(provider="anthropic")
+
+        assert canonical is not adapted
+
+    def test_unknown_provider_raises_unsupported_provider_error(self) -> None:
+        wrapped = Tool(_schema_target, _spec())
+
+        with pytest.raises(UnsupportedProviderError) as exc_info:
+            wrapped.get_schema(provider="bogus")
+
+        assert exc_info.value.details["provider"] == "bogus"
+        assert "anthropic" in exc_info.value.details["available"]
 
 
 class TestToolErrorChannel:

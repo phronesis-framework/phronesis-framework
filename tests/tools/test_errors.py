@@ -16,6 +16,7 @@ from phronesis.tools.errors import (
     ToolPermissionError,
     ToolTimeoutError,
     ToolValidationError,
+    UnsupportedProviderError,
     auto_map_exception,
 )
 
@@ -30,6 +31,7 @@ class TestHierarchy:
             ToolPermissionError,
             DuplicateToolError,
             ToolHTTPError,
+            UnsupportedProviderError,
         ],
     )
     def test_subclasses_inherit_from_tool_error(self, cls: type[ToolError]) -> None:
@@ -50,6 +52,7 @@ class TestCodes:
             (ToolPermissionError, "tool_permission_denied"),
             (DuplicateToolError, "duplicate_tool"),
             (ToolHTTPError, "tool_http_error"),
+            (UnsupportedProviderError, "unsupported_provider"),
         ],
     )
     def test_each_class_has_stable_code(self, cls: type[ToolError], code: str) -> None:
