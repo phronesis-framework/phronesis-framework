@@ -46,6 +46,7 @@ class Tool:
         self._context_param = detect_context_param(fn)
         self._lazy = lazy
         self._canonical_schema: dict[str, Any] | None = None
+        self._provider_schemas: dict[str, dict[str, Any]] = {}
 
         functools.update_wrapper(self, fn)
 
@@ -121,18 +122,29 @@ class Tool:
         """Return the JSON schema describing this tool's inputs.
 
         Without ``provider`` returns the canonical schema, generated lazily
-        the first time when the tool was created with ``lazy=True``. Per
-        D-25 the dict is returned raw.
+        the first time when the tool was created with ``lazy=True``. With
+        ``provider`` returns the adapted schema for that provider, cached
+        on first use. Unknown providers raise
+        :class:`UnsupportedProviderError`.
         """
-        if provider is not None:
-            raise NotImplementedError(
-                "Provider-specific schemas are not implemented yet (FASE 7).",
-            )
-
         if self._canonical_schema is None:
             self._canonical_schema = build_canonical_schema(self._fn)
 
-        return self._canonical_schema
+        if provider is None:
+            return self._canonical_schema
+
+        cached = self._provider_schemas.get(provider)
+
+        if cached is not None:
+            return cached
+
+        from phronesis.tools.providers import get_adapter
+
+        adapter = get_adapter(provider)
+        adapted = adapter.adapt(self._canonical_schema, spec=self.spec)
+        self._provider_schemas[provider] = adapted
+
+        return adapted
 
     def __repr__(self) -> str:
         return f"Tool(id={self.spec.id.canonical!r}, name={str(self.spec.name)!r})"
