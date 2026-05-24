@@ -12,7 +12,7 @@ import inspect
 from collections.abc import Callable
 from typing import Any
 
-from phronesis.tools.errors import ToolValidationError
+from phronesis.tools.errors import ToolError, ToolValidationError, auto_map_exception
 from phronesis.tools.schema import build_canonical_schema
 from phronesis.tools.spec import ToolSpec
 from phronesis.tools.validation import build_validator
@@ -54,7 +54,36 @@ class Tool:
 
         validated = self._validator(dict(bound.arguments))
 
-        return self._fn(**validated)
+        if self.is_async:
+            return self._invoke_async(validated)
+
+        return self._invoke_sync(validated)
+
+    def _invoke_sync(self, validated: dict[str, Any]) -> Any:
+        try:
+            return self._fn(**validated)
+        except ToolError:
+            raise
+        except Exception as exc:
+            mapped = auto_map_exception(exc)
+
+            if mapped is not None:
+                raise mapped from exc
+
+            raise
+
+    async def _invoke_async(self, validated: dict[str, Any]) -> Any:
+        try:
+            return await self._fn(**validated)
+        except ToolError:
+            raise
+        except Exception as exc:
+            mapped = auto_map_exception(exc)
+
+            if mapped is not None:
+                raise mapped from exc
+
+            raise
 
     def get_schema(self, provider: str | None = None) -> dict[str, Any]:
         """Return the JSON schema describing this tool's inputs.
