@@ -81,6 +81,16 @@ class ToolDefinitionError(ToolError):
     code = "tool_definition_error"
 
 
+class UnsupportedProviderError(ToolError):
+    """No adapter is registered for the requested provider."""
+
+    code = "unsupported_provider"
+
+
+class SchemaDegradationWarning(UserWarning):
+    """A provider adapter lost or coerced information from the canonical schema."""
+
+
 def auto_map_exception(exc: BaseException) -> ToolError | None:
     """Map a small, closed set of standard exceptions to :class:`ToolError`.
 
