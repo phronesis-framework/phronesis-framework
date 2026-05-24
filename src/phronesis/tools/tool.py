@@ -12,7 +12,9 @@ import inspect
 from collections.abc import Callable
 from typing import Any
 
+from phronesis.context.context import Context
 from phronesis.tools.errors import ToolError, ToolValidationError, auto_map_exception
+from phronesis.tools.injection import detect_context_param
 from phronesis.tools.schema import build_canonical_schema
 from phronesis.tools.spec import ToolSpec
 from phronesis.tools.validation import build_validator
@@ -41,6 +43,7 @@ class Tool:
         self.is_async = inspect.iscoroutinefunction(fn)
         self._signature = inspect.signature(fn)
         self._validator = build_validator(fn)
+        self._context_param = detect_context_param(fn)
         self._lazy = lazy
         self._canonical_schema: dict[str, Any] | None = None
 
@@ -52,7 +55,36 @@ class Tool:
         except TypeError as exc:
             raise ToolValidationError(str(exc), details={}) from exc
 
-        validated = self._validator(dict(bound.arguments))
+        bound_args = dict(bound.arguments)
+        passthrough_context = (
+            bound_args.pop(self._context_param, None) if self._context_param else None
+        )
+        validated = self._validator(bound_args)
+
+        if passthrough_context is not None:
+            validated[self._context_param] = passthrough_context  # type: ignore[index]
+
+        if self.is_async:
+            return self._invoke_async(validated)
+
+        return self._invoke_sync(validated)
+
+    def invoke(
+        self,
+        args: dict[str, Any] | None = None,
+        *,
+        context: Context | None = None,
+    ) -> Any:
+        """Validate ``args`` and execute the tool, injecting ``context`` by type.
+
+        Intended for runtime use: ``args`` is the LLM-provided argument dict
+        (Context is **not** in it), and ``context`` is the runtime context.
+        For sync tools returns the value; for async tools returns a coroutine.
+        """
+        validated = self._validator(dict(args) if args else {})
+
+        if self._context_param is not None and context is not None:
+            validated[self._context_param] = context
 
         if self.is_async:
             return self._invoke_async(validated)
