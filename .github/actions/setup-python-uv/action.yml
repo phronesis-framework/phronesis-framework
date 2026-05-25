@@ -1,0 +1,29 @@
+name: "Setup Python + uv"
+description: "Instala uv, Python y sincroniza dependencias con cache"
+inputs:
+  python-version:
+    description: "Python version"
+    required: false
+    default: "3.11"
+  extras:
+    description: "Extras a instalar (ej: 'dev', 'dev,test')"
+    required: false
+    default: "dev"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Install uv
+      uses: astral-sh/setup-uv@v3
+      with:
+        enable-cache: true
+        cache-dependency-glob: "uv.lock"
+
+    - name: Setup Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ inputs.python-version }}
+
+    - name: Sync dependencies
+      shell: bash
+      run: uv sync --extra ${{ inputs.extras }} --frozen
