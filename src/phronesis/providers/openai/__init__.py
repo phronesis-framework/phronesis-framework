@@ -1,9 +1,14 @@
 """OpenAI provider implementation.
 
-See ``docs/PROVIDERS-DECISIONS.md``. The public entry point is the
-``openai`` factory function exposed from :mod:`phronesis.providers`.
+See ``docs/PROVIDERS-DECISIONS.md``. Public entry point is the
+:func:`openai` factory; the underlying ``OpenAIProvider`` class is
+framework-internal.
 """
 
 from __future__ import annotations
 
-__all__: list[str] = []
+from phronesis.providers.openai.factory import openai
+
+__all__ = [
+    "openai",
+]
