@@ -20,6 +20,11 @@ dev = [
     "ruff>=0.6",
     "mypy>=1.11",
 ]
+obs = [
+    "opentelemetry-api>=1.27",
+    "opentelemetry-sdk>=1.27",
+    "opentelemetry-exporter-otlp>=1.27",
+]
 
 [build-system]
 requires = ["hatchling"]
