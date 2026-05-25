@@ -8,6 +8,7 @@ from typing import Any
 import pytest
 
 from phronesis.obs import spans as spans_module
+from phronesis.obs._detect import OBS_AVAILABLE
 from phronesis.obs.config import configure_obs
 from phronesis.obs.spans import traced
 
@@ -58,6 +59,7 @@ class TestTracedNoopMode:
         assert asyncio.run(wrapped(4)) == 5
 
 
+@pytest.mark.skipif(not OBS_AVAILABLE, reason="obs extra not installed")
 class TestTracedSyncActiveMode:
     def test_call_emits_span_with_expected_name(self) -> None:
         spy = _SpyExporter()
@@ -116,6 +118,7 @@ class TestTracedSyncActiveMode:
         assert fn.__doc__ == "Do a thing."
 
 
+@pytest.mark.skipif(not OBS_AVAILABLE, reason="obs extra not installed")
 class TestTracedAsyncActiveMode:
     async def test_call_emits_span_with_expected_name(self) -> None:
         spy = _SpyExporter()

@@ -7,6 +7,7 @@ import logging
 import pytest
 
 from phronesis.obs import logging_filter as logging_filter_module
+from phronesis.obs._detect import OBS_AVAILABLE
 from phronesis.obs.config import configure_obs
 from phronesis.obs.logging_filter import (
     TraceCorrelationFilter,
@@ -35,6 +36,7 @@ class TestTraceCorrelationFilterWithoutSpan:
 
         assert flt.filter(record) is True
 
+    @pytest.mark.skipif(not OBS_AVAILABLE, reason="obs extra not installed")
     def test_filter_does_not_add_fields_without_active_span(self) -> None:
         configure_obs()
         record = _make_record()
@@ -46,6 +48,7 @@ class TestTraceCorrelationFilterWithoutSpan:
         assert not hasattr(record, "span_id")
 
 
+@pytest.mark.skipif(not OBS_AVAILABLE, reason="obs extra not installed")
 class TestTraceCorrelationFilterWithSpan:
     def test_filter_adds_trace_id_and_span_id(self) -> None:
         configure_obs()
@@ -66,7 +69,7 @@ class TestTraceCorrelationFilterWithSpan:
             record = _make_record()
             flt.filter(record)
 
-        trace_id = getattr(record, "trace_id")
+        trace_id: str = record.trace_id  # type: ignore[attr-defined]
 
         assert len(trace_id) == 32
         int(trace_id, 16)
@@ -79,7 +82,7 @@ class TestTraceCorrelationFilterWithSpan:
             record = _make_record()
             flt.filter(record)
 
-        span_id = getattr(record, "span_id")
+        span_id: str = record.span_id  # type: ignore[attr-defined]
 
         assert len(span_id) == 16
         int(span_id, 16)
@@ -101,6 +104,7 @@ class TestInstallTraceCorrelationFilter:
 
         assert logging.getLogRecordFactory() is first_factory
 
+    @pytest.mark.skipif(not OBS_AVAILABLE, reason="obs extra not installed")
     def test_factory_enriches_records_globally(self) -> None:
         configure_obs()
         install_trace_correlation_filter()
@@ -120,6 +124,7 @@ class TestInstallTraceCorrelationFilter:
         assert hasattr(record, "trace_id")
         assert hasattr(record, "span_id")
 
+    @pytest.mark.skipif(not OBS_AVAILABLE, reason="obs extra not installed")
     def test_factory_does_not_enrich_without_active_span(self) -> None:
         configure_obs()
         install_trace_correlation_filter()

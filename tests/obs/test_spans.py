@@ -7,6 +7,7 @@ from typing import Any
 import pytest
 
 from phronesis.obs import spans as spans_module
+from phronesis.obs._detect import OBS_AVAILABLE
 from phronesis.obs._noop import _NoopSpan
 from phronesis.obs.config import configure_obs
 from phronesis.obs.spans import start_span, start_span_async
@@ -52,6 +53,7 @@ class TestStartSpanNoopMode:
             raise ValueError("boom")
 
 
+@pytest.mark.skipif(not OBS_AVAILABLE, reason="obs extra not installed")
 class TestStartSpanActiveMode:
     def test_emits_span_with_expected_name(self) -> None:
         spy = _SpyExporter()
@@ -117,6 +119,7 @@ class TestStartSpanAsyncNoopMode:
                 raise ValueError("boom")
 
 
+@pytest.mark.skipif(not OBS_AVAILABLE, reason="obs extra not installed")
 class TestStartSpanAsyncActiveMode:
     async def test_emits_span_with_expected_name(self) -> None:
         spy = _SpyExporter()

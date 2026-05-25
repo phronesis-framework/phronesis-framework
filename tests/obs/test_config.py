@@ -8,6 +8,7 @@ from typing import Any
 import pytest
 
 from phronesis.obs import config as config_module
+from phronesis.obs._detect import OBS_AVAILABLE
 from phronesis.obs.config import ObsConfig, _state, configure_obs
 from phronesis.obs.errors import ObsNotAvailableError
 
@@ -57,6 +58,7 @@ class TestConfigureObsWithoutExtra:
             configure_obs()
 
 
+@pytest.mark.skipif(not OBS_AVAILABLE, reason="obs extra not installed")
 class TestConfigureObsDefault:
     def test_returns_config_snapshot_with_defaults(self) -> None:
         cfg = configure_obs()
@@ -81,6 +83,7 @@ class TestConfigureObsDefault:
         assert trace.get_tracer_provider() is _state.tracer_provider
 
 
+@pytest.mark.skipif(not OBS_AVAILABLE, reason="obs extra not installed")
 class TestConfigureObsCustom:
     def test_passes_service_name_to_resource(self) -> None:
         configure_obs(service_name="my-service")
@@ -119,6 +122,7 @@ class TestConfigureObsCustom:
         assert isinstance(_state.tracer_provider.sampler, TraceIdRatioBased)
 
 
+@pytest.mark.skipif(not OBS_AVAILABLE, reason="obs extra not installed")
 class TestConfigureObsIdempotency:
     def test_second_call_replaces_provider(self) -> None:
         configure_obs()
@@ -137,6 +141,7 @@ class TestConfigureObsIdempotency:
         assert _state.config.service_name == "second"
 
 
+@pytest.mark.skipif(not OBS_AVAILABLE, reason="obs extra not installed")
 class TestMeterProviderWireUp:
     def test_meter_provider_is_set_globally(self) -> None:
         from opentelemetry import metrics as otel_metrics
@@ -190,6 +195,7 @@ class TestMeterProviderWireUp:
         assert metrics_module.tool_invocations is _NOOP
 
 
+@pytest.mark.skipif(not OBS_AVAILABLE, reason="obs extra not installed")
 class TestLoggingFilterInstallation:
     def test_configure_installs_logging_factory(self) -> None:
         import logging
@@ -242,6 +248,7 @@ class TestLoggingFilterInstallation:
         assert len(payload["span_id"]) == 16
 
 
+@pytest.mark.skipif(not OBS_AVAILABLE, reason="obs extra not installed")
 class TestSpyExporterIntegration:
     def test_spans_flow_through_exporter_instance(self) -> None:
         from opentelemetry import trace
