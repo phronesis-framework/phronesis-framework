@@ -1,7 +1,7 @@
 """Token usage reporting.
 
-See ``docs/PROVIDERS-DECISIONS.md`` (D-10): providers expose raw token
-counts as reported by their API. Cost calculation is out of scope.
+Providers expose raw token counts as reported by their API. Cost
+calculation is out of scope and left to callers who know their pricing.
 """
 
 from __future__ import annotations

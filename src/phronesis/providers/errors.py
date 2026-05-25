@@ -1,12 +1,12 @@
 """Provider error hierarchy.
 
-See ``docs/PROVIDERS-DECISIONS.md`` (D-11): a small, actionable hierarchy
-under :class:`ProviderError`. Each subclass maps to a category of failure
-that callers may want to handle differently.
+A small, actionable hierarchy under :class:`ProviderError`. Each
+subclass maps to a category of failure that callers may want to handle
+differently: authentication, rate limiting, context overflow, server
+faults, malformed requests, transport problems and streaming errors.
 
 :class:`RateLimitError` exposes :attr:`retry_after_seconds` so the retry
-layer (D-12) can honor server-provided backoff hints via
-``delay_hook``.
+layer can honor server-provided backoff hints via ``delay_hook``.
 """
 
 from __future__ import annotations

@@ -1,9 +1,9 @@
 """Request/response types exchanged with a provider.
 
-See ``docs/PROVIDERS-DECISIONS.md`` (D-07): frozen, slotted dataclasses,
-same style as :mod:`phronesis.tools`. These types are framework-internal
-data plumbing; validation of user input happens in the boundaries
-(factory functions, HTTP I/O), not on every transformation.
+Frozen, slotted dataclasses in the same style as :mod:`phronesis.tools`.
+These types are framework-internal data plumbing; validation of user
+input happens at the boundaries (factory functions, HTTP I/O), not on
+every transformation.
 """
 
 from __future__ import annotations

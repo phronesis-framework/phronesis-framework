@@ -1,11 +1,9 @@
 """Streaming chunk types.
 
-See ``docs/PROVIDERS-DECISIONS.md`` (D-08): a sealed union of frozen,
-slotted dataclasses. Each subtype models a distinct event a provider
-emits during streaming.
-
-Consumers can ``match`` on the union exhaustively; the type checker
-flags missing variants.
+A sealed union of frozen, slotted dataclasses where each variant models
+a distinct event a provider emits during streaming. Consumers can
+``match`` on the union exhaustively; the type checker flags missing
+variants.
 """
 
 from __future__ import annotations

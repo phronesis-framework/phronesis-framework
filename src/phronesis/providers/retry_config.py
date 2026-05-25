@@ -1,9 +1,9 @@
 """Retry configuration for provider network calls.
 
-See ``docs/PROVIDERS-DECISIONS.md`` (D-12): providers wrap their HTTP
-operations with :func:`phronesis._internal.retry.retry`. This module
-exposes a :class:`RetryConfig` dataclass with sensible defaults and a
-helper that turns it into a ready-to-use decorator.
+Providers wrap their HTTP operations with
+:func:`phronesis._internal.retry.retry`. This module exposes a
+:class:`RetryConfig` dataclass with sensible defaults and a helper that
+turns it into a ready-to-use decorator.
 
 By default, :class:`TransportError`, :class:`RateLimitError` and
 :class:`ServerError` are retried. ``RateLimitError.retry_after_seconds``

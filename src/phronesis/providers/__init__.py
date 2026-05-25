@@ -1,9 +1,11 @@
-"""Providers package - LLM adapters for Phronesis.
+"""LLM adapters for Phronesis.
 
-See ``docs/PROVIDERS-DECISIONS.md`` for the design rationale. This
-module re-exports the stable public API: vendor factories, the
-:class:`LLMProvider` protocol, request/response types, streaming
-chunks, token usage, error hierarchy and retry configuration.
+Re-exports the stable public API of the providers module: vendor
+factories (:func:`anthropic`, :func:`openai`), the :class:`LLMProvider`
+protocol with its :class:`ProviderFeature` flags, request/response
+types, the sealed :data:`LLMChunk` union for streaming, the
+:class:`TokenUsage` accounting record, the :class:`ProviderError`
+hierarchy and :class:`RetryConfig`.
 """
 
 from __future__ import annotations

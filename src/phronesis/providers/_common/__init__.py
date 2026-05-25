@@ -1,7 +1,7 @@
 """Internal utilities shared across concrete providers.
 
-See ``docs/PROVIDERS-DECISIONS.md`` (D-04): reuse happens by composition,
-not inheritance. Helpers live here and providers consume them.
+Reuse happens by composition, not inheritance: helpers live here and
+providers consume them as plain functions or small dataclasses.
 """
 
 from __future__ import annotations

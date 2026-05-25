@@ -1,13 +1,12 @@
 """Provider protocol and capability enum.
 
-See ``docs/PROVIDERS-DECISIONS.md`` (D-02, D-09):
+:class:`ProviderFeature` is a closed :class:`enum.StrEnum`; adding a
+capability requires extending the enum, which forces explicit
+coordination across providers.
 
-- :class:`ProviderFeature` is a closed :class:`enum.StrEnum`; adding a
-  capability requires updating the enum, which forces explicit
-  coordination across providers.
-- :class:`LLMProvider` is a :class:`typing.Protocol`. Custom providers
-  implement it by structural typing — no base class to inherit from
-  (D-04: composition over inheritance).
+:class:`LLMProvider` is a :class:`typing.Protocol`. Custom providers
+implement it by structural typing — there is no base class to inherit
+from. Reuse across built-in providers happens by composition.
 """
 
 from __future__ import annotations
@@ -38,7 +37,7 @@ class LLMProvider(Protocol):
 
     A provider is anything exposing ``complete``, ``stream`` and
     ``supports``. Built-in providers are instantiated via factory
-    functions (D-01); custom providers implement this protocol directly.
+    functions; custom providers implement this protocol directly.
     """
 
     async def complete(self, request: LLMRequest) -> LLMResponse:
