@@ -21,8 +21,24 @@ from phronesis.tools.single_model import get_single_model
 
 _IDENT_RE = re.compile(r"\W")
 _ARGS_HEADER_RE = re.compile(r"^\s*Args?:\s*$", re.MULTILINE)
-_ARG_LINE_RE = re.compile(r"^([A-Za-z_]\w*)\s*(?:\([^)]*\))?\s*:\s*(.+)$")
 _SECTION_BREAK_RE = re.compile(r"^\s*(Returns?|Raises?|Yields?|Examples?|Notes?):\s*$")
+
+
+def _parse_arg_line(stripped: str) -> tuple[str, str] | None:
+    head, sep, tail = stripped.partition(":")
+
+    if not sep:
+        return None
+
+    head = head.strip()
+    paren = head.find("(")
+
+    name = head[:paren].rstrip() if paren != -1 else head
+
+    if not name.isidentifier():
+        return None
+
+    return name, tail.strip()
 
 
 def _safe_model_name(fn: Callable[..., Any]) -> str:
@@ -57,13 +73,13 @@ def _parse_google_args(docstring: str | None) -> dict[str, str]:
         if _SECTION_BREAK_RE.match(raw_line):
             break
 
-        stripped = raw_line.strip()
-        match = _ARG_LINE_RE.match(stripped)
+        parsed = _parse_arg_line(raw_line.strip())
 
-        if match is None:
+        if parsed is None:
             continue
 
-        descriptions[match.group(1)] = match.group(2).rstrip()
+        name, description = parsed
+        descriptions[name] = description
 
     return descriptions
 
