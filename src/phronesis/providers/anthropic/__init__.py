@@ -1,8 +1,7 @@
 """Anthropic provider implementation.
 
-See ``docs/PROVIDERS-DECISIONS.md``. Public entry point is the
-:func:`anthropic` factory; the underlying ``AnthropicProvider`` class is
-framework-internal.
+The public entry point is the :func:`anthropic` factory; the underlying
+``AnthropicProvider`` class is framework-internal.
 """
 
 from __future__ import annotations

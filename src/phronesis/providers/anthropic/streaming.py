@@ -1,12 +1,11 @@
 """Anthropic Server-Sent Events streaming.
 
-See ``docs/PROVIDERS-DECISIONS.md`` (D-08, D-12). Anthropic's
-``/v1/messages?stream=true`` returns an SSE stream of typed events. This
-module parses that stream and translates it into the framework-level
-:data:`phronesis.providers.chunks.LLMChunk` union.
+Anthropic's ``/v1/messages?stream=true`` returns an SSE stream of typed
+events. This module parses that stream and translates it into the
+framework-level :data:`phronesis.providers.chunks.LLMChunk` union.
 
-Retry is intentionally *not* applied here: see D-12. ``complete`` retries
-the whole request, but mid-stream recovery is out of scope.
+Retry is intentionally *not* applied here: ``complete`` retries the
+whole request, but mid-stream recovery is out of scope.
 """
 
 from __future__ import annotations

@@ -1,9 +1,9 @@
 """Map Anthropic HTTP responses to the provider error hierarchy.
 
-See ``docs/PROVIDERS-DECISIONS.md`` (D-11). The Anthropic API returns
-JSON of the form ``{"type": "error", "error": {"type": ..., "message": ...}}``
-along with an HTTP status. We translate both into the appropriate
-:class:`ProviderError` subclass and keep the original message.
+The Anthropic API returns JSON of the form
+``{"type": "error", "error": {"type": ..., "message": ...}}`` along with
+an HTTP status. This module translates both into the appropriate
+:class:`ProviderError` subclass and keeps the original message.
 
 Reference: https://docs.anthropic.com/en/api/errors
 """

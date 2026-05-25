@@ -1,9 +1,9 @@
 """Anthropic provider implementation.
 
-See ``docs/PROVIDERS-DECISIONS.md`` (D-01, D-02, D-04, D-12). This module
-implements the synchronous ``complete`` path against Anthropic's
-``/v1/messages`` endpoint using :mod:`httpx` directly (no SDK
-dependency). Streaming will land in a later phase.
+Talks to Anthropic's ``/v1/messages`` endpoint using :mod:`httpx`
+directly (no vendor SDK dependency). ``complete`` runs through the
+configured :class:`RetryConfig`; ``stream`` delegates to
+:mod:`phronesis.providers.anthropic.streaming` and is not retried.
 """
 
 from __future__ import annotations

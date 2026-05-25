@@ -1,9 +1,8 @@
 """Public factory for the Anthropic provider.
 
-See ``docs/PROVIDERS-DECISIONS.md`` (D-01, D-03): each built-in provider
-is exposed as a typed factory function. The factory hides
-:class:`AnthropicProvider` construction details (HTTP client, timeouts,
-API key resolution) behind a clean call site.
+Each built-in provider is exposed as a typed factory function. The
+factory hides :class:`AnthropicProvider` construction details (HTTP
+client, timeouts, API key resolution) behind a clean call site.
 """
 
 from __future__ import annotations
