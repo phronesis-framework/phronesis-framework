@@ -12,7 +12,9 @@ from annotated_types import Ge, Gt, Le, Lt, MaxLen, MinLen
 from pydantic import StringConstraints
 
 
-def Pattern(pattern: str) -> StringConstraints:
+def Pattern(
+    pattern: str,
+) -> StringConstraints:  # NOSONAR: PascalCase intentional, used as Annotated marker
     """Match strings against a regular expression."""
     return StringConstraints(pattern=pattern)
 

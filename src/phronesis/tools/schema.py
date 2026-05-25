@@ -19,9 +19,9 @@ from pydantic import Field, create_model
 from phronesis.tools.injection import detect_context_param
 from phronesis.tools.single_model import get_single_model
 
-_IDENT_RE = re.compile(r"[^A-Za-z0-9_]")
+_IDENT_RE = re.compile(r"\W")
 _ARGS_HEADER_RE = re.compile(r"^\s*Args?:\s*$", re.MULTILINE)
-_ARG_LINE_RE = re.compile(r"^\s*([A-Za-z_][A-Za-z0-9_]*)\s*(?:\([^)]*\))?\s*:\s*(.+?)\s*$")
+_ARG_LINE_RE = re.compile(r"^\s*([A-Za-z_]\w*)\s*(?:\([^)]*\))?\s*:\s*(.+?)\s*$")
 _SECTION_BREAK_RE = re.compile(r"^\s*(Returns?|Raises?|Yields?|Examples?|Notes?):\s*$")
 
 
