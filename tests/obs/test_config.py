@@ -190,6 +190,58 @@ class TestMeterProviderWireUp:
         assert metrics_module.tool_invocations is _NOOP
 
 
+class TestLoggingFilterInstallation:
+    def test_configure_installs_logging_factory(self) -> None:
+        import logging
+
+        original = logging.getLogRecordFactory()
+        configure_obs()
+
+        assert logging.getLogRecordFactory() is not original
+
+    def test_reset_state_uninstalls_logging_factory(self) -> None:
+        import logging
+
+        from phronesis.obs.config import _reset_state
+
+        original = logging.getLogRecordFactory()
+        configure_obs()
+        _reset_state()
+
+        assert logging.getLogRecordFactory() is original
+
+    def test_structured_formatter_includes_trace_id_and_span_id(self) -> None:
+        import json
+        import logging
+
+        from opentelemetry import trace
+
+        from phronesis._internal.logging.formatters import StructuredFormatter
+
+        configure_obs()
+
+        tracer = trace.get_tracer("phronesis.test")
+        with tracer.start_as_current_span("phronesis.test.span"):
+            logger = logging.getLogger("phronesis.tools")
+            record = logger.makeRecord(
+                "phronesis.tools",
+                logging.INFO,
+                __file__,
+                1,
+                "tool executed",
+                (),
+                None,
+            )
+
+        formatter = StructuredFormatter()
+        payload = json.loads(formatter.format(record))
+
+        assert "trace_id" in payload
+        assert "span_id" in payload
+        assert len(payload["trace_id"]) == 32
+        assert len(payload["span_id"]) == 16
+
+
 class TestSpyExporterIntegration:
     def test_spans_flow_through_exporter_instance(self) -> None:
         from opentelemetry import trace

@@ -19,6 +19,10 @@ from typing import Any
 
 from phronesis.obs._detect import OBS_AVAILABLE
 from phronesis.obs.errors import ObsNotAvailableError
+from phronesis.obs.logging_filter import (
+    install_trace_correlation_filter,
+    uninstall_trace_correlation_filter,
+)
 
 _NOT_AVAILABLE_MESSAGE = (
     "OpenTelemetry is not installed. Install with `pip install phronesis-framework[obs]`."
@@ -120,6 +124,8 @@ def configure_obs(
     otel_metrics.set_meter_provider(meter_provider)
     metrics_module._build_registry(meter_provider.get_meter("phronesis"))
 
+    install_trace_correlation_filter()
+
     _state.configured = True
     _state.config = config
     _state.tracer_provider = provider
@@ -139,6 +145,8 @@ def _reset_state() -> None:
     _state.config = None
     _state.tracer_provider = None
     _state.meter_provider = None
+
+    uninstall_trace_correlation_filter()
 
     if not OBS_AVAILABLE:
         return
