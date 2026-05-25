@@ -11,10 +11,11 @@ class TestPackageImport:
 
         assert module is not None
 
-    def test_package_exposes_empty_all(self) -> None:
+    def test_package_exposes_non_empty_all(self) -> None:
         module = importlib.import_module("phronesis.obs")
 
-        assert module.__all__ == []
+        assert isinstance(module.__all__, list)
+        assert len(module.__all__) > 0
 
 
 class TestSubmodulesImport:

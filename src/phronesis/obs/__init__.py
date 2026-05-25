@@ -22,4 +22,26 @@ Subpackage layout:
 
 from __future__ import annotations
 
-__all__: list[str] = []
+from phronesis.obs import attributes as attributes
+from phronesis.obs import metrics as metrics
+from phronesis.obs.config import ObsConfig as ObsConfig
+from phronesis.obs.config import configure_obs as configure_obs
+from phronesis.obs.errors import ObsConfigError as ObsConfigError
+from phronesis.obs.errors import ObsError as ObsError
+from phronesis.obs.errors import ObsNotAvailableError as ObsNotAvailableError
+from phronesis.obs.spans import start_span as start_span
+from phronesis.obs.spans import start_span_async as start_span_async
+from phronesis.obs.spans import traced as traced
+
+__all__ = [
+    "ObsConfig",
+    "ObsConfigError",
+    "ObsError",
+    "ObsNotAvailableError",
+    "attributes",
+    "configure_obs",
+    "metrics",
+    "start_span",
+    "start_span_async",
+    "traced",
+]
