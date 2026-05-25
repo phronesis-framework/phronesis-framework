@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Iterable
 from typing import Any
 
 import httpx
@@ -23,7 +24,7 @@ from phronesis.providers.errors import (
 )
 
 
-def _sse(events: list[dict[str, Any]]) -> bytes:
+def _sse(events: Iterable[Any]) -> bytes:
     """Build raw SSE bytes from a list of event payloads."""
     parts: list[str] = []
 

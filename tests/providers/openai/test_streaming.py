@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Iterable
 from typing import Any
 
 import httpx
@@ -19,7 +20,7 @@ from phronesis.providers.errors import AuthenticationError, RateLimitError, Stre
 from phronesis.providers.openai.streaming import stream_openai_chat
 
 
-def _sse(chunks: list[dict[str, Any]], *, done: bool = True) -> bytes:
+def _sse(chunks: Iterable[Any], *, done: bool = True) -> bytes:
     parts = [f"data: {json.dumps(chunk)}\n\n" for chunk in chunks]
 
     if done:

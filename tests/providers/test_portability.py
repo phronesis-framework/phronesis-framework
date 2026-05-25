@@ -232,7 +232,9 @@ _PROVIDERS = [
 
 @pytest.fixture(params=_PROVIDERS, ids=lambda case: case.name)
 def case(request: pytest.FixtureRequest) -> _ProviderCase:
-    return request.param
+    value: _ProviderCase = request.param
+
+    return value
 
 
 # --- helpers -----------------------------------------------------------
