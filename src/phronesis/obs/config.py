@@ -34,6 +34,7 @@ class ObsConfig:
     sampling: float = 1.0
     service_name: str = "phronesis"
     exporter_instance: Any = None
+    metric_reader_instance: Any = None
 
 
 @dataclass(slots=True)
@@ -41,6 +42,7 @@ class _State:
     configured: bool = False
     config: ObsConfig | None = None
     tracer_provider: Any = None
+    meter_provider: Any = None
 
 
 _state: _State = _State()
@@ -53,6 +55,7 @@ def configure_obs(
     sampling: float = 1.0,
     service_name: str = "phronesis",
     exporter_instance: Any = None,
+    metric_reader_instance: Any = None,
 ) -> ObsConfig:
     """Initialize the global tracer provider.
 
@@ -65,7 +68,9 @@ def configure_obs(
     if not OBS_AVAILABLE:
         raise ObsNotAvailableError(_NOT_AVAILABLE_MESSAGE)
 
+    from opentelemetry import metrics as otel_metrics
     from opentelemetry import trace
+    from opentelemetry.sdk.metrics import MeterProvider
     from opentelemetry.sdk.resources import Resource
     from opentelemetry.sdk.trace import TracerProvider
     from opentelemetry.sdk.trace.export import (
@@ -78,12 +83,15 @@ def configure_obs(
         TraceIdRatioBased,
     )
 
+    from phronesis.obs import metrics as metrics_module
+
     config = ObsConfig(
         exporter=exporter,
         endpoint=endpoint,
         sampling=sampling,
         service_name=service_name,
         exporter_instance=exporter_instance,
+        metric_reader_instance=metric_reader_instance,
     )
 
     from opentelemetry.sdk.trace.sampling import Sampler
@@ -107,9 +115,15 @@ def configure_obs(
     provider.add_span_processor(SimpleSpanProcessor(span_exporter))
     trace.set_tracer_provider(provider)
 
+    metric_readers = [metric_reader_instance] if metric_reader_instance is not None else []
+    meter_provider = MeterProvider(resource=resource, metric_readers=metric_readers)
+    otel_metrics.set_meter_provider(meter_provider)
+    metrics_module._build_registry(meter_provider.get_meter("phronesis"))
+
     _state.configured = True
     _state.config = config
     _state.tracer_provider = provider
+    _state.meter_provider = meter_provider
 
     return config
 
@@ -117,18 +131,28 @@ def configure_obs(
 def _reset_state() -> None:
     """Reset internal state. Intended for test isolation only.
 
-    Also resets the OpenTelemetry global tracer provider latch so a
-    subsequent ``configure_obs`` call can install a fresh provider.
+    Also resets the OpenTelemetry global tracer and meter provider
+    latches so a subsequent ``configure_obs`` call can install fresh
+    providers, and rebinds the metrics registry to its no-op fallbacks.
     """
     _state.configured = False
     _state.config = None
     _state.tracer_provider = None
+    _state.meter_provider = None
 
     if not OBS_AVAILABLE:
         return
 
     from opentelemetry import trace
+    from opentelemetry.metrics import _internal as metrics_internal
     from opentelemetry.util._once import Once
+
+    from phronesis.obs import metrics as metrics_module
 
     trace._TRACER_PROVIDER_SET_ONCE = Once()
     trace._TRACER_PROVIDER = None
+
+    metrics_internal._METER_PROVIDER_SET_ONCE = Once()
+    metrics_internal._METER_PROVIDER = None
+
+    metrics_module._reset_registry()

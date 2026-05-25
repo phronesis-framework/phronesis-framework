@@ -137,6 +137,59 @@ class TestConfigureObsIdempotency:
         assert _state.config.service_name == "second"
 
 
+class TestMeterProviderWireUp:
+    def test_meter_provider_is_set_globally(self) -> None:
+        from opentelemetry import metrics as otel_metrics
+
+        configure_obs()
+
+        assert otel_metrics.get_meter_provider() is _state.meter_provider
+
+    def test_metrics_registry_is_rebound_to_real_instruments(self) -> None:
+        from phronesis.obs import metrics as metrics_module
+        from phronesis.obs.metrics import _NOOP
+
+        configure_obs()
+
+        assert metrics_module.tool_invocations is not _NOOP
+        assert metrics_module.tool_duration is not _NOOP
+
+    def test_metric_reader_instance_captures_recorded_values(self) -> None:
+        from opentelemetry.sdk.metrics.export import InMemoryMetricReader
+
+        from phronesis.obs import metrics as metrics_module
+
+        reader = InMemoryMetricReader()
+        configure_obs(metric_reader_instance=reader)
+
+        metrics_module.tool_invocations.add(1, attributes={"tool.id": "TID-X"})
+        metrics_module.tool_duration.record(0.42, attributes={"tool.id": "TID-X"})
+
+        data = reader.get_metrics_data()
+        names = [
+            metric.name
+            for resource_metrics in data.resource_metrics
+            for scope_metrics in resource_metrics.scope_metrics
+            for metric in scope_metrics.metrics
+        ]
+
+        assert "phronesis.tool.invocations" in names
+        assert "phronesis.tool.duration" in names
+
+    def test_reset_state_restores_noop_registry(self) -> None:
+        from phronesis.obs import metrics as metrics_module
+        from phronesis.obs.config import _reset_state
+        from phronesis.obs.metrics import _NOOP
+
+        configure_obs()
+
+        assert metrics_module.tool_invocations is not _NOOP
+
+        _reset_state()
+
+        assert metrics_module.tool_invocations is _NOOP
+
+
 class TestSpyExporterIntegration:
     def test_spans_flow_through_exporter_instance(self) -> None:
         from opentelemetry import trace
