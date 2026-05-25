@@ -1,6 +1,9 @@
-"""Per-call execution ``Context`` injected into tools by type.
+"""Per-call execution :class:`Context` injected into tools by type.
 
-See ``docs/TOOLS-DECISIONS.md`` (D-15, D-16, D-17, D-18).
+A frozen, immutable record carrying trace and session identifiers,
+arbitrary metadata and an optional logger. Tools declare a parameter
+typed ``Context`` and the framework injects the current instance at
+invocation time; callers never construct one for tool calls explicitly.
 """
 
 from __future__ import annotations
