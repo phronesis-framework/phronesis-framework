@@ -19,3 +19,7 @@ class ObsNotAvailableError(ObsError):
 
         pip install phronesis-framework[obs]
     """
+
+
+class ObsConfigError(ObsError):
+    """Raised when ``configure_obs`` receives an invalid combination of arguments."""

@@ -10,7 +10,7 @@ import pytest
 from phronesis.obs import config as config_module
 from phronesis.obs._detect import OBS_AVAILABLE
 from phronesis.obs.config import ObsConfig, _state, configure_obs
-from phronesis.obs.errors import ObsNotAvailableError
+from phronesis.obs.errors import ObsConfigError, ObsNotAvailableError
 
 
 class _SpyExporter:
@@ -246,6 +246,77 @@ class TestLoggingFilterInstallation:
         assert "span_id" in payload
         assert len(payload["trace_id"]) == 32
         assert len(payload["span_id"]) == 16
+
+
+@pytest.mark.skipif(not OBS_AVAILABLE, reason="obs extra not installed")
+class TestExporterSelection:
+    def test_console_exporter_is_used_by_default(self) -> None:
+        from opentelemetry.sdk.trace.export import ConsoleSpanExporter
+
+        configure_obs()
+
+        processors = list(_state.tracer_provider._active_span_processor._span_processors)
+        exporters = [getattr(p, "span_exporter", None) for p in processors]
+
+        assert any(isinstance(e, ConsoleSpanExporter) for e in exporters)
+
+    def test_otlp_exporter_is_used_when_selected(self) -> None:
+        from opentelemetry.exporter.otlp.proto.http.trace_exporter import (
+            OTLPSpanExporter,
+        )
+
+        configure_obs(exporter="otlp", endpoint="http://localhost:4318/v1/traces")
+
+        processors = list(_state.tracer_provider._active_span_processor._span_processors)
+        exporters = [getattr(p, "span_exporter", None) for p in processors]
+
+        assert any(isinstance(e, OTLPSpanExporter) for e in exporters)
+
+    def test_otlp_metric_reader_is_used_when_selected(self) -> None:
+        from opentelemetry.exporter.otlp.proto.http.metric_exporter import (
+            OTLPMetricExporter,
+        )
+        from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
+
+        configure_obs(exporter="otlp", endpoint="http://localhost:4318")
+
+        readers = list(_state.meter_provider._sdk_config.metric_readers)
+
+        assert any(isinstance(r, PeriodicExportingMetricReader) for r in readers)
+        assert any(isinstance(r._exporter, OTLPMetricExporter) for r in readers)
+
+    def test_exporter_instance_overrides_exporter_string(self) -> None:
+        spy = _SpyExporter()
+
+        configure_obs(exporter="otlp", exporter_instance=spy)
+
+        processors = list(_state.tracer_provider._active_span_processor._span_processors)
+        exporters = [getattr(p, "span_exporter", None) for p in processors]
+
+        assert spy in exporters
+
+
+@pytest.mark.skipif(not OBS_AVAILABLE, reason="obs extra not installed")
+class TestExporterValidation:
+    def test_unknown_exporter_raises(self) -> None:
+        with pytest.raises(ObsConfigError, match="Unknown exporter"):
+            configure_obs(exporter="jaeger")
+
+    def test_otlp_without_endpoint_raises(self) -> None:
+        with pytest.raises(ObsConfigError, match="requires a non-empty endpoint"):
+            configure_obs(exporter="otlp")
+
+    def test_otlp_with_empty_endpoint_raises(self) -> None:
+        with pytest.raises(ObsConfigError, match="requires a non-empty endpoint"):
+            configure_obs(exporter="otlp", endpoint="")
+
+    def test_exporter_instance_bypasses_validation(self) -> None:
+        spy = _SpyExporter()
+
+        configure_obs(exporter="anything-goes", exporter_instance=spy)
+
+        assert _state.config is not None
+        assert _state.config.exporter == "anything-goes"
 
 
 @pytest.mark.skipif(not OBS_AVAILABLE, reason="obs extra not installed")

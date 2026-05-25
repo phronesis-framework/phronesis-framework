@@ -18,7 +18,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from phronesis.obs._detect import OBS_AVAILABLE
-from phronesis.obs.errors import ObsNotAvailableError
+from phronesis.obs.errors import ObsConfigError, ObsNotAvailableError
 from phronesis.obs.logging_filter import (
     install_trace_correlation_filter,
     uninstall_trace_correlation_filter,
@@ -27,6 +27,8 @@ from phronesis.obs.logging_filter import (
 _NOT_AVAILABLE_MESSAGE = (
     "OpenTelemetry is not installed. Install with `pip install phronesis-framework[obs]`."
 )
+
+_VALID_EXPORTERS = frozenset({"console", "otlp"})
 
 
 @dataclass(frozen=True, slots=True)
@@ -65,6 +67,8 @@ def configure_obs(
 
     Raises:
         ObsNotAvailableError: if the ``obs`` extra is not installed.
+        ObsConfigError: if the argument combination is invalid (unknown
+            exporter, or ``exporter="otlp"`` without ``endpoint``).
 
     Idempotent: each call fully replaces any prior tracer provider.
     Returns the resulting :class:`ObsConfig` snapshot.
@@ -72,15 +76,14 @@ def configure_obs(
     if not OBS_AVAILABLE:
         raise ObsNotAvailableError(_NOT_AVAILABLE_MESSAGE)
 
+    _validate_exporter_args(exporter, endpoint, exporter_instance)
+
     from opentelemetry import metrics as otel_metrics
     from opentelemetry import trace
     from opentelemetry.sdk.metrics import MeterProvider
     from opentelemetry.sdk.resources import Resource
     from opentelemetry.sdk.trace import TracerProvider
-    from opentelemetry.sdk.trace.export import (
-        ConsoleSpanExporter,
-        SimpleSpanProcessor,
-    )
+    from opentelemetry.sdk.trace.export import SimpleSpanProcessor
     from opentelemetry.sdk.trace.sampling import (
         ALWAYS_OFF,
         ALWAYS_ON,
@@ -111,15 +114,12 @@ def configure_obs(
     resource = Resource.create({"service.name": service_name})
     provider = TracerProvider(resource=resource, sampler=sampler)
 
-    if exporter_instance is not None:
-        span_exporter: Any = exporter_instance
-    else:
-        span_exporter = ConsoleSpanExporter()
+    span_exporter = _build_span_exporter(exporter, endpoint, exporter_instance)
 
     provider.add_span_processor(SimpleSpanProcessor(span_exporter))
     trace.set_tracer_provider(provider)
 
-    metric_readers = [metric_reader_instance] if metric_reader_instance is not None else []
+    metric_readers = _build_metric_readers(exporter, endpoint, metric_reader_instance)
     meter_provider = MeterProvider(resource=resource, metric_readers=metric_readers)
     otel_metrics.set_meter_provider(meter_provider)
     metrics_module._build_registry(meter_provider.get_meter("phronesis"))
@@ -132,6 +132,52 @@ def configure_obs(
     _state.meter_provider = meter_provider
 
     return config
+
+
+def _validate_exporter_args(exporter: str, endpoint: str | None, exporter_instance: Any) -> None:
+    if exporter_instance is not None:
+        return
+
+    if exporter not in _VALID_EXPORTERS:
+        raise ObsConfigError(
+            f"Unknown exporter {exporter!r}. Valid values: {sorted(_VALID_EXPORTERS)}."
+        )
+
+    if exporter == "otlp" and not endpoint:
+        raise ObsConfigError("exporter='otlp' requires a non-empty endpoint.")
+
+
+def _build_span_exporter(exporter: str, endpoint: str | None, exporter_instance: Any) -> Any:
+    if exporter_instance is not None:
+        return exporter_instance
+
+    if exporter == "otlp":
+        from opentelemetry.exporter.otlp.proto.http.trace_exporter import (
+            OTLPSpanExporter,
+        )
+
+        return OTLPSpanExporter(endpoint=endpoint)
+
+    from opentelemetry.sdk.trace.export import ConsoleSpanExporter
+
+    return ConsoleSpanExporter()
+
+
+def _build_metric_readers(
+    exporter: str, endpoint: str | None, metric_reader_instance: Any
+) -> list[Any]:
+    if metric_reader_instance is not None:
+        return [metric_reader_instance]
+
+    if exporter == "otlp":
+        from opentelemetry.exporter.otlp.proto.http.metric_exporter import (
+            OTLPMetricExporter,
+        )
+        from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
+
+        return [PeriodicExportingMetricReader(OTLPMetricExporter(endpoint=endpoint))]
+
+    return []
 
 
 def _reset_state() -> None:
