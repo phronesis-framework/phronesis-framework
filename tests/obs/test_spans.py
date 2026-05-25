@@ -10,7 +10,7 @@ from phronesis.obs import spans as spans_module
 from phronesis.obs._detect import OBS_AVAILABLE
 from phronesis.obs._noop import _NoopSpan
 from phronesis.obs.config import configure_obs
-from phronesis.obs.spans import start_span, start_span_async
+from phronesis.obs.spans import current_trace_id, start_span, start_span_async
 
 
 class _SpyExporter:
@@ -117,6 +117,51 @@ class TestStartSpanAsyncNoopMode:
         with pytest.raises(ValueError, match="boom"):
             async with start_span_async("phronesis.test.op"):
                 raise ValueError("boom")
+
+
+class TestCurrentTraceIdNoopMode:
+    def test_returns_none_when_obs_unavailable(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setattr(spans_module, "OBS_AVAILABLE", False)
+
+        assert current_trace_id() is None
+
+
+@pytest.mark.skipif(not OBS_AVAILABLE, reason="obs extra not installed")
+class TestCurrentTraceIdActiveMode:
+    def test_returns_none_without_active_span(self) -> None:
+        configure_obs()
+
+        assert current_trace_id() is None
+
+    def test_returns_hex_string_inside_span(self) -> None:
+        configure_obs()
+
+        with start_span("phronesis.test.op"):
+            trace_id = current_trace_id()
+
+        assert trace_id is not None
+        assert len(trace_id) == 32
+        int(trace_id, 16)
+
+    def test_matches_span_context_trace_id(self) -> None:
+        from opentelemetry import trace
+
+        configure_obs()
+
+        with start_span("phronesis.test.op"):
+            span = trace.get_current_span()
+            expected = format(span.get_span_context().trace_id, "032x")
+            actual = current_trace_id()
+
+        assert actual == expected
+
+    def test_returns_none_after_span_closes(self) -> None:
+        configure_obs()
+
+        with start_span("phronesis.test.op"):
+            pass
+
+        assert current_trace_id() is None
 
 
 @pytest.mark.skipif(not OBS_AVAILABLE, reason="obs extra not installed")

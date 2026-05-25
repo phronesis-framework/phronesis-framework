@@ -102,6 +102,28 @@ def traced(
     return decorator
 
 
+def current_trace_id() -> str | None:
+    """Return the active span's ``trace_id`` as a 32-char hex string.
+
+    Returns ``None`` when the ``obs`` extra is not installed or no valid
+    OpenTelemetry span is active. The runtime layer uses this helper to
+    align ``Context.trace_id`` with the OTel ``trace_id`` of the root
+    span, falling back to its own identifier when no span is active.
+    """
+    if not OBS_AVAILABLE:
+        return None
+
+    from opentelemetry import trace
+
+    span = trace.get_current_span()
+    ctx = span.get_span_context()
+
+    if not ctx.is_valid:
+        return None
+
+    return format(ctx.trace_id, "032x")
+
+
 @asynccontextmanager
 async def start_span_async(
     name: str, *, attributes: dict[str, Any] | None = None

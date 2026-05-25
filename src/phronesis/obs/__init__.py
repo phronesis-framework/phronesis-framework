@@ -29,6 +29,7 @@ from phronesis.obs.config import configure_obs as configure_obs
 from phronesis.obs.errors import ObsConfigError as ObsConfigError
 from phronesis.obs.errors import ObsError as ObsError
 from phronesis.obs.errors import ObsNotAvailableError as ObsNotAvailableError
+from phronesis.obs.spans import current_trace_id as current_trace_id
 from phronesis.obs.spans import start_span as start_span
 from phronesis.obs.spans import start_span_async as start_span_async
 from phronesis.obs.spans import traced as traced
@@ -40,6 +41,7 @@ __all__ = [
     "ObsNotAvailableError",
     "attributes",
     "configure_obs",
+    "current_trace_id",
     "metrics",
     "start_span",
     "start_span_async",

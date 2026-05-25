@@ -11,6 +11,7 @@ _EXPECTED_PUBLIC = {
     "ObsNotAvailableError",
     "attributes",
     "configure_obs",
+    "current_trace_id",
     "metrics",
     "start_span",
     "start_span_async",
