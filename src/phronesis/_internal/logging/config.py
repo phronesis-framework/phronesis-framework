@@ -28,9 +28,10 @@ def configure_logging(
     root = logging.getLogger(PHRONESIS_LOGGER_PREFIX)
     root.setLevel(level)
 
-    for handler in list(root.handlers):
-        if getattr(handler, _HANDLER_MARKER, False):
-            root.removeHandler(handler)
+    managed = [handler for handler in root.handlers if getattr(handler, _HANDLER_MARKER, False)]
+
+    for handler in managed:
+        root.removeHandler(handler)
 
     formatter: logging.Formatter = StructuredFormatter() if structured else HumanReadableFormatter()
 
