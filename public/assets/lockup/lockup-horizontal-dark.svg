@@ -1,0 +1,9 @@
+<svg viewBox="30 30 440 145" xmlns="http://www.w3.org/2000/svg">
+  <!-- Symbol -->
+  <circle cx="100" cy="100" r="60" fill="none" stroke="#ffffff" stroke-width="10"/>
+  <line x1="100" y1="20" x2="100" y2="180" stroke="#ffffff" stroke-width="10"/>
+
+  <!-- Wordmark (very tight - almost touching) -->
+  <text x="165" y="135" font-family="system-ui, -apple-system, sans-serif" font-size="60" font-weight="700" fill="#ffffff" letter-spacing="-0.02em">phronesis</text>
+  <text x="168" y="169" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="400" fill="#999999" letter-spacing="0.3em">FRAMEWORK</text>
+</svg>
