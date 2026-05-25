@@ -20,7 +20,7 @@ class FixedBackoff:
 
     delay: float
 
-    def get_delay(self, attempt: int) -> float:
+    def get_delay(self, attempt: int) -> float:  # NOSONAR: protocol conformance
         return self.delay
 
 
