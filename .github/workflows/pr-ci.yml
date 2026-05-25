@@ -73,6 +73,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup-python-uv
+        with:
+          extras: "dev,obs"
       - run: uv run mypy src
 
   # ---------- Tests + Coverage ----------
@@ -83,6 +85,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup-python-uv
+        with:
+          extras: "dev,obs"
       - name: Run pytest with coverage
         run: |
           uv run pytest \
