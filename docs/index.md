@@ -48,7 +48,3 @@
 ## 📐 Decisiones y planes
 
 </div>
-
-- [TOOLS-DECISIONS.md](./TOOLS-DECISIONS.md) — registro de decisiones de diseño del componente Tools.
-- [TOOLS-DEVELOPMENT-GUIDE.md](./TOOLS-DEVELOPMENT-GUIDE.md) — guía de desarrollo del componente Tools.
-- [TOOLS-IMPLEMENTATION-PLAN.md](./TOOLS-IMPLEMENTATION-PLAN.md) — plan de implementación incremental.
