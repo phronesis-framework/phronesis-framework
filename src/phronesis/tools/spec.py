@@ -1,9 +1,11 @@
 """Pure data spec for a declared tool.
 
-See ``docs/TOOLS-DECISIONS.md`` (D-06): :class:`ToolSpec` is frozen,
-JSON-serializable, and contains **no function reference**. The callable
-side of a tool lives on the tool object itself (``tool.spec`` exposes
-this data side).
+:class:`ToolSpec` is frozen and JSON-serializable, and intentionally
+holds **no function reference**. The callable side of a tool lives on
+the :class:`Tool` object itself; ``tool.spec`` exposes only the inert
+data half (id, name, description, effects, schemas, version) so it can
+be shipped to providers, audit logs and registries without dragging the
+runtime closure along.
 """
 
 from __future__ import annotations

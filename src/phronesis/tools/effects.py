@@ -1,8 +1,8 @@
 """Closed vocabulary of declarable side-effects for a tool.
 
-See ``docs/TOOLS-DECISIONS.md`` (D-10, D-11): the vocabulary is closed
-and framework-owned. Users cannot invent new effects; if a new category
-is needed, it is added here.
+The vocabulary is closed and framework-owned: users cannot invent new
+effects on the fly. If a new category is needed, it is added to
+:class:`ToolEffect` so every tool and every policy stays aligned.
 """
 
 from __future__ import annotations

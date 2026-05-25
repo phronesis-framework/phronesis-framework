@@ -1,9 +1,10 @@
 """``Annotated`` markers for parameter constraints.
 
-See ``docs/TOOLS-DECISIONS.md`` (D-21): markers are recognized by Pydantic
-v2 when placed inside ``Annotated[...]``. Numeric and length markers come
-from the standard ``annotated_types`` library; :func:`Pattern` is a thin
-helper around ``pydantic.StringConstraints`` for regex constraints.
+Pydantic v2 recognises these markers when placed inside ``Annotated[...]``.
+Numeric and length markers are re-exported verbatim from the standard
+``annotated_types`` library; :func:`Pattern` is a thin helper around
+``pydantic.StringConstraints`` that exposes a regex constraint with the
+same PascalCase shape as the rest of the markers.
 """
 
 from __future__ import annotations

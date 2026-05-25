@@ -1,9 +1,9 @@
 """``@tool`` decorator with optional arguments.
 
-See ``docs/TOOLS-DECISIONS.md`` (D-01, D-02, D-03, D-24): supports both
-bare ``@tool`` and ``@tool(...)`` forms; infers
-``name``/``id``/``description`` from the function when not overridden;
-generates the canonical input schema eagerly unless ``lazy=True``.
+Supports both the bare ``@tool`` and ``@tool(...)`` call forms. Infers
+``name``, ``id`` and ``description`` from the wrapped function when not
+overridden, and generates the canonical input schema eagerly unless
+``lazy=True``.
 """
 
 from __future__ import annotations

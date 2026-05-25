@@ -1,9 +1,9 @@
 """Detection of :class:`Context`-typed parameters for runtime injection.
 
-See ``docs/TOOLS-DECISIONS.md`` (D-15, D-16, D-17, D-18): a tool that
-declares a parameter typed as :class:`Context` receives it from the
-runtime via :meth:`Tool.invoke`, and the parameter is filtered out of
-the schema and the argument validator.
+A tool that declares a parameter typed as :class:`Context` receives it
+from the runtime via :meth:`Tool.invoke`. The parameter is filtered out
+of both the public input schema and the argument validator so callers
+never have to supply it.
 
 Detection is by **type**, not by name: any parameter whose resolved
 annotation is :class:`Context` (or a subclass) qualifies, regardless of

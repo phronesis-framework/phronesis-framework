@@ -1,9 +1,10 @@
 """Pydantic-backed validator for tool arguments.
 
-See ``docs/TOOLS-DECISIONS.md`` (D-12, D-26): build a dynamic Pydantic v2
-model from the function signature and use it to validate inputs before
-the tool runs. On failure, raise :class:`ToolValidationError` carrying the
-expected schema of the **affected parameter only** (not the full schema).
+Builds a dynamic Pydantic v2 model from the function signature and uses
+it to validate inputs before the tool runs. On failure, raises
+:class:`ToolValidationError` carrying the expected schema of the
+**affected parameter only** — never the full input schema, so the LLM
+sees a focused, actionable error.
 """
 
 from __future__ import annotations
@@ -125,8 +126,8 @@ def build_validator(
     """Return a callable that validates a kwargs dict against ``fn``'s signature.
 
     Variadic ``*args`` and ``**kwargs`` are skipped: only named parameters
-    are validated. Single-model tools (D-12) delegate validation to the
-    declared :class:`BaseModel`.
+    are validated. Single-model tools delegate validation to the declared
+    :class:`BaseModel`.
     """
     single = get_single_model(fn)
 

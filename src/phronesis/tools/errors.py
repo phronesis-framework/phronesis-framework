@@ -1,8 +1,8 @@
 """LLM-facing error hierarchy for tools.
 
-See ``docs/TOOLS-DECISIONS.md`` (D-13): errors in this hierarchy are
-serialized back to the model so it can react. Any other exception
-escapes to the runtime for policy or abort.
+Errors in this hierarchy are serialized back to the model so it can
+react and recover. Any other exception escapes to the runtime, which
+then applies its own policy (retry, abort, surface to the user).
 """
 
 from __future__ import annotations
@@ -94,8 +94,10 @@ class SchemaDegradationWarning(UserWarning):
 def auto_map_exception(exc: BaseException) -> ToolError | None:
     """Map a small, closed set of standard exceptions to :class:`ToolError`.
 
-    See ``docs/TOOLS-DECISIONS.md`` (D-14). Returns ``None`` for anything
-    outside the allowlist so the runtime can apply its own policies.
+    The mapping is deliberately narrow: only well-known stdlib errors,
+    ``pydantic.ValidationError`` and ``httpx.HTTPStatusError`` (4xx) are
+    translated. Anything outside the allowlist returns ``None`` so the
+    runtime can apply its own policies.
 
     Cancellation and interpreter-level signals never reach this function:
     the caller is expected to re-raise ``BaseException`` subclasses that

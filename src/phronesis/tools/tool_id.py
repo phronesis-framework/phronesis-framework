@@ -1,8 +1,10 @@
 """Identifier types for tools.
 
-See ``docs/TOOLS-DECISIONS.md`` (D-04, D-05): tools carry two
-identifiers — :class:`ToolId` (internal, stable, framework-side) and
-:class:`ToolName` (LLM-facing, human-readable).
+Tools carry two identifiers with different audiences. :class:`ToolId`
+is the internal, stable, framework-side handle (used for registry
+lookups, audit logs and id-based wiring). :class:`ToolName` is the
+LLM-facing, human-readable label sent to providers, kept distinct so
+renames in the UI never break internal references.
 """
 
 from __future__ import annotations
