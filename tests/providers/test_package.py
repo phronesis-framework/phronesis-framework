@@ -9,19 +9,21 @@ class TestProvidersScaffold:
     def test_root_package_imports(self) -> None:
         module = importlib.import_module("phronesis.providers")
 
-        assert module.__all__ == []
+        assert module.__all__
 
     def test_common_subpackage_imports(self) -> None:
         module = importlib.import_module("phronesis.providers._common")
 
         assert module.__all__ == []
 
-    def test_anthropic_subpackage_imports(self) -> None:
+    def test_anthropic_subpackage_exposes_factory(self) -> None:
         module = importlib.import_module("phronesis.providers.anthropic")
 
-        assert module.__all__ == []
+        assert module.__all__ == ["anthropic"]
+        assert callable(module.anthropic)
 
-    def test_openai_subpackage_imports(self) -> None:
+    def test_openai_subpackage_exposes_factory(self) -> None:
         module = importlib.import_module("phronesis.providers.openai")
 
-        assert module.__all__ == []
+        assert module.__all__ == ["openai"]
+        assert callable(module.openai)
