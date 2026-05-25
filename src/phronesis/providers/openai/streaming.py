@@ -1,10 +1,9 @@
 """OpenAI Server-Sent Events streaming.
 
-See ``docs/PROVIDERS-DECISIONS.md`` (D-08, D-12). OpenAI's chat
-completions stream emits ``data: {json}`` SSE frames and a terminal
-``data: [DONE]`` sentinel. Tool calls are streamed across many delta
-chunks indexed by ``index``; arguments arrive as partial JSON strings
-that must be concatenated and parsed once the call closes.
+OpenAI's chat completions stream emits ``data: {json}`` SSE frames and
+a terminal ``data: [DONE]`` sentinel. Tool calls are streamed across
+many delta chunks indexed by ``index``; arguments arrive as partial
+JSON strings that must be concatenated and parsed once the call closes.
 
 Retry is intentionally *not* applied to streaming.
 """

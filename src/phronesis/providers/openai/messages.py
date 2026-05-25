@@ -1,9 +1,9 @@
 """Message conversion for the OpenAI provider.
 
-See ``docs/PROVIDERS-DECISIONS.md``. OpenAI's Chat Completions API uses
-a flat ``messages`` list where ``system`` appears as a regular entry,
-``assistant`` may carry ``tool_calls`` (whose arguments are JSON-encoded
-strings), and tool outputs use ``role: tool`` with ``tool_call_id``.
+OpenAI's Chat Completions API uses a flat ``messages`` list where
+``system`` appears as a regular entry, ``assistant`` may carry
+``tool_calls`` (whose arguments are JSON-encoded strings), and tool
+outputs use ``role: tool`` with ``tool_call_id``.
 """
 
 from __future__ import annotations

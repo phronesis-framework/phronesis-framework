@@ -1,8 +1,8 @@
 """Public factory for the OpenAI provider.
 
-See ``docs/PROVIDERS-DECISIONS.md`` (D-01, D-03). Mirrors the Anthropic
-factory: hides :class:`OpenAIProvider` construction details (HTTP client,
-timeouts, API key resolution) behind a clean call site.
+Mirrors the Anthropic factory: hides :class:`OpenAIProvider`
+construction details (HTTP client, timeouts, API key resolution) behind
+a clean call site.
 """
 
 from __future__ import annotations

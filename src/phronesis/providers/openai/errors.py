@@ -1,8 +1,8 @@
 """HTTP error translation for the OpenAI provider.
 
-See ``docs/PROVIDERS-DECISIONS.md`` (D-11). Maps OpenAI's JSON error
-envelope and HTTP status to the framework's :mod:`phronesis.providers.errors`
-hierarchy.
+Maps OpenAI's JSON error envelope and HTTP status to the framework's
+:mod:`phronesis.providers.errors` hierarchy, preserving the original
+message and ``retry-after`` hint when present.
 """
 
 from __future__ import annotations

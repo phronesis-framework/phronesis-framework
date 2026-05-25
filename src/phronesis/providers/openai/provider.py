@@ -1,9 +1,9 @@
 """OpenAI provider implementation.
 
-See ``docs/PROVIDERS-DECISIONS.md`` (D-01, D-02, D-04, D-12). Implements
-the synchronous ``complete`` path against ``/v1/chat/completions`` using
-:mod:`httpx` directly (no SDK dependency). Streaming lives in
-:mod:`phronesis.providers.openai.streaming`.
+Talks to ``/v1/chat/completions`` using :mod:`httpx` directly (no vendor
+SDK). ``complete`` runs through the configured :class:`RetryConfig`;
+``stream`` delegates to :mod:`phronesis.providers.openai.streaming` and
+is not retried.
 """
 
 from __future__ import annotations

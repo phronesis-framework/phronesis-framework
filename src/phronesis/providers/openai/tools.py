@@ -1,9 +1,8 @@
 """Tool spec conversion for the OpenAI provider.
 
-See ``docs/PROVIDERS-DECISIONS.md``. OpenAI wraps each tool inside a
-``{"type": "function", "function": {...}}`` envelope. The inner
-``function`` holds ``name``, optional ``description`` and
-``parameters`` (a JSON schema).
+OpenAI wraps each tool inside a ``{"type": "function", "function": {...}}``
+envelope. The inner ``function`` holds ``name``, optional ``description``
+and ``parameters`` (a JSON schema).
 """
 
 from __future__ import annotations
