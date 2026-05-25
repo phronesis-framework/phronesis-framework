@@ -26,4 +26,13 @@ runs:
 
     - name: Sync dependencies
       shell: bash
-      run: uv sync --extra ${{ inputs.extras }} --frozen
+      run: |
+        flags=""
+        IFS=',' read -ra EXTRAS <<< "${{ inputs.extras }}"
+        for extra in "${EXTRAS[@]}"; do
+          extra="$(echo -n "$extra" | tr -d '[:space:]')"
+          if [ -n "$extra" ]; then
+            flags="$flags --extra $extra"
+          fi
+        done
+        uv sync $flags --frozen
