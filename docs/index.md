@@ -39,7 +39,7 @@
 | `_internal` — infraestructura compartida | en construcción | [internal/](./internal/index.md) |
 | `tools` — declaración y registro de tools | estable | [tools/](./tools/index.md) |
 | `runtime` — orquestación de agentes | pendiente | _no docs yet_ |
-| `providers` — adaptadores por proveedor LLM | pendiente | _no docs yet_ |
+| `providers` — adaptadores por proveedor LLM | estable | [providers/](./providers/index.md) |
 | `context` — contexto compartido entre tools | pendiente | _no docs yet_ |
 | `communication`, `core`, `mcp`, `memory`, `observability`, `pipelines` | pendiente | _no docs yet_ |
 
