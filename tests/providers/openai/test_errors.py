@@ -116,6 +116,7 @@ class TestTranslateResponseErrorServer:
 
         assert isinstance(err, ServerError)
 
+
 class TestTranslateResponseErrorFallback:
     def test_invalid_json_uses_reason_phrase(self) -> None:
         response = httpx.Response(418, content=b"not-json")
