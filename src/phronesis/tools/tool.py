@@ -1,9 +1,8 @@
 """Invocable wrapper that pairs a callable with its :class:`ToolSpec`.
 
-The :class:`Tool` instance is the callable side; ``tool.spec`` exposes
-the pure-data side. Sync and async callables are both supported
-transparently via ``__call__``: sync functions return their value, async
-functions return the coroutine so the caller can ``await`` it.
+See ``docs/TOOLS-DECISIONS.md`` (D-01, D-02, D-06): the tool object is the
+callable side; ``tool.spec`` is the pure-data side. Sync and async callables
+are both supported transparently via ``__call__``.
 """
 
 from __future__ import annotations
@@ -165,11 +164,12 @@ class Tool:
     ) -> Callable[[], dict[str, Any]]:
         """Register an explicit schema factory, overriding the canonical one.
 
-        Use as a paired decorator on the tool for the rare cases where the
-        auto-generated schema is not expressive enough. The validator is
-        **not** replaced: overrides are purely presentational for the LLM.
-        Any cached schemas (canonical and provider-adapted) are invalidated
-        so the new override takes effect immediately.
+        Use as a paired decorator on the tool (see ``docs/TOOLS-DECISIONS.md``,
+        D-19) for the rare cases where the auto-generated schema is not
+        expressive enough. The validator is **not** replaced: overrides are
+        purely presentational for the LLM. Any cached schemas (canonical and
+        provider-adapted) are invalidated so the new override takes effect
+        immediately.
         """
         self._schema_override = factory
         self._canonical_schema = None

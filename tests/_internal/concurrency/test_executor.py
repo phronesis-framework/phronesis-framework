@@ -44,7 +44,7 @@ class TestRunSync:
             await run_sync(boom)
 
     async def test_returns_none_when_callable_returns_none(self) -> None:
-        def noop() -> None | int:
+        def noop() -> None:
             return None
 
         result = await run_sync(noop)

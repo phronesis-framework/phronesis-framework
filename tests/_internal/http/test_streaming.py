@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
-
 import httpx
 import pytest
 
@@ -14,7 +12,7 @@ from phronesis._internal.http import (
 )
 
 
-def _make_client(handler: Callable[[httpx.Request], httpx.Response]) -> HttpClient:
+def _make_client(handler):  # type: ignore[no-untyped-def]
     return HttpClient(base_url="https://example.test", transport=httpx.MockTransport(handler))
 
 

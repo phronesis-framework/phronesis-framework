@@ -1,9 +1,9 @@
 """``ProviderAdapter`` Protocol — contract for provider-specific schemas.
 
-A single canonical input schema is generated eagerly per tool. Adapters
-translate that canonical schema to each provider's expected shape lazily,
-on the first call to :meth:`Tool.get_schema(provider=...)`, and the
-result is cached per ``(tool, provider)`` pair.
+See ``docs/TOOLS-DECISIONS.md`` (D-23, D-24): a single canonical schema is
+generated eagerly per tool; adapters translate it to each provider's
+expected shape lazily, on the first call to
+:meth:`Tool.get_schema(provider=...)`.
 """
 
 from __future__ import annotations

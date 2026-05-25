@@ -39,7 +39,7 @@ class TestGatherAllDefault:
         assert out == [1, 2, 3]
 
     async def test_empty_input_returns_empty_list(self) -> None:
-        out: list[int] = await gather_all()
+        out = await gather_all()
 
         assert out == []
 

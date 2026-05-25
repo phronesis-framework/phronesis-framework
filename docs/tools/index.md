@@ -328,34 +328,36 @@ Maps a closed allowlist of standard exceptions to the appropriate `ToolError`. R
 
 </div>
 
-| Decision |
-|---|
-| `@tool` accepts both `@tool` (bare) and `@tool(...)` forms via a single `overload`-typed function. |
-| Sync and async callables are first-class; `Tool.is_async` is exposed; `__call__` returns the coroutine for async tools. |
-| `name` defaults to `fn.__name__`; `description` defaults to `inspect.getdoc(fn)` (empty string when missing). |
-| Two identifiers per tool: internal `ToolId` (stable, validator-checked) and `ToolName` (LLM-facing, free string). |
-| `id` is inferred from `phronesis._internal.ids.derivation.canonical_from_function`; explicit `id=` overrides. |
-| Spec (data) and tool (callable) are split: `ToolSpec` is frozen and JSON-serializable; `Tool.spec` exposes it. |
-| Process-wide default registry plus async-safe `tool_scope()` via `ContextVar`. |
-| Re-registering the same `Tool` instance is idempotent; different instance under existing id raises `DuplicateToolError`. |
-| `discover()` is opt-in; explicit imports remain the primary path. Broken submodules warn, do not abort. |
-| Effects are declarative tags on the spec; enforcement lives elsewhere. |
-| Effect vocabulary is **closed** and framework-owned: users cannot invent new effects. |
-| Two input shapes: flat parameters (90% case) and single `BaseModel` (10% case). Auto-detected. |
-| Two error channels: `ToolError` -> serialized to LLM; everything else -> runtime policy. |
-| Conservative auto-mapping: a small, closed allowlist maps standard exceptions to `ToolError`. |
-| `Context` is injected by **type**, not by name. Any parameter annotated as `Context` (or subclass) qualifies. |
-| MVP `Context` carries `run_id`, `agent_id`, `session_id`, `trace_id`, `logger`, `budget`, `deadline`, `metadata`. |
-| `Context` is a frozen dataclass with `MappingProxyType` metadata - immutable from the tool's perspective. |
-| `Context` does **not** carry mutable state, the tool registry, or output channels. |
-| Schema is generated automatically; total override via `@tool.schema`; no partial override. |
-| Per-parameter descriptions: Google-style docstring `Args:`, overridable by `Annotated[T, "..."]` string metadata. |
-| `Annotated` markers (re-exported from `annotated_types`) control constraints: `Ge`, `Gt`, `Le`, `Lt`, `MinLen`, `MaxLen`, `Pattern`. |
-| LLM-aware type translation: `$ref` inlined; `null` dropped from optional unions. |
-| Provider adapters preserve canonical structure; degradation emits `SchemaDegradationWarning`. |
-| Canonical schema generated **eagerly** at decoration (unless `lazy=True`); provider schemas built lazily and cached. |
-| `Tool.get_schema(provider=None)` returns the canonical dict; `provider="anthropic" \| "openai"` returns the adapted dict. |
-| `ToolValidationError` carries only the **affected parameter's** sub-schema in `details.expected_schema`, never the whole tool schema. |
+Full rationale is in [`../TOOLS-DECISIONS.md`](../TOOLS-DECISIONS.md). Headline-only enumeration:
+
+| ID | Decision |
+|---|---|
+| D-01 | `@tool` accepts both `@tool` (bare) and `@tool(...)` forms via a single `overload`-typed function. |
+| D-02 | Sync and async callables are first-class; `Tool.is_async` is exposed; `__call__` returns the coroutine for async tools. |
+| D-03 | `name` defaults to `fn.__name__`; `description` defaults to `inspect.getdoc(fn)` (empty string when missing). |
+| D-04 | Two identifiers per tool: internal `ToolId` (stable, validator-checked) and `ToolName` (LLM-facing, free string). |
+| D-05 | `id` is inferred from `phronesis._internal.ids.derivation.canonical_from_function`; explicit `id=` overrides. |
+| D-06 | Spec (data) and tool (callable) are split: `ToolSpec` is frozen and JSON-serializable; `Tool.spec` exposes it. |
+| D-07 | Process-wide default registry plus async-safe `tool_scope()` via `ContextVar`. |
+| D-08 | Re-registering the same `Tool` instance is idempotent; different instance under existing id raises `DuplicateToolError`. |
+| D-09 | `discover()` is opt-in; explicit imports remain the primary path. Broken submodules warn, do not abort. |
+| D-10 | Effects are declarative tags on the spec; enforcement lives elsewhere. |
+| D-11 | Effect vocabulary is **closed** and framework-owned: users cannot invent new effects. |
+| D-12 | Two input shapes: flat parameters (90% case) and single `BaseModel` (10% case). Auto-detected. |
+| D-13 | Two error channels: `ToolError` -> serialized to LLM; everything else -> runtime policy. |
+| D-14 | Conservative auto-mapping: a small, closed allowlist maps standard exceptions to `ToolError`. |
+| D-15 | `Context` is injected by **type**, not by name. Any parameter annotated as `Context` (or subclass) qualifies. |
+| D-16 | MVP `Context` carries `run_id`, `agent_id`, `session_id`, `trace_id`, `logger`, `budget`, `deadline`, `metadata`. |
+| D-17 | `Context` is a frozen dataclass with `MappingProxyType` metadata - immutable from the tool's perspective. |
+| D-18 | `Context` does **not** carry mutable state, the tool registry, or output channels. |
+| D-19 | Schema is generated automatically; total override via `@tool.schema`; no partial override. |
+| D-20 | Per-parameter descriptions: Google-style docstring `Args:`, overridable by `Annotated[T, "..."]` string metadata. |
+| D-21 | `Annotated` markers (re-exported from `annotated_types`) control constraints: `Ge`, `Gt`, `Le`, `Lt`, `MinLen`, `MaxLen`, `Pattern`. |
+| D-22 | LLM-aware type translation: `$ref` inlined; `null` dropped from optional unions. |
+| D-23 | Provider adapters preserve canonical structure; degradation emits `SchemaDegradationWarning`. |
+| D-24 | Canonical schema generated **eagerly** at decoration (unless `lazy=True`); provider schemas built lazily and cached. |
+| D-25 | `Tool.get_schema(provider=None)` returns the canonical dict; `provider="anthropic" \| "openai"` returns the adapted dict. |
+| D-26 | `ToolValidationError` carries only the **affected parameter's** sub-schema in `details.expected_schema`, never the whole tool schema. |
 
 <div align="center">
 
@@ -410,6 +412,7 @@ Validation NotFound Timeout Permission HTTP   Duplicate Definition Unsupported
       |                            v                             |
       |                  +-------------------+                   |
       |                  | inject Context    |  by type, if any  |
+      |                  | (D-15..D-18)      |                   |
       |                  +---------+---------+                   |
       |                            |                             |
       |                            |--- fn(**validated) -------> |
@@ -455,7 +458,7 @@ Async tools follow the exact same path; the only difference is `invoke` returns 
            v                       |
    +-------------------+           |
    | filter Context    |           |
-   | param             |           |
+   | param (D-15..18)  |           |
    +---------+---------+           |
              |                     |
              v                     |
@@ -613,7 +616,7 @@ Async tools follow the exact same path; the only difference is `invoke` returns 
       |      |     v               v
       |      |  re-raise as     re-raise raw
       |      |  mapped error    exception
-      |      |                  (runtime sees it)
+      |      |  (D-14)          (runtime sees it)
       |      |
       |      v
       |  re-raise unchanged
@@ -679,7 +682,7 @@ def search(query: str, limit: int = 10) -> list[str]:
     ...
 ```
 
-### Single-`BaseModel` input
+### Single-`BaseModel` input (D-12)
 
 For tools whose argument shape benefits from a richer model (custom validators, nested objects), declare a single `BaseModel` parameter. The framework treats it as the input root; the LLM still sees the **flat** field schema at the root.
 
@@ -705,7 +708,7 @@ run_job.invoke({"name": "alpha", "count": 4, "tags": ["a"]})   # validated into 
 
 Mixed-parameter tools (`fn(x: int, payload: MyModel)`) fall back to the flat-parameters path: each argument is its own root property.
 
-### `Context` injection by type
+### `Context` injection by type (D-15..D-18)
 
 ```python
 from phronesis import tool, Context
@@ -788,7 +791,7 @@ add.get_schema(provider="bogus")
 
 Each provider schema is cached after the first request.
 
-### `Annotated` markers
+### `Annotated` markers (D-21)
 
 ```python
 from typing import Annotated
@@ -804,9 +807,9 @@ def issue(
     ...
 ```
 
-The string metadata in `Annotated` overrides any Google-docstring description.
+The string metadata in `Annotated` overrides any Google-docstring description (D-20).
 
-### Total schema override (rare)
+### Total schema override (D-19, rare)
 
 ```python
 @tool
@@ -1002,7 +1005,7 @@ All four must be green before commit. CI runs the same set against the whole rep
 
 </div>
 
-- **Strict OpenAI schema mode** (`strict: true` with full `additionalProperties: false` enforcement) - deferred until the provider stabilizes the contract.
+- **Strict OpenAI schema mode** (`strict: true` with full `additionalProperties: false` enforcement) - deferred per D-23 until the provider stabilizes the contract.
 - **More provider adapters** (Gemini, Bedrock, Cohere) - plug into `ProviderAdapter` Protocol; no `Tool` changes needed.
 - **Per-effect runtime policies** - e.g. `EXPENSIVE` rate-limiting, `REQUIRES_CONFIRMATION` approval flow. Lives in a future `policy/` module; `tools/` only declares the tags.
 - **Streaming tool outputs** - currently a single return value. Will require a new `invoke_stream` or generator-typed return on `Tool`.

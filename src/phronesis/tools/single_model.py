@@ -1,14 +1,13 @@
 """Detection of tools that take a single :class:`pydantic.BaseModel` input.
 
-Tools may accept either a flat list of typed parameters (the common
-case) or a single parameter typed as a ``BaseModel`` subclass acting as
-the input root. The latter delegates schema generation and validation
-to the model itself, which is the right escape hatch for deeply nested
-or recursive inputs.
+See ``docs/TOOLS-DECISIONS.md`` (D-12): tools may accept either a flat
+list of typed parameters (the common 90% case) or a single parameter
+typed as a ``BaseModel`` subclass acting as the input root (~10%). The
+latter delegates schema generation and validation to the model itself.
 
-A :class:`Context`-typed parameter does not count toward the
-single-input rule: it is injected by the runtime and excluded from the
-LLM-facing contract.
+A :class:`Context`-typed parameter does not count toward the single-input
+rule: it is injected by the runtime and excluded from the LLM-facing
+contract.
 """
 
 from __future__ import annotations

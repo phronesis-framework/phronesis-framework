@@ -1,11 +1,10 @@
 """Canonical JSON Schema generation for tool inputs.
 
-The schema is generated eagerly from the function signature using
-Pydantic v2 and then post-processed for LLM consumption: ``$ref``
-entries are inlined and ``null`` variants are stripped from optional
-``anyOf`` unions. Per-parameter descriptions come from Google-style
-docstring ``Args:`` sections and can be overridden by
-``Annotated[T, "description"]``.
+See ``docs/TOOLS-DECISIONS.md`` (D-19, D-20, D-21, D-22, D-24, D-25):
+schema is generated eagerly from the function signature using Pydantic v2,
+then post-processed for LLM consumption (inline ``$ref``, drop ``null``
+from optional unions). Per-parameter descriptions come from Google-style
+docstring ``Args:`` sections, overridden by ``Annotated[T, "..."]``.
 """
 
 from __future__ import annotations
@@ -157,7 +156,7 @@ def build_canonical_schema(fn: Callable[..., Any]) -> dict[str, Any]:
 
     A parameter typed as :class:`Context` is filtered out: it is injected
     by the runtime, not provided by the LLM, so it must not appear in
-    the schema. Single-model tools report the declared
+    the schema. Single-model tools (D-12) report the declared
     :class:`BaseModel`'s own schema verbatim (post-processed).
     """
     single = get_single_model(fn)

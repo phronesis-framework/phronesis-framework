@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+from typing import Any
 
 import pytest
 
@@ -295,6 +296,6 @@ class TestConcurrency:
 
             return counters[key]
 
-        results = await asyncio.gather(fn("a"), fn("b"), fn("c"))
+        results: list[Any] = await asyncio.gather(fn("a"), fn("b"), fn("c"))
 
-        assert list(results) == [2, 2, 2]
+        assert results == [2, 2, 2]

@@ -1,8 +1,9 @@
 """Recursive package import helper that triggers ``@tool`` registrations.
 
-Explicit imports remain the primary path. ``discover`` is an opt-in
-convenience that walks a package tree, importing every submodule so its
-``@tool`` decorations execute and register into the active registry.
+See ``docs/TOOLS-DECISIONS.md`` (D-09): explicit imports remain the
+primary path. ``discover`` is an opt-in convenience that walks a package
+tree, importing every submodule so its ``@tool`` decorations execute and
+register into the active registry.
 
 Broken submodules emit a :class:`UserWarning` and are skipped; they do
 not abort the walk. Missing or non-package targets raise the underlying

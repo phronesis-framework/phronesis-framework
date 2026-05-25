@@ -61,7 +61,4 @@ class TestResultPatternMatch:
                 assert error == "oops"
 
     def test_ok_and_err_are_disjoint(self) -> None:
-        left: object = Ok(1)
-        right: object = Err(1)
-
-        assert left != right
+        assert Ok(1) != Err(1)

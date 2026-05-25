@@ -1,9 +1,8 @@
 """Tool registry and ``tool_scope`` context manager.
 
-A process-wide registry holds declared tools, keyed by canonical id.
-:func:`tool_scope` swaps the active registry for the duration of a
-``with`` block using a :class:`~contextvars.ContextVar`, so concurrent
-async scopes (tests, isolated agent runs) never bleed into each other.
+See ``docs/TOOLS-DECISIONS.md`` (D-07, D-08): a process-wide registry holds
+declared tools; ``tool_scope()`` swaps the active registry via a
+``ContextVar`` so concurrent async scopes do not bleed into each other.
 """
 
 from __future__ import annotations
