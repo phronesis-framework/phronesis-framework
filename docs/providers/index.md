@@ -18,7 +18,6 @@
   <a href="../index.md">docs</a> ·
   <a href="../../src/phronesis/providers/">source</a> ·
   <a href="../../tests/providers/">tests</a> ·
-  <a href="../PROVIDERS-DECISIONS.md">decisions</a>
 </div>
 
 <div align="center">
@@ -275,7 +274,7 @@ class RetryConfig:
     should_retry: Callable[[Exception], bool] | None = None
 ```
 
-Applies only to `complete`. Streaming retry is intentionally out of scope (see D-12).
+Applies only to `complete`. Streaming retry is intentionally out of scope.
 
 ### Request and response types
 
@@ -318,22 +317,20 @@ match chunk:
 
 </div>
 
-Full rationale lives in [`../PROVIDERS-DECISIONS.md`](../PROVIDERS-DECISIONS.md). Headline-only:
-
-| ID | Decision |
-|---|---|
-| D-01 | One implementation per vendor exposed through a typed factory function (`anthropic(...)`, `openai(...)`). |
-| D-02 | `httpx` is the sole transport; no vendor SDK dependency. |
-| D-03 | The factory is the only public construction path. Provider classes are framework-internal. |
-| D-04 | HTTP I/O is async-only; sync wrappers belong to the caller. |
-| D-05 | `LLMRequest` / `LLMResponse` are framework types; vendor encoding is internal. |
-| D-06 | The same `Message` shape works across vendors; system goes either in `LLMRequest.system` or as a `Role.SYSTEM` message. |
-| D-07 | All public dataclasses are `frozen=True, slots=True`. |
-| D-08 | `LLMChunk` is a sealed union of `frozen+slots` dataclasses. |
-| D-09 | `ProviderFeature` is a `StrEnum` with a closed vocabulary. |
-| D-10 | `TokenUsage` exposes `input/output/cache_read/cache_creation` tokens. No currency. |
-| D-11 | Errors live in a single hierarchy shared across vendors. |
-| D-12 | Retries are configurable per provider via `RetryConfig`. Streaming is not retried. |
+| Decision |
+|---|
+| One implementation per vendor exposed through a typed factory function (`anthropic(...)`, `openai(...)`). |
+| `httpx` is the sole transport; no vendor SDK dependency. |
+| The factory is the only public construction path. Provider classes are framework-internal. |
+| HTTP I/O is async-only; sync wrappers belong to the caller. |
+| `LLMRequest` / `LLMResponse` are framework types; vendor encoding is internal. |
+| The same `Message` shape works across vendors; system goes either in `LLMRequest.system` or as a `Role.SYSTEM` message. |
+| All public dataclasses are `frozen=True, slots=True`. |
+| `LLMChunk` is a sealed union of `frozen+slots` dataclasses. |
+| `ProviderFeature` is a `StrEnum` with a closed vocabulary. |
+| `TokenUsage` exposes `input/output/cache_read/cache_creation` tokens. No currency. |
+| Errors live in a single hierarchy shared across vendors. |
+| Retries are configurable per provider via `RetryConfig`. Streaming is not retried. |
 
 <div align="center">
 

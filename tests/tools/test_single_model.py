@@ -1,4 +1,4 @@
-"""Tests for single-model tool detection, validation and schema (D-12)."""
+"""Tests for single-model tool detection, validation and schema."""
 
 from __future__ import annotations
 
