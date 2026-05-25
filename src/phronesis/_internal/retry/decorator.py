@@ -7,7 +7,7 @@ import functools
 import logging
 import time
 from collections.abc import Awaitable, Callable
-from typing import ParamSpec, TypeVar
+from typing import NoReturn, ParamSpec, TypeVar
 
 from ..logging import get_logger
 from .attempt import AttemptInfo
@@ -46,6 +46,53 @@ def _calculate_delay(
     return backoff.get_delay(attempt)
 
 
+def _should_propagate(
+    exc: Exception,
+    on: tuple[type[BaseException], ...],
+    should_retry: Callable[[Exception], bool] | None,
+) -> bool:
+    if not isinstance(exc, on):
+        return True
+
+    return should_retry is not None and not should_retry(exc)
+
+
+def _raise_exhausted(
+    exc: Exception,
+    attempt: int,
+    attempt_duration_ms: float,
+    started: float,
+    history: list[AttemptInfo],
+    log: logging.Logger,
+) -> NoReturn:
+    history.append(
+        AttemptInfo(
+            attempt_number=attempt,
+            exception=exc,
+            duration_ms=attempt_duration_ms,
+            delay_before_next_ms=None,
+        )
+    )
+
+    total_ms = (time.perf_counter() - started) * 1000
+
+    log.error(
+        "retries exhausted",
+        extra={
+            "attempts": attempt,
+            "total_duration_ms": total_ms,
+            "error": str(exc),
+        },
+    )
+
+    raise RetryExhaustedError(
+        attempts=attempt,
+        total_duration_ms=total_ms,
+        last_exception=exc,
+        attempt_history=history,
+    ) from exc
+
+
 def retry(
     *,
     on: tuple[type[BaseException], ...],
@@ -81,39 +128,11 @@ def retry(
                 except Exception as exc:
                     attempt_duration_ms = (time.perf_counter() - attempt_started) * 1000
 
-                    if not isinstance(exc, on):
-                        raise
-
-                    if should_retry is not None and not should_retry(exc):
+                    if _should_propagate(exc, on, should_retry):
                         raise
 
                     if attempt >= max_attempts:
-                        history.append(
-                            AttemptInfo(
-                                attempt_number=attempt,
-                                exception=exc,
-                                duration_ms=attempt_duration_ms,
-                                delay_before_next_ms=None,
-                            )
-                        )
-
-                        total_ms = (time.perf_counter() - started) * 1000
-
-                        log.error(
-                            "retries exhausted",
-                            extra={
-                                "attempts": attempt,
-                                "total_duration_ms": total_ms,
-                                "error": str(exc),
-                            },
-                        )
-
-                        raise RetryExhaustedError(
-                            attempts=attempt,
-                            total_duration_ms=total_ms,
-                            last_exception=exc,
-                            attempt_history=history,
-                        ) from exc
+                        _raise_exhausted(exc, attempt, attempt_duration_ms, started, history, log)
 
                     delay = _calculate_delay(
                         exc,
