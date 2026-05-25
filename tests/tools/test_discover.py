@@ -1,10 +1,11 @@
-"""Tests for :func:`discover` (D-09)."""
+"""Tests for :func:`discover`."""
 
 from __future__ import annotations
 
 import importlib
 import sys
 import warnings
+from collections.abc import Iterator
 from pathlib import Path
 
 import pytest
@@ -18,7 +19,7 @@ def _write(path: Path, content: str = "") -> None:
 
 
 @pytest.fixture()
-def synthetic_package(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> str:
+def synthetic_package(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[str]:
     """Create a synthetic package on disk and put it on ``sys.path``."""
     name = "phr_discover_synth"
     root = tmp_path / name
@@ -38,7 +39,7 @@ def synthetic_package(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> str:
 
 
 @pytest.fixture()
-def broken_package(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> str:
+def broken_package(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[str]:
     name = "phr_discover_broken"
     root = tmp_path / name
 

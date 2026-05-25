@@ -55,8 +55,8 @@ class TestToolEffectValues:
             assert isinstance(effect, str)
 
     def test_string_equality_with_canonical_value(self) -> None:
-        assert ToolEffect.NETWORK == "network"
-        assert ToolEffect.FILESYSTEM_READ == "filesystem.read"
+        assert ToolEffect.NETWORK.value == "network"
+        assert ToolEffect.FILESYSTEM_READ.value == "filesystem.read"
 
 
 class TestToolEffectClosed:
