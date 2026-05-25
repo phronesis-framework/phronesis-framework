@@ -18,6 +18,7 @@ from phronesis.providers.anthropic.messages import (
     from_anthropic_content,
     to_anthropic_messages,
 )
+from phronesis.providers.anthropic.streaming import stream_anthropic_messages
 from phronesis.providers.anthropic.tools import to_anthropic_tools
 from phronesis.providers.chunks import LLMChunk
 from phronesis.providers.protocol import ProviderFeature
@@ -79,7 +80,14 @@ class AnthropicProvider:
         return self._parse_response(payload)
 
     def stream(self, request: LLMRequest) -> AsyncIterator[LLMChunk]:
-        raise NotImplementedError("Streaming for AnthropicProvider lands in a later phase.")
+        body = self._build_body(request)
+
+        return stream_anthropic_messages(
+            self._http,
+            api_key=self._api_key,
+            api_version=self._api_version,
+            body=body,
+        )
 
     async def _post_messages(self, body: dict[str, Any]) -> dict[str, Any]:
         response = await self._http.post(

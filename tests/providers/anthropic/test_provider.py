@@ -329,8 +329,11 @@ class TestAnthropicProviderErrors:
 
 class TestAnthropicProviderStream:
     @pytest.mark.asyncio
-    async def test_stream_raises_not_implemented(self) -> None:
+    async def test_stream_returns_async_iterator(self) -> None:
         provider = _make_provider(handler=lambda r: httpx.Response(200, json=_ok_payload()))
 
-        with pytest.raises(NotImplementedError):
-            provider.stream(LLMRequest(model="", messages=()))
+        iterator = provider.stream(
+            LLMRequest(model="", messages=(Message(role=Role.USER, content="hi"),)),
+        )
+
+        assert hasattr(iterator, "__aiter__")
