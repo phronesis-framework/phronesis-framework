@@ -17,7 +17,7 @@ from typing import Any, Final
 
 from phronesis.communication.session_id import SessionId
 from phronesis.context.budget import Budget
-from phronesis.core.agent_id import AgentId
+from phronesis.agents.id import AgentId
 from phronesis.runtime.run_id import RunId
 
 _EMPTY_METADATA: Final[Mapping[str, Any]] = MappingProxyType({})

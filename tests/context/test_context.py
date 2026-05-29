@@ -11,7 +11,7 @@ import pytest
 
 from phronesis.communication.session_id import SessionId
 from phronesis.context import Budget, Context
-from phronesis.core.agent_id import AgentId
+from phronesis.agents.id import AgentId
 from phronesis.runtime.run_id import RunId
 
 
