@@ -12,7 +12,7 @@ import pytest
 from phronesis.communication.session_id import SessionId
 from phronesis.context import Budget, Context
 from phronesis.agents.id import AgentId
-from phronesis.runtime.run_id import RunId
+from phronesis.agents.run import RunId
 
 
 class TestContextDefaults:
