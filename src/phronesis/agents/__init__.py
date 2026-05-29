@@ -14,12 +14,15 @@ from phronesis.agents.errors import (
     AgentOutputValidationError,
     DuplicateAgentError,
 )
+from phronesis.agents.id import AgentId, agent_id_generator
 
 __all__ = [
     "AgentConfigurationError",
     "AgentError",
     "AgentExecutionError",
+    "AgentId",
     "AgentMaxIterationsError",
     "AgentOutputValidationError",
     "DuplicateAgentError",
+    "agent_id_generator",
 ]
