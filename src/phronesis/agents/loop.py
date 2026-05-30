@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import asyncio
 import inspect
+import time
 import uuid
 from collections.abc import Mapping
 from typing import Any
@@ -47,6 +48,9 @@ from phronesis.core.messages import (
     ToolUseBlock,
     UserMessage,
 )
+from phronesis.obs import attributes as obs_attrs
+from phronesis.obs import metrics as obs_metrics
+from phronesis.obs.spans import start_span_async
 from phronesis.providers.types import LLMRequest
 from phronesis.providers.types import Message as ProviderMessage
 from phronesis.providers.types import Role as ProviderRole
@@ -81,6 +85,7 @@ async def run_loop(
     run_id = _generate_run_id()
     tool_by_name: dict[str, Tool] = {t.spec.name: t for t in spec.tools}
     context = _build_context(spec, request, run_id)
+    run_attrs = _run_attributes(spec, request, run_id)
 
     if initial_history is None:
         history = _initial_history(spec, request)
@@ -91,37 +96,54 @@ async def run_loop(
     aggregated_tool_calls: list[ToolUseBlock] = []
     iterations = 0
     max_iterations = request.max_iterations or spec.max_iterations
+    started = time.monotonic()
+    obs_metrics.agent_runs.add(1, attributes=run_attrs)
 
-    while iterations < max_iterations:
-        iterations += 1
+    try:
+        async with start_span_async("phronesis.agents.run", attributes=run_attrs):
+            while iterations < max_iterations:
+                iterations += 1
+                step_attrs = {**run_attrs, "agent.step": iterations}
 
-        response = await _complete(spec, history)
-        aggregated_usage = _merge_usage(aggregated_usage, response.usage)
+                async with start_span_async("phronesis.agents.step", attributes=step_attrs):
+                    response = await _complete(spec, history)
+                    aggregated_usage = _merge_usage(aggregated_usage, response.usage)
 
-        assistant_message, requested_calls = _assistant_message_from_response(response)
-        history = (*history, assistant_message)
-        aggregated_tool_calls.extend(requested_calls)
+                    assistant_message, requested_calls = _assistant_message_from_response(response)
+                    history = (*history, assistant_message)
+                    aggregated_tool_calls.extend(requested_calls)
 
-        if not requested_calls:
-            return Result(
-                run_id=run_id,
-                output=response.text,
-                tokens=aggregated_usage,
-                iterations=iterations,
-                tool_calls=tuple(aggregated_tool_calls),
-                messages=history,
+                    if not requested_calls:
+                        return Result(
+                            run_id=run_id,
+                            output=response.text,
+                            tokens=aggregated_usage,
+                            iterations=iterations,
+                            tool_calls=tuple(aggregated_tool_calls),
+                            messages=history,
+                        )
+
+                    result_blocks = await _execute_calls(
+                        tool_by_name, requested_calls, context, run_attrs
+                    )
+                    history = (*history, ToolMessage(content=tuple(result_blocks)))
+
+            raise AgentMaxIterationsError(
+                (
+                    f"Agent {spec.id.canonical!r} hit max_iterations={max_iterations} "
+                    "without finishing."
+                ),
+                details={
+                    "agent_id": spec.id.canonical,
+                    "max_iterations": max_iterations,
+                },
             )
-
-        result_blocks = await _execute_calls(tool_by_name, requested_calls, context)
-        history = (*history, ToolMessage(content=tuple(result_blocks)))
-
-    raise AgentMaxIterationsError(
-        f"Agent {spec.id.canonical!r} hit max_iterations={max_iterations} without finishing.",
-        details={
-            "agent_id": spec.id.canonical,
-            "max_iterations": max_iterations,
-        },
-    )
+    finally:
+        elapsed = time.monotonic() - started
+        obs_metrics.agent_run_duration.record(elapsed, attributes=run_attrs)
+        obs_metrics.agent_tool_calls_per_run.record(
+            len(aggregated_tool_calls), attributes=run_attrs
+        )
 
 
 def _generate_run_id() -> RunId:
@@ -181,8 +203,9 @@ async def _execute_calls(
     tool_by_name: Mapping[str, Tool],
     calls: list[ToolUseBlock],
     context: Context,
+    run_attrs: dict[str, Any],
 ) -> list[ToolResultBlock]:
-    tasks = [_invoke_tool(tool_by_name, call, context) for call in calls]
+    tasks = [_invoke_tool(tool_by_name, call, context, run_attrs) for call in calls]
     outcomes = await asyncio.gather(*tasks, return_exceptions=True)
 
     blocks: list[ToolResultBlock] = []
@@ -219,6 +242,7 @@ async def _invoke_tool(
     tool_by_name: Mapping[str, Tool],
     call: ToolUseBlock,
     context: Context,
+    run_attrs: dict[str, Any],
 ) -> Any:
     tool = tool_by_name.get(call.tool_name)
 
@@ -228,12 +252,20 @@ async def _invoke_tool(
             details={"tool_name": call.tool_name},
         )
 
-    outcome = tool.invoke(dict(call.args), context=context)
+    call_attrs = {
+        **run_attrs,
+        obs_attrs.TOOL_ID: tool.spec.id.canonical,
+        obs_attrs.TOOL_NAME: str(tool.spec.name),
+        obs_attrs.TOOL_CALL_ID: call.tool_call_id,
+    }
 
-    if inspect.isawaitable(outcome):
-        return await outcome
+    async with start_span_async("phronesis.agents.tool_call", attributes=call_attrs):
+        outcome = tool.invoke(dict(call.args), context=context)
 
-    return outcome
+        if inspect.isawaitable(outcome):
+            return await outcome
+
+        return outcome
 
 
 def _build_context(spec: AgentSpec, request: RunRequest, run_id: RunId) -> Context:
@@ -243,6 +275,19 @@ def _build_context(spec: AgentSpec, request: RunRequest, run_id: RunId) -> Conte
         session_id=request.session_id,
         metadata=request.metadata,
     )
+
+
+def _run_attributes(spec: AgentSpec, request: RunRequest, run_id: RunId) -> dict[str, Any]:
+    attrs: dict[str, Any] = {
+        obs_attrs.AGENT_ID: spec.id.canonical,
+        obs_attrs.AGENT_NAME: spec.name,
+        obs_attrs.RUN_ID: run_id.canonical,
+    }
+
+    if request.session_id is not None:
+        attrs[obs_attrs.SESSION_ID] = request.session_id.canonical
+
+    return attrs
 
 
 def _translate_history(history: tuple[Message, ...]) -> tuple[ProviderMessage, ...]:
