@@ -10,6 +10,8 @@ hold a working :class:`Agent` from day one.
 from __future__ import annotations
 
 from phronesis.agents.id import AgentId
+from phronesis.agents.loop import run_loop
+from phronesis.agents.run import Result, RunRequest
 from phronesis.agents.spec import AgentSpec
 
 
@@ -34,6 +36,20 @@ class Agent:
     def name(self) -> str:
         """LLM-facing name of the agent."""
         return self.spec.name
+
+    async def run(self, input_or_request: str | RunRequest) -> Result:
+        """Execute the tool-calling loop and return the final :class:`Result`.
+
+        Accepts either a free-form string (wrapped in a default
+        :class:`RunRequest`) or an explicit request object.
+        """
+        request = (
+            input_or_request
+            if isinstance(input_or_request, RunRequest)
+            else RunRequest(input=input_or_request)
+        )
+
+        return await run_loop(self.spec, request)
 
     def __repr__(self) -> str:
         return f"Agent(id={self.spec.id.canonical!r}, name={self.spec.name!r})"
