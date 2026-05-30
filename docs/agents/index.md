@@ -282,7 +282,7 @@ Same `ContextVar`-based pattern as `tool_scope`: the scoped registry is visible 
 
 </div>
 
-Full rationale is in [`../AGENTS-DECISIONS.md`](../AGENTS-DECISIONS.md). Headline-only enumeration:
+Headline-only enumeration:
 
 | ID | Decision |
 |---|---|
