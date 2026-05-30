@@ -12,7 +12,9 @@ from __future__ import annotations
 from phronesis.agents.id import AgentId
 from phronesis.agents.loop import run_loop
 from phronesis.agents.run import Result, RunRequest
+from phronesis.agents.session import Session
 from phronesis.agents.spec import AgentSpec
+from phronesis.communication.session_id import SessionId
 
 
 class Agent:
@@ -50,6 +52,10 @@ class Agent:
         )
 
         return await run_loop(self.spec, request)
+
+    def session(self, session_id: SessionId | None = None) -> Session:
+        """Open a multi-turn :class:`Session` bound to this agent."""
+        return Session(self.spec, session_id=session_id)
 
     def __repr__(self) -> str:
         return f"Agent(id={self.spec.id.canonical!r}, name={self.spec.name!r})"

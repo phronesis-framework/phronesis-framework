@@ -54,8 +54,18 @@ from phronesis.tools.errors import ToolError, ToolNotFoundError
 from phronesis.tools.tool import Tool
 
 
-async def run_loop(spec: AgentSpec, request: RunRequest) -> Result:
+async def run_loop(
+    spec: AgentSpec,
+    request: RunRequest,
+    *,
+    initial_history: tuple[Message, ...] | None = None,
+) -> Result:
     """Execute the tool-calling loop for ``spec`` against ``request``.
+
+    When ``initial_history`` is provided the loop appends a new
+    :class:`UserMessage` for ``request.input`` to it instead of seeding
+    a fresh ``system + user`` history. This is the entry point used by
+    :class:`phronesis.agents.session.Session` to continue a conversation.
 
     Returns:
         A :class:`Result` with ``success=True`` when the model produces
@@ -69,7 +79,11 @@ async def run_loop(spec: AgentSpec, request: RunRequest) -> Result:
     """
     run_id = _generate_run_id()
     tool_by_name: dict[str, Tool] = {t.spec.name: t for t in spec.tools}
-    history: tuple[Message, ...] = _initial_history(spec, request)
+
+    if initial_history is None:
+        history = _initial_history(spec, request)
+    else:
+        history = (*initial_history, UserMessage(content=(TextBlock(text=request.input),)))
 
     aggregated_usage = TokenUsage()
     aggregated_tool_calls: list[ToolUseBlock] = []
