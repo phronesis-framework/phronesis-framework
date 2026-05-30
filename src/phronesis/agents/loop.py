@@ -35,6 +35,7 @@ from phronesis.agents.run import (
     run_id_generator,
 )
 from phronesis.agents.spec import AgentSpec
+from phronesis.context.context import Context
 from phronesis.core.messages import (
     AssistantMessage,
     ContentBlock,
@@ -79,6 +80,7 @@ async def run_loop(
     """
     run_id = _generate_run_id()
     tool_by_name: dict[str, Tool] = {t.spec.name: t for t in spec.tools}
+    context = _build_context(spec, request, run_id)
 
     if initial_history is None:
         history = _initial_history(spec, request)
@@ -110,7 +112,7 @@ async def run_loop(
                 messages=history,
             )
 
-        result_blocks = await _execute_calls(tool_by_name, requested_calls)
+        result_blocks = await _execute_calls(tool_by_name, requested_calls, context)
         history = (*history, ToolMessage(content=tuple(result_blocks)))
 
     raise AgentMaxIterationsError(
@@ -178,8 +180,9 @@ def _assistant_message_from_response(response: Any) -> tuple[AssistantMessage, l
 async def _execute_calls(
     tool_by_name: Mapping[str, Tool],
     calls: list[ToolUseBlock],
+    context: Context,
 ) -> list[ToolResultBlock]:
-    tasks = [_invoke_tool(tool_by_name, call) for call in calls]
+    tasks = [_invoke_tool(tool_by_name, call, context) for call in calls]
     outcomes = await asyncio.gather(*tasks, return_exceptions=True)
 
     blocks: list[ToolResultBlock] = []
@@ -212,7 +215,11 @@ async def _execute_calls(
     return blocks
 
 
-async def _invoke_tool(tool_by_name: Mapping[str, Tool], call: ToolUseBlock) -> Any:
+async def _invoke_tool(
+    tool_by_name: Mapping[str, Tool],
+    call: ToolUseBlock,
+    context: Context,
+) -> Any:
     tool = tool_by_name.get(call.tool_name)
 
     if tool is None:
@@ -221,12 +228,21 @@ async def _invoke_tool(tool_by_name: Mapping[str, Tool], call: ToolUseBlock) -> 
             details={"tool_name": call.tool_name},
         )
 
-    outcome = tool.invoke(dict(call.args))
+    outcome = tool.invoke(dict(call.args), context=context)
 
     if inspect.isawaitable(outcome):
         return await outcome
 
     return outcome
+
+
+def _build_context(spec: AgentSpec, request: RunRequest, run_id: RunId) -> Context:
+    return Context(
+        run_id=run_id,
+        agent_id=spec.id,
+        session_id=request.session_id,
+        metadata=request.metadata,
+    )
 
 
 def _translate_history(history: tuple[Message, ...]) -> tuple[ProviderMessage, ...]:
