@@ -11,7 +11,12 @@ here so tool authors can import them from a single place.
 
 from __future__ import annotations
 
-from annotated_types import Ge, Gt, Le, Lt, MaxLen, MinLen
+from annotated_types import Ge as Ge
+from annotated_types import Gt as Gt
+from annotated_types import Le as Le
+from annotated_types import Lt as Lt
+from annotated_types import MaxLen as MaxLen
+from annotated_types import MinLen as MinLen
 from pydantic import StringConstraints
 
 
@@ -32,6 +37,3 @@ def Pattern(pattern: str) -> StringConstraints:  # NOSONAR(S1542)
         suitable for use as ``Annotated[str, Pattern(r"...")]``.
     """
     return StringConstraints(pattern=pattern)
-
-
-__all__ = ["Ge", "Gt", "Le", "Lt", "MaxLen", "MinLen", "Pattern"]
