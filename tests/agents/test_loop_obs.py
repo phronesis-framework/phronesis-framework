@@ -134,7 +134,11 @@ class TestSpans:
 
         names = [s.name for s in span_recorder]
 
-        assert names == ["phronesis.agents.run", "phronesis.agents.step"]
+        assert names == [
+            "phronesis.agents.run",
+            "phronesis.agents.step",
+            "phronesis.context.build",
+        ]
 
     @pytest.mark.asyncio
     async def test_run_span_carries_agent_and_run_attributes(
