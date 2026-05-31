@@ -1,10 +1,19 @@
 """Stateful multi-turn session over a stateless :class:`Agent`.
 
-See ``docs/AGENTS-DECISIONS.md`` (D-09): the agent itself is stateless;
-conversation state lives in :class:`Session`. Each call to
-:meth:`Session.run` appends the user input to the running history,
-delegates to :func:`run_loop`, and stores the returned message tuple as
-the new baseline for the next turn.
+An :class:`Agent` is stateless: every :meth:`Agent.run` call starts
+from a fresh history. :class:`Session` adds the missing piece —
+conversation memory — without coupling the spec to it.
+
+Each :meth:`Session.run` call:
+
+1. Coerces the input into a :class:`RunRequest` bound to the session
+   id.
+2. Calls :func:`run_loop`, passing the accumulated history as
+   ``initial_history`` (or seeding a fresh history on the first turn).
+3. Stores the returned :attr:`Result.messages` as the new baseline.
+
+Sessions are not safe for concurrent use — each turn mutates the
+internal history; serialize calls per session if needed.
 """
 
 from __future__ import annotations
@@ -27,6 +36,10 @@ def _new_session_id() -> SessionId:
 class Session:
     """Multi-turn wrapper around a stateless agent.
 
+    The session owns the conversation history. It does not own the
+    spec — multiple sessions can share the same :class:`AgentSpec`
+    safely because the spec is immutable.
+
     Attributes:
         id: The stable :class:`SessionId` for this conversation.
     """
@@ -34,22 +47,45 @@ class Session:
     __slots__ = ("_messages", "_spec", "id")
 
     def __init__(self, spec: AgentSpec, session_id: SessionId | None = None) -> None:
+        """Create a session bound to ``spec``.
+
+        Args:
+            spec: The :class:`AgentSpec` whose loop and tools will run
+                on every turn.
+            session_id: Existing :class:`SessionId` to attach to this
+                conversation. When ``None``, a new id is generated.
+        """
         self._spec = spec
         self.id: SessionId = session_id if session_id is not None else _new_session_id()
         self._messages: tuple[Message, ...] = ()
 
     @property
     def messages(self) -> tuple[Message, ...]:
-        """Snapshot of every message exchanged so far."""
+        """Read-only snapshot of every :class:`Message` exchanged so far."""
         return self._messages
 
     async def run(self, input_or_request: str | RunRequest) -> Result:
         """Run one turn, continuing from the accumulated history.
 
-        Accepts either a free-form string (wrapped in a default
-        :class:`RunRequest` bound to this session) or an explicit
-        :class:`RunRequest`. The session id on the request is always
-        forced to this session's id.
+        On the first call the loop seeds a fresh ``system + user``
+        history; on later calls it appends a new ``user`` message to
+        the stored history. The returned :attr:`Result.messages`
+        becomes the baseline for the next turn.
+
+        Args:
+            input_or_request: Either a free-form string (wrapped in a
+                default :class:`RunRequest`) or an explicit request.
+                The session id is always overridden with this
+                session's id.
+
+        Returns:
+            The :class:`Result` produced by :func:`run_loop`.
+
+        Raises:
+            AgentMaxIterationsError: if the loop hits the iteration
+                cap without finishing.
+            AgentExecutionError: if a tool or provider call raises a
+                non-``ToolError`` exception.
         """
         request = self._coerce_request(input_or_request)
 
@@ -63,7 +99,12 @@ class Session:
         return result
 
     def reset(self) -> None:
-        """Drop the conversation history but keep the same session id."""
+        """Clear the conversation history, keeping the same session id.
+
+        Subsequent calls to :meth:`run` behave as if this were the
+        first turn. The :attr:`id` attribute is preserved so external
+        consumers can keep using it as a stable handle.
+        """
         self._messages = ()
 
     def _coerce_request(self, input_or_request: str | RunRequest) -> RunRequest:

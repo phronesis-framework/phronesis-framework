@@ -1,13 +1,15 @@
 """Run-cycle data types for agents.
 
-See ``docs/AGENTS-DECISIONS.md`` (D-05, D-06): a run is initiated with a
-:class:`RunRequest` and produces a :class:`Result`. Both are frozen
-dataclasses so they can be shared across threads, logged, or pickled.
+A run is initiated with a :class:`RunRequest` and produces a
+:class:`Result`. Both types are frozen dataclasses so they can be
+shared across threads, logged, or pickled without surprises.
 
-:class:`RunId` is the stable identifier of a single execution and is
-generated lazily by the loop. :class:`TokenUsage` is re-exported from
-:mod:`phronesis.providers.usage` to keep callers from needing to import
-provider internals.
+* :class:`RunId` is the stable identifier of a single execution. The
+  loop generates one per call via the singleton
+  :data:`run_id_generator`.
+* :class:`TokenUsage` is re-exported from
+  :mod:`phronesis.providers.usage` so callers never need to reach
+  into the provider package directly.
 """
 
 from __future__ import annotations
@@ -36,27 +38,44 @@ _EMPTY_METADATA: Final[Mapping[str, Any]] = MappingProxyType({})
 
 
 class RunId(Id):
-    """Stable identifier for one execution of an agent."""
+    """Stable identifier for one execution of an agent.
+
+    Subclass of :class:`phronesis._internal.ids.id.Id` with the short
+    prefix ``"RID"``. The canonical form looks like
+    ``phronesis.runtime.run.r<hex>``.
+    """
 
     prefix = "RID"
 
 
 run_id_generator: IdGenerator[RunId] = IdGenerator(RunId)
-"""Singleton :class:`IdGenerator` for :class:`RunId`."""
+"""Process-wide :class:`IdGenerator` bound to :class:`RunId`.
+
+The loop uses this generator to mint a new id for every run via
+``run_id_generator.from_canonical(...)``.
+"""
 
 
 @dataclass(frozen=True, slots=True)
 class RunRequest:
     """Input to :meth:`phronesis.agents.Agent.run`.
 
+    A request is a frozen value object; the loop never mutates it.
+    Metadata is coerced to a read-only :class:`MappingProxyType` in
+    ``__post_init__`` so a caller cannot mutate it after construction.
+
     Attributes:
         input: The user-provided prompt that kicks off the run.
-        session_id: Optional session linking this run with a multi-turn
-            conversation.
-        metadata: Free-form metadata propagated to instrumentation and
-            available to tools via the runtime context.
-        max_iterations: Per-run override of the agent's ``max_iterations``
-            safety cap. ``None`` means use the spec default.
+        session_id: Optional :class:`SessionId` linking this run with
+            a multi-turn conversation. Used by
+            :class:`phronesis.agents.session.Session` to thread runs
+            together and as an attribute on emitted spans/metrics.
+        metadata: Free-form mapping propagated to instrumentation and
+            exposed to tools through the runtime
+            :class:`phronesis.context.context.Context`.
+        max_iterations: Per-run override of
+            :attr:`AgentSpec.max_iterations`. ``None`` means use the
+            value from the spec.
     """
 
     input: str
@@ -73,22 +92,29 @@ class RunRequest:
 class Result:
     """Final outcome of an agent run.
 
+    Returned by :meth:`Agent.run` and yielded as the payload of
+    :class:`phronesis.agents.events.RunCompleted` events. Frozen so it
+    can be shared and serialized safely.
+
     Attributes:
-        run_id: The identifier the loop assigned to this run.
-        output: Final output. A string for free-form runs, an instance of
-            ``output_type`` for structured runs, or the error payload
-            when ``success`` is ``False``.
-        tokens: Aggregate token counts across every LLM call in the run.
-        cost_usd: Estimated cost in USD if the caller plugged in pricing,
-            otherwise ``None``.
-        iterations: Number of loop iterations consumed.
-        tool_calls: Every :class:`ToolUseBlock` the model emitted, in
-            order. Results live in ``messages``.
-        messages: Complete message history exchanged with the provider.
-        success: ``True`` if the run reached a terminal answer, ``False``
-            if it was aborted by an :class:`AgentError`.
+        run_id: The :class:`RunId` the loop assigned to this run.
+        output: Final output. A string for free-form runs, an instance
+            of ``output_type`` for structured runs, or the serialized
+            error payload when ``success`` is ``False``.
+        tokens: Aggregate :class:`TokenUsage` across every LLM call in
+            the run.
+        iterations: Number of tool-calling loop iterations consumed.
+        tool_calls: Every :class:`ToolUseBlock` the model emitted,
+            in the order they were requested. Tool results live in
+            ``messages``.
+        messages: Complete tuple of :class:`Message` exchanged with
+            the provider during the run.
+        success: ``True`` if the run reached a terminal answer,
+            ``False`` if it was aborted by an :class:`AgentError`.
+        cost_usd: Estimated cost in USD if the caller plugged in
+            pricing, otherwise ``None``.
         error: The :class:`AgentError` that aborted the run when
-            ``success`` is ``False``.
+            ``success`` is ``False``; ``None`` for successful runs.
     """
 
     run_id: RunId

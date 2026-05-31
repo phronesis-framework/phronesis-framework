@@ -1,12 +1,22 @@
 """Eager validation of :class:`AgentSpec` at decoration time.
 
-See ``docs/AGENTS-DECISIONS.md`` (D-12). Configuration errors raise
-:class:`AgentConfigurationError`; soft issues (empty system prompt)
-emit a :class:`EmptySystemPromptWarning` so callers can act on them
-without aborting agent construction.
+The :func:`agent` decorator invokes :func:`validate_spec` immediately
+after building the spec so misconfiguration fails fast — before the
+agent is registered or any run is attempted.
 
-Tool-provider compatibility is validated lazily on the first run; this
-module focuses exclusively on the eager checks.
+Validation is split into:
+
+* Hard checks that raise :class:`AgentConfigurationError`:
+    * ``model`` implements the :class:`LLMProvider` protocol.
+    * every entry in ``tools`` is a :class:`Tool` instance.
+    * tool ids are unique within the spec.
+    * ``output_type`` is a class or ``None``.
+    * ``max_iterations`` is a positive integer.
+* Soft checks that emit a :class:`UserWarning` subclass instead of
+  raising — currently only the empty-system-prompt warning.
+
+Tool/provider feature compatibility is *not* checked here; that is
+validated lazily on the first run.
 """
 
 from __future__ import annotations
@@ -20,14 +30,28 @@ from phronesis.tools.tool import Tool
 
 
 class EmptySystemPromptWarning(UserWarning):
-    """Warned when an agent is built with an empty system prompt."""
+    """Emitted when an agent is built with an empty or whitespace-only prompt.
+
+    The warning is informational — the spec is still valid and the
+    agent is still registered. Callers that prefer a strict policy can
+    promote this warning to an error using :mod:`warnings.filterwarnings`.
+    """
 
 
 def validate_spec(spec: AgentSpec) -> None:
-    """Run every eager check on ``spec``.
+    """Run every eager structural check on ``spec``.
+
+    The function returns ``None`` on success. Failures raise
+    :class:`AgentConfigurationError` with structured ``details`` that
+    identify the offending agent and field.
+
+    Args:
+        spec: The freshly built :class:`AgentSpec` to validate.
 
     Raises:
-        AgentConfigurationError: if any structural rule fails.
+        AgentConfigurationError: if any structural rule fails (model
+            type, tool type, duplicate tool id, output_type kind, or
+            non-positive max_iterations).
     """
     _validate_model(spec)
     _validate_tools(spec)

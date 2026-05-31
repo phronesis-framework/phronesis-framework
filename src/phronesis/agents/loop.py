@@ -1,18 +1,34 @@
 """Tool-calling loop that drives an agent run.
 
-See ``docs/AGENTS-DECISIONS.md`` (D-09, D-10, D-11):
+The loop is the heart of the agents module. Its responsibilities:
 
-* Build initial history from ``system_prompt`` + ``request.input``.
-* On each turn, ask the provider for a completion.
-* If the model emits no tool calls, the run is done.
-* Otherwise, execute every tool call in parallel via
-  :func:`asyncio.gather`, serialize any :class:`ToolError` back to the
-  model, and abort with :class:`AgentExecutionError` for anything else.
-* Cap the loop with ``max_iterations`` so a misbehaving model cannot
-  run forever — exceeding it raises :class:`AgentMaxIterationsError`.
+* Build the initial message history from ``spec.system_prompt`` and
+  ``request.input``, or continue from a provided ``initial_history``
+  when a :class:`Session` is driving the call.
+* On each turn, translate the history into provider messages and ask
+  ``spec.model`` for a completion.
+* If the model emits no tool calls the loop returns a :class:`Result`.
+* Otherwise it executes every requested tool call in parallel via
+  :func:`asyncio.gather`. A :class:`ToolError` is serialised back to
+  the model as a ``ToolResultBlock`` with ``is_error=True``; any other
+  exception is wrapped in :class:`AgentExecutionError` and aborts the
+  run.
+* The number of iterations is capped by
+  ``request.max_iterations`` (or ``spec.max_iterations``) so a
+  misbehaving model cannot loop forever; exceeding the cap raises
+  :class:`AgentMaxIterationsError`.
 
-Structured output validation and streaming are layered on top of this
-core in later phases.
+OpenTelemetry instrumentation is woven into the loop:
+
+* The run is wrapped in a ``phronesis.agents.run`` span.
+* Each iteration is wrapped in a ``phronesis.agents.step`` span.
+* Each tool invocation is wrapped in a
+  ``phronesis.agents.tool_call`` span.
+* Metrics emitted on every run: ``agent_runs``,
+  ``agent_run_duration`` and ``agent_tool_calls_per_run``.
+
+When the ``obs`` extra is not installed, the spans and metrics become
+no-ops with no performance cost beyond the wrapper calls.
 """
 
 from __future__ import annotations
@@ -67,19 +83,33 @@ async def run_loop(
 ) -> Result:
     """Execute the tool-calling loop for ``spec`` against ``request``.
 
-    When ``initial_history`` is provided the loop appends a new
-    :class:`UserMessage` for ``request.input`` to it instead of seeding
-    a fresh ``system + user`` history. This is the entry point used by
-    :class:`phronesis.agents.session.Session` to continue a conversation.
+    When ``initial_history`` is provided, the loop appends a new
+    :class:`UserMessage` for ``request.input`` to it instead of
+    seeding a fresh ``system + user`` history. This is the entry
+    point used by :class:`phronesis.agents.session.Session` to
+    continue a conversation.
+
+    The loop always emits the ``agent_runs`` counter, then records
+    ``agent_run_duration`` and ``agent_tool_calls_per_run`` in a
+    ``finally`` clause so metrics are still emitted when the run
+    raises.
+
+    Args:
+        spec: The :class:`AgentSpec` to execute.
+        request: The :class:`RunRequest` describing this call.
+        initial_history: Optional pre-existing message history. When
+            provided, used as the conversation baseline; the
+            ``request.input`` is appended as a user turn.
 
     Returns:
-        A :class:`Result` with ``success=True`` when the model produces
-        a tool-free completion.
+        A :class:`Result` with ``success=True`` and the final messages
+        when the model produces a tool-free completion.
 
     Raises:
-        AgentMaxIterationsError: if the loop hits ``max_iterations``
-            without finishing.
-        AgentExecutionError: if a tool or provider call raises any
+        AgentMaxIterationsError: if the loop hits
+            ``request.max_iterations or spec.max_iterations`` without
+            terminating.
+        AgentExecutionError: if a tool or provider call raises an
             exception that is not a :class:`ToolError`.
     """
     run_id = _generate_run_id()

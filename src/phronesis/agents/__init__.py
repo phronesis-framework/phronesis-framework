@@ -1,8 +1,21 @@
 """Public API of the :mod:`phronesis.agents` package.
 
-Re-exports the supported surface of the agents module. Anything not
-listed here is internal and subject to change without notice. See
-``docs/AGENTS-DECISIONS.md`` for the full design.
+This package contains everything needed to declare, register, validate
+and execute agents:
+
+* :class:`Agent` and the :func:`agent` decorator declare new agents.
+* :class:`AgentSpec` is the pure-data description of an agent.
+* :class:`Session` runs multi-turn conversations against a stateless
+  agent.
+* :class:`RunRequest` and :class:`Result` are the call-cycle types.
+* :class:`AgentEvent` is the union of streaming event types.
+* :func:`agent_scope` and :func:`current_registry` give per-context
+  isolation of declared agents.
+* The ``Agent*Error`` hierarchy plus :class:`EmptySystemPromptWarning`
+  cover every diagnostic the package raises.
+
+Only names listed in ``__all__`` are part of the public contract.
+Anything else is internal and may change without notice.
 """
 
 from __future__ import annotations

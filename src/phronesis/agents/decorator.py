@@ -1,17 +1,23 @@
 """``@agent`` decorator with optional arguments.
 
-See ``docs/AGENTS-DECISIONS.md`` (D-01, D-02, D-12): the decorator
-declares an agent from a function whose body is **ignored** (Model A).
-The function provides:
+The decorator declares an agent from a function whose body is
+**ignored** — the function is used purely as a metadata carrier.
+Defaults are derived from the function as follows:
 
 * ``__name__`` → default ``name``
-* ``__doc__`` → default ``system_prompt``
-* return annotation → default ``output_type``
-* ``module.qualname`` → canonical id (via :func:`canonical_from_function`)
+* ``__doc__`` → default ``system_prompt`` (stripped via :func:`inspect.getdoc`)
+* return annotation → default ``output_type`` (skipped for ``str``,
+  ``None`` or unresolvable annotations)
+* dotted ``module.qualname`` → canonical id, normalised by
+  :func:`canonical_from_function`
 
-Every override is exposed as a keyword argument. The resulting
-:class:`Agent` is eagerly validated and registered in the current
-:class:`_AgentRegistry`.
+Every default can be overridden by a keyword argument. The resulting
+:class:`AgentSpec` is validated eagerly by :func:`validate_spec`, the
+:class:`Agent` wrapper is built, and the wrapper is registered into
+the registry returned by :func:`current_registry`.
+
+The module also defines two private defaults: :data:`_DEFAULT_VERSION`
+(``"0.1.0"``) and :data:`_DEFAULT_MAX_ITERATIONS` (``20``).
 """
 
 from __future__ import annotations
@@ -34,6 +40,12 @@ _DEFAULT_MAX_ITERATIONS = 20
 
 
 def _resolve_output_type(fn: Callable[..., Any]) -> type | None:
+    """Pick a sensible default for ``output_type`` from ``fn``'s return hint.
+
+    Returns ``None`` for missing annotations, ``str``, ``None``,
+    forward references that fail to resolve, or anything that is not
+    a plain class.
+    """
     try:
         hints = get_type_hints(fn)
     except Exception:
@@ -66,6 +78,12 @@ def _build_spec(
     max_iterations: int | None,
     version: str | None,
 ) -> AgentSpec:
+    """Combine explicit overrides with defaults derived from ``fn``.
+
+    Every parameter except ``fn`` and ``model`` may be ``None`` to
+    request the function-derived default. ``tools`` is materialised
+    into a tuple so the resulting spec is hashable/immutable.
+    """
     resolved_id = AgentId(id) if id is not None else AgentId(canonical_from_function(fn))
     resolved_name = name if name is not None else fn.__name__
     resolved_description = description if description is not None else ""
@@ -100,11 +118,43 @@ def agent(
     max_iterations: int | None = None,
     version: str | None = None,
 ) -> Callable[[Callable[..., Any]], Agent]:
-    """Declare an agent from a function whose body is ignored.
+    """Declare an agent from a function used purely as metadata.
 
-    The decorated function's name, docstring, and return annotation seed
-    the :class:`AgentSpec`. The resulting :class:`Agent` is validated
-    eagerly and registered in the active registry.
+    The decorated function's name, docstring and return annotation
+    seed an :class:`AgentSpec`; every keyword argument overrides the
+    corresponding default. The resulting :class:`Agent` is validated
+    eagerly with :func:`validate_spec` and registered into the
+    registry returned by :func:`current_registry`.
+
+    Args:
+        model: :class:`LLMProvider` instance that will back every run.
+        name: Override for the LLM-facing agent name. Defaults to
+            ``fn.__name__``.
+        id: Override for the canonical agent id. Defaults to the
+            dotted path derived from the function.
+        description: Free-form description. Defaults to ``""``.
+        system_prompt: System instructions sent on every turn.
+            Defaults to ``inspect.getdoc(fn) or ""``.
+        tools: Iterable of :class:`Tool` instances bound to the agent.
+            Materialised into a tuple. Defaults to empty.
+        output_type: Expected structured output type. Defaults to the
+            value returned by :func:`_resolve_output_type`.
+        max_iterations: Loop iteration cap. Defaults to
+            :data:`_DEFAULT_MAX_ITERATIONS`.
+        version: Version string for the spec. Defaults to
+            :data:`_DEFAULT_VERSION`.
+
+    Returns:
+        A decorator that consumes the target function and yields the
+        registered :class:`Agent`.
+
+    Raises:
+        AgentConfigurationError: if the derived spec fails eager
+            validation (e.g. ``model`` does not implement
+            :class:`LLMProvider`, duplicate tool ids, non-positive
+            ``max_iterations``).
+        DuplicateAgentError: if another distinct agent is already
+            registered under the resolved id.
     """
 
     def wrap(target: Callable[..., Any]) -> Agent:
