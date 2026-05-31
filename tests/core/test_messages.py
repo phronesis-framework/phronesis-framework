@@ -8,6 +8,7 @@ import pytest
 
 from phronesis.core.messages import (
     AssistantMessage,
+    CompactionSummaryBlock,
     ContentBlock,
     Message,
     SystemMessage,
@@ -81,6 +82,27 @@ class TestToolResultBlock:
             block.is_error = True  # type: ignore[misc]
 
 
+class TestCompactionSummaryBlock:
+    def test_holds_text_and_count(self) -> None:
+        block = CompactionSummaryBlock(text="summary", original_message_count=12)
+
+        assert block.text == "summary"
+        assert block.original_message_count == 12
+
+    def test_is_frozen(self) -> None:
+        block = CompactionSummaryBlock(text="s", original_message_count=1)
+
+        with pytest.raises(AttributeError):
+            block.text = "other"  # type: ignore[misc]
+
+    def test_equality_is_value_based(self) -> None:
+        a = CompactionSummaryBlock(text="x", original_message_count=3)
+        b = CompactionSummaryBlock(text="x", original_message_count=3)
+
+        assert a == b
+        assert a != CompactionSummaryBlock(text="x", original_message_count=4)
+
+
 class TestContentBlockUnion:
     @pytest.mark.parametrize(
         "block",
@@ -88,10 +110,14 @@ class TestContentBlockUnion:
             TextBlock(text="hi"),
             ToolUseBlock(tool_call_id="c1", tool_name="search"),
             ToolResultBlock(tool_call_id="c1", output=None),
+            CompactionSummaryBlock(text="s", original_message_count=2),
         ],
     )
     def test_every_block_is_a_content_block(self, block: ContentBlock) -> None:
-        assert isinstance(block, TextBlock | ToolUseBlock | ToolResultBlock)
+        assert isinstance(
+            block,
+            TextBlock | ToolUseBlock | ToolResultBlock | CompactionSummaryBlock,
+        )
 
 
 class TestMessageTypes:
