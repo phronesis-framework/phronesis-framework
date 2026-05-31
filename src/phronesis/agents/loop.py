@@ -53,8 +53,10 @@ from phronesis.agents.run import (
 )
 from phronesis.agents.spec import AgentSpec
 from phronesis.context.context import Context
+from phronesis.context.input import BuildInput
 from phronesis.core.messages import (
     AssistantMessage,
+    CompactionSummaryBlock,
     ContentBlock,
     Message,
     SystemMessage,
@@ -117,10 +119,14 @@ async def run_loop(
     context = _build_context(spec, request, run_id)
     run_attrs = _run_attributes(spec, request, run_id)
 
-    if initial_history is None:
-        history = _initial_history(spec, request)
+    user_input: Message | None = UserMessage(content=(TextBlock(text=request.input),))
+
+    if initial_history is not None:
+        history: tuple[Message, ...] = initial_history
+    elif spec.system_prompt:
+        history = (SystemMessage(content=(TextBlock(text=spec.system_prompt),)),)
     else:
-        history = (*initial_history, UserMessage(content=(TextBlock(text=request.input),)))
+        history = ()
 
     aggregated_usage = TokenUsage()
     aggregated_tool_calls: list[ToolUseBlock] = []
@@ -136,7 +142,13 @@ async def run_loop(
                 step_attrs = {**run_attrs, "agent.step": iterations}
 
                 async with start_span_async("phronesis.agents.step", attributes=step_attrs):
-                    response = await _complete(spec, history)
+                    messages = await _build_messages(spec, history, user_input, run_attrs)
+
+                    if user_input is not None:
+                        history = (*history, user_input)
+                        user_input = None
+
+                    response = await _complete(spec, messages)
                     aggregated_usage = _merge_usage(aggregated_usage, response.usage)
 
                     assistant_message, requested_calls = _assistant_message_from_response(response)
@@ -180,21 +192,34 @@ def _generate_run_id() -> RunId:
     return run_id_generator.from_canonical(f"phronesis.runtime.run.r{uuid.uuid4().hex[:12]}")
 
 
-def _initial_history(spec: AgentSpec, request: RunRequest) -> tuple[Message, ...]:
-    messages: list[Message] = []
+async def _build_messages(
+    spec: AgentSpec,
+    history: tuple[Message, ...],
+    new_input: Message | None,
+    run_attrs: dict[str, Any],
+) -> list[Message]:
+    build_input = BuildInput(
+        system_prompt=spec.system_prompt,
+        history=history,
+        new_input=new_input,
+        provider=spec.model,
+    )
+    build_attrs: dict[str, Any] = {
+        **run_attrs,
+        obs_attrs.CONTEXT_BUILDER: type(spec.context_builder).__name__,
+        obs_attrs.CONTEXT_HISTORY_SIZE: len(history),
+    }
 
-    if spec.system_prompt:
-        messages.append(SystemMessage(content=(TextBlock(text=spec.system_prompt),)))
+    async with start_span_async("phronesis.context.build", attributes=build_attrs):
+        messages = await spec.context_builder.build(build_input)
 
-    messages.append(UserMessage(content=(TextBlock(text=request.input),)))
-
-    return tuple(messages)
+    return messages
 
 
-async def _complete(spec: AgentSpec, history: tuple[Message, ...]) -> Any:
+async def _complete(spec: AgentSpec, messages: list[Message]) -> Any:
     request = LLMRequest(
         model=spec.name,
-        messages=_translate_history(history),
+        messages=_translate_history(tuple(messages)),
         tools=tuple(t.spec for t in spec.tools),
         system=spec.system_prompt or None,
     )
@@ -373,7 +398,17 @@ def _translate_one(message: Message) -> list[ProviderMessage]:
 
 
 def _concat_text(blocks: tuple[ContentBlock, ...]) -> str:
-    return "".join(b.text for b in blocks if isinstance(b, TextBlock))
+    parts: list[str] = []
+
+    for block in blocks:
+        if isinstance(block, TextBlock):
+            parts.append(block.text)
+            continue
+
+        if isinstance(block, CompactionSummaryBlock):
+            parts.append(block.text)
+
+    return "".join(parts)
 
 
 def _merge_usage(left: TokenUsage, right: TokenUsage | None) -> TokenUsage:
