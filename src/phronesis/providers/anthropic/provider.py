@@ -1,9 +1,11 @@
 """Anthropic provider implementation.
 
-Talks to Anthropic's ``/v1/messages`` endpoint using :mod:`httpx`
-directly (no vendor SDK dependency). ``complete`` runs through the
-configured :class:`RetryConfig`; ``stream`` delegates to
-:mod:`phronesis.providers.anthropic.streaming` and is not retried.
+Talks to Anthropic's ``/v1/messages`` endpoint over :mod:`httpx`
+directly so the framework does not depend on a vendor SDK.
+:meth:`AnthropicProvider.complete` runs through the configured
+:class:`RetryConfig`. :meth:`AnthropicProvider.stream` is not
+retried: once the first byte is delivered, recovery is the caller's
+responsibility.
 """
 
 from __future__ import annotations
@@ -33,7 +35,12 @@ _DEFAULT_MAX_TOKENS = 4096
 class AnthropicProvider:
     """Concrete Anthropic provider.
 
-    Built via the public :func:`phronesis.providers.anthropic` factory.
+    Built via the public :func:`phronesis.providers.anthropic`
+    factory; the constructor is not part of the public surface and
+    is documented here for framework maintainers.
+
+    Attributes:
+        model: Read-only accessor for the bound model id.
     """
 
     _SUPPORTED_FEATURES: ClassVar[frozenset[ProviderFeature]] = frozenset(
@@ -56,6 +63,25 @@ class AnthropicProvider:
         default_temperature: float | None = None,
         retry_config: RetryConfig | None = None,
     ) -> None:
+        """Bind the provider to a model and HTTP client.
+
+        Args:
+            model: Default Anthropic model id used when
+                :attr:`LLMRequest.model` is empty.
+            api_key: Anthropic API key sent in the ``x-api-key``
+                header.
+            http_client: Pre-built async HTTP client. The provider
+                does not close it on shutdown.
+            api_version: Value of the ``anthropic-version`` header.
+            default_max_tokens: Output cap used when the request
+                does not provide one.
+            default_temperature: Sampling temperature used when the
+                request does not provide one. ``None`` defers to the
+                vendor default.
+            retry_config: Retry policy applied to
+                :meth:`complete`. ``None`` uses
+                :class:`RetryConfig` defaults.
+        """
         self._model = model
         self._api_key = api_key
         self._http = http_client
@@ -68,18 +94,43 @@ class AnthropicProvider:
 
     @property
     def model(self) -> str:
+        """Return the default model id bound at construction time."""
         return self._model
 
     def supports(self, feature: ProviderFeature) -> bool:
+        """Return ``True`` when this provider advertises ``feature``."""
         return feature in self._SUPPORTED_FEATURES
 
     async def complete(self, request: LLMRequest) -> LLMResponse:
+        """Send ``request`` and await the full response.
+
+        The HTTP call is wrapped by the retry decorator built from
+        the provider's :class:`RetryConfig`, so transient transport,
+        server and rate-limit failures are re-tried transparently.
+
+        Args:
+            request: The :class:`LLMRequest` to dispatch.
+
+        Returns:
+            The parsed :class:`LLMResponse`.
+        """
         body = self._build_body(request)
         payload = await self._post_with_retry(body)
 
         return self._parse_response(payload)
 
     def stream(self, request: LLMRequest) -> AsyncIterator[LLMChunk]:
+        """Stream ``request`` chunk-by-chunk.
+
+        Streaming is not retried: once the first byte is delivered,
+        recovery is the caller's responsibility.
+
+        Args:
+            request: The :class:`LLMRequest` to dispatch.
+
+        Returns:
+            An async iterator yielding :data:`LLMChunk` events.
+        """
         body = self._build_body(request)
 
         return stream_anthropic_messages(

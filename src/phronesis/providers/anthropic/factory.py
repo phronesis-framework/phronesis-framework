@@ -1,8 +1,10 @@
 """Public factory for the Anthropic provider.
 
-Each built-in provider is exposed as a typed factory function. The
-factory hides :class:`AnthropicProvider` construction details (HTTP
-client, timeouts, API key resolution) behind a clean call site.
+Each built-in provider is exposed as a typed factory function so the
+public surface stays narrow. The factory hides
+:class:`AnthropicProvider` construction details (HTTP client,
+timeouts, API key resolution) behind a clean call site and
+centralises the environment-variable fallback for the API key.
 """
 
 from __future__ import annotations
@@ -37,16 +39,24 @@ def anthropic(
     Args:
         model: Anthropic model id (e.g. ``"claude-opus-4-7"``).
         api_key: Anthropic API key. Falls back to the
-            ``ANTHROPIC_API_KEY`` environment variable.
+            ``ANTHROPIC_API_KEY`` environment variable when omitted.
         base_url: API base URL. Override for testing or proxies.
-        temperature: Default sampling temperature; overridable per request.
-        max_tokens: Default maximum tokens; overridable per request.
-        timeout: HTTP timeout in seconds. Ignored when ``http_client`` is
-            provided.
-        retry: Retry configuration. ``None`` uses sensible defaults.
-        http_client: Pre-built :class:`httpx.AsyncClient`. When provided
-            the caller is responsible for closing it. Useful for tests
-            that inject a :class:`httpx.MockTransport`.
+        temperature: Default sampling temperature; overridable per
+            request via :attr:`LLMRequest.temperature`.
+        max_tokens: Default maximum output tokens; overridable per
+            request via :attr:`LLMRequest.max_tokens`.
+        timeout: HTTP timeout in seconds applied to the auto-built
+            client. Ignored when ``http_client`` is supplied.
+        retry: Retry configuration. ``None`` uses the defaults from
+            :class:`RetryConfig`.
+        http_client: Pre-built :class:`httpx.AsyncClient`. When
+            provided the caller is responsible for closing it.
+            Useful for tests that inject a
+            :class:`httpx.MockTransport`.
+
+    Returns:
+        A fully configured :class:`AnthropicProvider` ready to be
+        passed to the agent loop.
 
     Raises:
         AuthenticationError: If no API key is supplied and the

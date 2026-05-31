@@ -1,12 +1,17 @@
 """Convert phronesis messages to/from the Anthropic message format.
 
-Anthropic's API (v1/messages) takes:
-- ``system`` as a top-level string (not a message),
-- ``messages`` as an alternating sequence of ``user``/``assistant`` turns,
-- content as either a plain string or a list of typed blocks:
-  ``text``, ``tool_use``, ``tool_result``.
+The Anthropic ``/v1/messages`` endpoint takes:
 
-Reference: https://docs.anthropic.com/en/api/messages
+* ``system`` as a top-level string (not a message in the list);
+* ``messages`` as an alternating sequence of ``user``/``assistant``
+  turns;
+* content as either a plain string or a list of typed blocks
+  (``text``, ``tool_use``, ``tool_result``).
+
+This module hides those shape rules behind two helpers,
+:func:`to_anthropic_messages` (outbound) and
+:func:`from_anthropic_content` (inbound), so the rest of the
+framework can stay in :class:`Message`/:class:`ToolCall` land.
 """
 
 from __future__ import annotations
@@ -59,10 +64,19 @@ def to_anthropic_messages(
 ) -> tuple[list[dict[str, Any]], str | None]:
     """Translate ``messages`` into the Anthropic request shape.
 
-    Returns a pair ``(messages, system)`` where ``messages`` is the value
-    of the ``messages`` field and ``system`` is the value of the
-    ``system`` field (``None`` if there are no system messages).
-    Consecutive system messages are joined with two newlines.
+    System messages are extracted from the sequence and joined with
+    two newlines into a single string for the top-level ``system``
+    field. Tool result messages are folded into ``user`` turns whose
+    only block is a ``tool_result`` block.
+
+    Args:
+        messages: Conversation history in framework form.
+
+    Returns:
+        A ``(messages, system)`` pair: ``messages`` is the value of
+        the ``messages`` field in the request body and ``system`` is
+        the value of the ``system`` field (``None`` when there are
+        no system messages).
     """
     system_chunks: list[str] = []
     out: list[dict[str, Any]] = []
@@ -91,10 +105,17 @@ def to_anthropic_messages(
 
 
 def from_anthropic_content(blocks: Sequence[dict[str, Any]]) -> tuple[str, tuple[ToolCall, ...]]:
-    """Parse the ``content`` of an Anthropic ``message`` response.
+    """Parse the ``content`` of an Anthropic message response.
 
-    Returns the concatenated text and the tuple of tool calls extracted
-    from ``tool_use`` blocks.
+    Args:
+        blocks: List of typed content blocks as returned by the
+            Anthropic API.
+
+    Returns:
+        A ``(text, tool_calls)`` pair where ``text`` is the
+        concatenated content of every ``text`` block and
+        ``tool_calls`` is the tuple of :class:`ToolCall` instances
+        derived from every ``tool_use`` block.
     """
     text_parts: list[str] = []
     calls: list[ToolCall] = []

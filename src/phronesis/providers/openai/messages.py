@@ -1,9 +1,15 @@
 """Message conversion for the OpenAI provider.
 
-OpenAI's Chat Completions API uses a flat ``messages`` list where
-``system`` appears as a regular entry, ``assistant`` may carry
-``tool_calls`` (whose arguments are JSON-encoded strings), and tool
-outputs use ``role: tool`` with ``tool_call_id``.
+The Chat Completions API uses a flat ``messages`` list where:
+
+* ``system`` appears as a regular entry (not a separate field);
+* ``assistant`` may carry ``tool_calls`` whose arguments are
+  JSON-encoded **strings**, not nested objects;
+* tool outputs use ``role: tool`` with ``tool_call_id``.
+
+The helpers in this module translate between the framework's
+:class:`Message`/:class:`ToolCall` types and that on-the-wire shape
+so the rest of the provider stays free of the encoding rules.
 """
 
 from __future__ import annotations
@@ -16,12 +22,31 @@ from phronesis.providers.types import Message, Role, ToolCall
 
 
 def to_openai_messages(messages: Iterable[Message]) -> list[dict[str, Any]]:
-    """Convert framework :class:`Message` instances to OpenAI dicts."""
+    """Convert framework :class:`Message` instances to OpenAI dicts.
+
+    Args:
+        messages: Conversation history in framework form.
+
+    Returns:
+        A list of dicts ready to drop into the ``messages`` field of
+        a Chat Completions request body.
+    """
     return [_message_to_dict(message) for message in messages]
 
 
 def from_openai_message(payload: dict[str, Any]) -> tuple[str, tuple[ToolCall, ...]]:
-    """Extract assistant text and tool calls from a response message dict."""
+    """Extract assistant text and tool calls from a response message dict.
+
+    Args:
+        payload: The ``message`` object of an OpenAI Chat
+            Completions response choice.
+
+    Returns:
+        A ``(text, tool_calls)`` pair where ``text`` is the
+        assistant content (empty when absent) and ``tool_calls`` is
+        the tuple of :class:`ToolCall` instances decoded from the
+        ``tool_calls`` array.
+    """
     text = _string_or_empty(payload.get("content"))
     raw_calls = payload.get("tool_calls")
 

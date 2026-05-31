@@ -1,8 +1,11 @@
 """HTTP error translation for the OpenAI provider.
 
-Maps OpenAI's JSON error envelope and HTTP status to the framework's
-:mod:`phronesis.providers.errors` hierarchy, preserving the original
-message and ``retry-after`` hint when present.
+OpenAI error responses come as JSON of the form
+``{"error": {"message": ..., "type": ..., "code": ...}}`` along with
+an HTTP status. This module classifies the failure into the right
+:class:`ProviderError` subclass, preserving the human-readable
+message and extracting the ``Retry-After`` header when the failure
+is a rate-limit.
 """
 
 from __future__ import annotations
@@ -27,7 +30,22 @@ _CONTEXT_LENGTH_HINTS = ("context length", "maximum context", "context_length")
 
 
 def translate_response_error(response: httpx.Response) -> ProviderError:
-    """Convert a 4xx/5xx :class:`httpx.Response` into a :class:`ProviderError`."""
+    """Convert a 4xx/5xx :class:`httpx.Response` into a :class:`ProviderError`.
+
+    Classification looks at the HTTP status first and falls back to
+    the vendor-specific ``error.code`` and ``error.type`` for the
+    cases the status alone cannot distinguish — most notably 400s
+    caused by context-window overflow.
+
+    Args:
+        response: The :class:`httpx.Response` whose status indicates
+            a failure (``>= 400``).
+
+    Returns:
+        A concrete :class:`ProviderError` subclass instance carrying
+        the failure message and, for rate-limit errors, the parsed
+        ``Retry-After`` value.
+    """
     payload = _safe_json(response)
     error = payload.get("error") if isinstance(payload, dict) else None
     err_dict = error if isinstance(error, dict) else {}

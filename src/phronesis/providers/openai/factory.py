@@ -1,8 +1,9 @@
 """Public factory for the OpenAI provider.
 
-Mirrors the Anthropic factory: hides :class:`OpenAIProvider`
-construction details (HTTP client, timeouts, API key resolution) behind
-a clean call site.
+Mirrors the Anthropic factory in shape: hides
+:class:`OpenAIProvider` construction details (HTTP client,
+timeouts, API key resolution) behind a clean call site and centralises
+the environment-variable fallback for the API key.
 """
 
 from __future__ import annotations
@@ -36,16 +37,25 @@ def openai(
     Args:
         model: OpenAI model id (e.g. ``"gpt-4o"``).
         api_key: OpenAI API key. Falls back to the ``OPENAI_API_KEY``
-            environment variable.
+            environment variable when omitted.
         base_url: API base URL. Override for testing or proxies.
-        temperature: Default sampling temperature; overridable per request.
-        max_tokens: Default max tokens; ``None`` lets the model decide.
-        timeout: HTTP timeout in seconds. Ignored when ``http_client`` is
-            provided.
-        retry: Retry configuration. ``None`` uses sensible defaults.
-        http_client: Pre-built :class:`httpx.AsyncClient`. When provided
-            the caller is responsible for closing it. Useful for tests
-            that inject a :class:`httpx.MockTransport`.
+        temperature: Default sampling temperature; overridable per
+            request via :attr:`LLMRequest.temperature`.
+        max_tokens: Default maximum output tokens; ``None`` lets the
+            model decide. Overridable per request via
+            :attr:`LLMRequest.max_tokens`.
+        timeout: HTTP timeout in seconds applied to the auto-built
+            client. Ignored when ``http_client`` is supplied.
+        retry: Retry configuration. ``None`` uses the defaults from
+            :class:`RetryConfig`.
+        http_client: Pre-built :class:`httpx.AsyncClient`. When
+            provided the caller is responsible for closing it.
+            Useful for tests that inject a
+            :class:`httpx.MockTransport`.
+
+    Returns:
+        A fully configured :class:`OpenAIProvider` ready to be
+        passed to the agent loop.
 
     Raises:
         AuthenticationError: If no API key is supplied and the
