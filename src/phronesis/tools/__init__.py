@@ -1,8 +1,24 @@
 """Public API of the :mod:`phronesis.tools` package.
 
-This module re-exports the names that constitute the supported tools
-surface. Anything not listed here is internal and subject to change
-without notice.
+This package provides everything needed to declare, register, validate
+and serialise tools that an LLM can call:
+
+* :class:`Tool` and the :func:`tool` decorator declare new tools.
+* :class:`ToolSpec` is the pure-data description of a tool.
+* :class:`ToolEffect` is the closed vocabulary of declarable
+  side-effects.
+* :func:`discover` walks a package tree to trigger eager registration.
+* :func:`tool_scope` and :func:`current_registry` give per-context
+  isolation of declared tools.
+* :class:`Context` is re-exported so tools can type-annotate the
+  runtime context parameter.
+* The ``Tool*Error`` hierarchy plus :func:`auto_map_exception` cover
+  every diagnostic the package raises; :class:`SchemaDegradationWarning`
+  is emitted when a provider adapter loses fidelity from the canonical
+  schema.
+
+Only names listed in ``__all__`` are part of the public contract.
+Anything else is internal and may change without notice.
 """
 
 from __future__ import annotations

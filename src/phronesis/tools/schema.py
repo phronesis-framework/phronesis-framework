@@ -1,10 +1,19 @@
 """Canonical JSON Schema generation for tool inputs.
 
-See ``docs/TOOLS-DECISIONS.md`` (D-19, D-20, D-21, D-22, D-24, D-25):
-schema is generated eagerly from the function signature using Pydantic v2,
-then post-processed for LLM consumption (inline ``$ref``, drop ``null``
-from optional unions). Per-parameter descriptions come from Google-style
-docstring ``Args:`` sections, overridden by ``Annotated[T, "..."]``.
+The canonical schema is the provider-agnostic JSON Schema dict that
+downstream adapters specialise for each LLM vendor. It is generated
+from the function signature using pydantic v2 and then post-processed
+to be more friendly to LLMs:
+
+* ``$defs``/``$ref`` are inlined so the schema is fully self-contained;
+* ``null`` is dropped from ``Optional[T]`` unions when the parameter is
+  not required, so the schema reads as a plain type rather than an
+  ``anyOf`` over ``T`` and ``null``.
+
+Per-parameter descriptions are sourced from the Google-style ``Args:``
+section of the function's docstring. A textual marker placed inside
+``Annotated[T, "description"]`` overrides the docstring entry when
+present.
 """
 
 from __future__ import annotations
@@ -154,10 +163,21 @@ def _strip_null_from_optional(schema: dict[str, Any]) -> dict[str, Any]:
 def build_canonical_schema(fn: Callable[..., Any]) -> dict[str, Any]:
     """Build the canonical JSON schema describing ``fn``'s inputs.
 
-    A parameter typed as :class:`Context` is filtered out: it is injected
-    by the runtime, not provided by the LLM, so it must not appear in
-    the schema. Single-model tools (D-12) report the declared
-    :class:`BaseModel`'s own schema verbatim (post-processed).
+    A parameter typed as :class:`Context` is filtered out: it is
+    injected by the runtime, not provided by the LLM, so it must not
+    appear in the schema. A tool whose only non-context parameter is a
+    single :class:`pydantic.BaseModel` reports that model's own schema
+    verbatim (post-processed), so the LLM sees the model fields
+    directly instead of an outer wrapper object.
+
+    Args:
+        fn: The function whose canonical schema to build. Both sync
+            and async callables are supported.
+
+    Returns:
+        A JSON-Schema-compatible ``dict`` with ``properties``,
+        ``required`` and other standard keys, ready to be handed to a
+        provider adapter or to the LLM directly.
     """
     single = get_single_model(fn)
 

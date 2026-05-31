@@ -1,9 +1,14 @@
 """Pure data spec for a declared tool.
 
-See ``docs/TOOLS-DECISIONS.md`` (D-06): :class:`ToolSpec` is frozen,
-JSON-serializable, and contains **no function reference**. The callable
-side of a tool lives on the tool object itself (``tool.spec`` exposes
-this data side).
+:class:`ToolSpec` is the immutable, JSON-serialisable side of a tool
+declaration. The callable side lives on the :class:`Tool` wrapper,
+which exposes the spec via ``tool.spec``. The spec deliberately holds
+**no function reference** — the runtime resolves the executable via
+the tool registry keyed by :class:`ToolId`.
+
+The spec is suitable for logging, persisting and sharing across
+processes (e.g. as part of a discovery payload) without dragging in
+the actual implementation.
 """
 
 from __future__ import annotations
@@ -21,10 +26,26 @@ _EMPTY_SCHEMA: Final[Mapping[str, Any]] = MappingProxyType({})
 
 @dataclass(frozen=True, slots=True)
 class ToolSpec:
-    """Static, serializable description of a tool.
+    """Static, serialisable description of a tool.
 
-    The runtime resolves the executable via :class:`ToolId`; the spec
-    itself never holds the function reference.
+    Frozen so it can be shared safely across threads or async tasks.
+    Schemas are coerced into :class:`MappingProxyType` in
+    ``__post_init__`` so callers cannot mutate them through the
+    public attributes.
+
+    Attributes:
+        id: Stable internal :class:`ToolId` used as the registry key
+            and in observability attribute values.
+        name: LLM-facing :class:`ToolName` sent to the provider in
+            the tool-definitions list.
+        description: Free-form description shown to the model.
+        effects: Frozen set of :class:`ToolEffect` values declared by
+            the tool. Defaults to the empty set.
+        input_schema: Canonical JSON Schema describing the tool's
+            arguments. Defaults to the empty mapping.
+        output_schema: Optional JSON Schema describing the tool's
+            return value. ``None`` means unspecified.
+        version: Free-form version string, defaulting to ``"0.1.0"``.
     """
 
     id: ToolId
@@ -51,7 +72,16 @@ class ToolSpec:
             )
 
     def to_dict(self) -> dict[str, Any]:
-        """Return a JSON-serializable representation of the spec."""
+        """Return a JSON-serialisable representation of the spec.
+
+        Effects are emitted as a sorted list of their string values
+        so two equivalent specs always serialise identically.
+
+        Returns:
+            A mutable ``dict`` with keys ``id``, ``name``,
+            ``description``, ``effects``, ``input_schema``,
+            ``output_schema`` and ``version``.
+        """
         return {
             "id": self.id.canonical,
             "name": str(self.name),

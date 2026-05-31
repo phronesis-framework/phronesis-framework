@@ -1,8 +1,20 @@
 """Invocable wrapper that pairs a callable with its :class:`ToolSpec`.
 
-See ``docs/TOOLS-DECISIONS.md`` (D-01, D-02, D-06): the tool object is the
-callable side; ``tool.spec`` is the pure-data side. Sync and async callables
-are both supported transparently via ``__call__``.
+:class:`Tool` is the callable side of a tool declaration; the
+pure-data side lives on :attr:`Tool.spec`. Both sync and async
+callables are supported transparently via :meth:`Tool.__call__`:
+
+* a sync callable returns the value directly;
+* an async callable returns a coroutine that the caller awaits.
+
+The wrapper also owns:
+
+* the dynamic argument validator (built from the function signature
+  by :func:`build_validator`);
+* the :class:`Context`-parameter name (detected once at construction);
+* the optional single-:class:`BaseModel` parameter name;
+* the lazily-built canonical JSON schema and its per-provider
+  adapted variants.
 """
 
 from __future__ import annotations
@@ -24,9 +36,16 @@ from phronesis.tools.validation import build_validator
 class Tool:
     """Callable wrapper exposing a :class:`ToolSpec` as ``self.spec``.
 
-    ``__call__`` delegates to the wrapped function: for sync functions it
-    returns the value; for async functions it returns the coroutine, so the
-    caller can ``await`` it normally.
+    The instance mirrors :func:`functools.update_wrapper`, so
+    ``Tool.__name__`` and ``Tool.__wrapped__`` are the same as the
+    underlying function. ``__call__`` delegates to that function and
+    handles validation, optional context injection, and exception
+    mapping via :func:`auto_map_exception`.
+
+    Attributes:
+        spec: The :class:`ToolSpec` describing this tool.
+        is_async: ``True`` when the wrapped callable is a coroutine
+            function.
     """
 
     __wrapped__: Callable[..., Any]
@@ -39,6 +58,19 @@ class Tool:
         *,
         lazy: bool = False,
     ) -> None:
+        """Bind ``fn`` and ``spec`` into a callable tool.
+
+        Args:
+            fn: The user-defined function (sync or async) that the
+                tool executes.
+            spec: The pre-built :class:`ToolSpec` to expose. The
+                wrapper does not re-build the spec.
+            lazy: When ``True``, the canonical JSON schema is **not**
+                computed eagerly here; it will be generated the first
+                time :meth:`get_schema` is invoked. When ``False``,
+                the decorator passes the pre-computed schema in
+                separately via :attr:`_canonical_schema`.
+        """
         self._fn = fn
         self.spec = spec
         self.is_async = inspect.iscoroutinefunction(fn)
@@ -80,11 +112,35 @@ class Tool:
         *,
         context: Context | None = None,
     ) -> Any:
-        """Validate ``args`` and execute the tool, injecting ``context`` by type.
+        """Validate ``args`` and execute the tool, injecting ``context``.
 
-        Intended for runtime use: ``args`` is the LLM-provided argument dict
-        (Context is **not** in it), and ``context`` is the runtime context.
-        For sync tools returns the value; for async tools returns a coroutine.
+        The runtime calls this method, not :meth:`__call__`. ``args``
+        is the LLM-provided argument dict and must **not** include
+        the runtime context — that is supplied via the ``context``
+        keyword and is matched to the tool's :class:`Context`-typed
+        parameter (if any) by name.
+
+        Single-:class:`BaseModel` tools receive ``args`` wrapped under
+        the model's parameter name so pydantic can build the model
+        instance in one go.
+
+        Args:
+            args: Arguments produced by the model. ``None`` is treated
+                as an empty dict.
+            context: Runtime :class:`Context` to inject. Ignored when
+                the tool does not declare a :class:`Context`
+                parameter.
+
+        Returns:
+            The return value for sync tools, or an awaitable
+            coroutine for async tools.
+
+        Raises:
+            ToolValidationError: if ``args`` does not satisfy the
+                tool's input schema.
+            ToolError: subclasses raised by the tool itself or mapped
+                from a standard exception by
+                :func:`auto_map_exception`.
         """
         raw = dict(args) if args else {}
 
@@ -130,11 +186,21 @@ class Tool:
     def get_schema(self, provider: str | None = None) -> dict[str, Any]:
         """Return the JSON schema describing this tool's inputs.
 
-        Without ``provider`` returns the canonical schema, generated lazily
-        the first time when the tool was created with ``lazy=True``. With
-        ``provider`` returns the adapted schema for that provider, cached
-        on first use. Unknown providers raise
-        :class:`UnsupportedProviderError`.
+        The canonical schema is built once per tool instance; the
+        per-provider adapted schema is cached on first use.
+
+        Args:
+            provider: Provider name (``"anthropic"``, ``"openai"``,
+                ...) selecting an adapter. ``None`` returns the raw
+                canonical schema.
+
+        Returns:
+            The canonical JSON schema, or the provider-adapted
+            equivalent when ``provider`` is given.
+
+        Raises:
+            UnsupportedProviderError: if ``provider`` is not
+                registered in :mod:`phronesis.tools.providers`.
         """
         if self._canonical_schema is None:
             if self._schema_override is not None:
@@ -164,12 +230,20 @@ class Tool:
     ) -> Callable[[], dict[str, Any]]:
         """Register an explicit schema factory, overriding the canonical one.
 
-        Use as a paired decorator on the tool (see ``docs/TOOLS-DECISIONS.md``,
-        D-19) for the rare cases where the auto-generated schema is not
-        expressive enough. The validator is **not** replaced: overrides are
-        purely presentational for the LLM. Any cached schemas (canonical and
-        provider-adapted) are invalidated so the new override takes effect
-        immediately.
+        Use as a paired decorator on the tool for the rare cases
+        where the auto-generated schema is not expressive enough. The
+        argument validator is **not** replaced: overrides are purely
+        presentational for the LLM. Any cached schemas (canonical and
+        provider-adapted) are invalidated so the new override takes
+        effect on the next call.
+
+        Args:
+            factory: Zero-argument callable that returns the canonical
+                JSON schema dictionary.
+
+        Returns:
+            ``factory`` unchanged, so this method can be used as a
+            stacked decorator.
         """
         self._schema_override = factory
         self._canonical_schema = None
