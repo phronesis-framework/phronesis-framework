@@ -24,6 +24,13 @@ class PhronesisError(Exception):
         *,
         details: dict[str, Any] | None = None,
     ) -> None:
+        """Initialize the error.
+
+        Args:
+            message: Human-readable description of the failure.
+            details: Optional structured context. Copied defensively
+                so caller-side mutations do not leak into the error.
+        """
         super().__init__(message)
         self.message = message
         self.details: dict[str, Any] = dict(details) if details else {}

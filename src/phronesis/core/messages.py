@@ -1,15 +1,15 @@
 """Domain message types for agent conversations.
 
-See ``docs/AGENTS-DECISIONS.md`` (D-08): a message is one of
-:class:`SystemMessage`, :class:`UserMessage`, :class:`AssistantMessage`
-or :class:`ToolMessage`. Every message carries a tuple of
-:class:`ContentBlock` so multimodal content (text, tool calls, tool
-results) is expressible without per-role attribute soup.
+A message is one of :class:`SystemMessage`, :class:`UserMessage`,
+:class:`AssistantMessage` or :class:`ToolMessage`. Every message
+carries a tuple of :class:`ContentBlock` so multimodal content
+(text, tool calls, tool results) is expressible without per-role
+attribute soup.
 
-These types model the **agent's** view of a conversation. The flatter
-``phronesis.providers.types.Message`` is provider-side plumbing; the
-loop is responsible for translating between the two when calling a
-provider.
+These types model the **agent's** view of a conversation. The
+flatter ``phronesis.providers.types.Message`` is provider-side
+plumbing; the loop is responsible for translating between the two
+when calling a provider.
 """
 
 from __future__ import annotations
