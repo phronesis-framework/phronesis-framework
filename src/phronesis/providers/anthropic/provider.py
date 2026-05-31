@@ -10,11 +10,23 @@ responsibility.
 
 from __future__ import annotations
 
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Sequence
 from typing import Any, ClassVar
 
 import httpx
 
+from phronesis.core.messages import (
+    AssistantMessage,
+    CompactionSummaryBlock,
+    ContentBlock,
+    Message,
+    SystemMessage,
+    TextBlock,
+    ToolMessage,
+    ToolResultBlock,
+    ToolUseBlock,
+    UserMessage,
+)
 from phronesis.providers.anthropic.errors import translate_response_error
 from phronesis.providers.anthropic.messages import (
     from_anthropic_content,
@@ -30,6 +42,20 @@ from phronesis.providers.usage import TokenUsage
 
 _DEFAULT_API_VERSION = "2023-06-01"
 _DEFAULT_MAX_TOKENS = 4096
+_DEFAULT_CONTEXT_WINDOW = 200_000
+_CHARS_PER_TOKEN = 4
+
+_CONTEXT_WINDOWS: dict[str, int] = {
+    "claude-3-5-sonnet": 200_000,
+    "claude-3-5-haiku": 200_000,
+    "claude-3-7-sonnet": 200_000,
+    "claude-3-opus": 200_000,
+    "claude-3-sonnet": 200_000,
+    "claude-3-haiku": 200_000,
+    "claude-opus-4": 200_000,
+    "claude-sonnet-4": 200_000,
+    "claude-haiku-4": 200_000,
+}
 
 
 class AnthropicProvider:
@@ -100,6 +126,29 @@ class AnthropicProvider:
     def supports(self, feature: ProviderFeature) -> bool:
         """Return ``True`` when this provider advertises ``feature``."""
         return feature in self._SUPPORTED_FEATURES
+
+    def context_window_size(self) -> int:
+        """Return the context window size for the bound Anthropic model.
+
+        Looked up in a static table keyed by the model prefix; unknown
+        models fall back to the family default (200_000 tokens).
+        """
+        for prefix, size in _CONTEXT_WINDOWS.items():
+            if self._model.startswith(prefix):
+                return size
+
+        return _DEFAULT_CONTEXT_WINDOW
+
+    def count_tokens(self, messages: Sequence[Message]) -> int:
+        """Estimate the token count of ``messages``.
+
+        MVP heuristic: total character count divided by four. Avoids
+        a network round-trip and any vendor SDK dependency; precise
+        enough for compaction-trigger decisions.
+        """
+        total_chars = sum(_message_char_length(m) for m in messages)
+
+        return total_chars // _CHARS_PER_TOKEN
 
     async def complete(self, request: LLMRequest) -> LLMResponse:
         """Send ``request`` and await the full response.
@@ -219,3 +268,26 @@ def _parse_usage(raw: Any) -> TokenUsage | None:
 
 def _opt_int(value: Any) -> int | None:
     return value if isinstance(value, int) else None
+
+
+def _message_char_length(message: Message) -> int:
+    if isinstance(message, SystemMessage | UserMessage | AssistantMessage | ToolMessage):
+        return sum(_block_char_length(b) for b in message.content)
+
+    return 0
+
+
+def _block_char_length(block: ContentBlock) -> int:
+    if isinstance(block, TextBlock):
+        return len(block.text)
+
+    if isinstance(block, CompactionSummaryBlock):
+        return len(block.text)
+
+    if isinstance(block, ToolUseBlock):
+        return len(block.tool_name) + sum(len(str(v)) for v in block.args.values())
+
+    if isinstance(block, ToolResultBlock):
+        return len(str(block.output))
+
+    return 0
