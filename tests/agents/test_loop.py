@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import asyncio
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Sequence
 from typing import Any
 
 import pytest
@@ -15,6 +15,7 @@ from phronesis.agents.run import RunRequest
 from phronesis.agents.spec import AgentSpec
 from phronesis.core.messages import (
     AssistantMessage,
+    Message,
     SystemMessage,
     TextBlock,
     ToolMessage,
@@ -56,6 +57,12 @@ class _ScriptedProvider:
     def supports(self, feature: ProviderFeature) -> bool:
         return False
 
+    def context_window_size(self) -> int:
+        return 200_000
+
+    def count_tokens(self, messages: Sequence[Message]) -> int:
+        return 0
+
 
 class _ExplodingProvider:
     async def complete(self, request: LLMRequest) -> LLMResponse:
@@ -70,6 +77,12 @@ class _ExplodingProvider:
 
     def supports(self, feature: ProviderFeature) -> bool:
         return False
+
+    def context_window_size(self) -> int:
+        return 200_000
+
+    def count_tokens(self, messages: Sequence[Message]) -> int:
+        return 0
 
 
 def _spec(

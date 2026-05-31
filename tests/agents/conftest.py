@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Sequence
 from typing import Any
 
 import pytest
 
+from phronesis.core.messages import Message
 from phronesis.providers.chunks import LLMChunk
 from phronesis.providers.protocol import LLMProvider, ProviderFeature
 from phronesis.providers.types import LLMRequest, LLMResponse
@@ -32,6 +33,12 @@ class _FakeProvider:
 
     def supports(self, feature: ProviderFeature) -> bool:
         return False
+
+    def context_window_size(self) -> int:
+        return 200_000
+
+    def count_tokens(self, messages: Sequence[Message]) -> int:
+        return 0
 
 
 @pytest.fixture
