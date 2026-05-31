@@ -12,12 +12,15 @@ from. Built-in providers reuse code via composition, not inheritance.
 
 from __future__ import annotations
 
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Sequence
 from enum import StrEnum
-from typing import Protocol, runtime_checkable
+from typing import TYPE_CHECKING, Protocol, runtime_checkable
 
 from phronesis.providers.chunks import LLMChunk
 from phronesis.providers.types import LLMRequest, LLMResponse
+
+if TYPE_CHECKING:
+    from phronesis.core.messages import Message
 
 
 class ProviderFeature(StrEnum):
@@ -95,5 +98,34 @@ class LLMProvider(Protocol):
         Returns:
             ``True`` when the provider implements the capability,
             ``False`` otherwise.
+        """
+        ...
+
+    def context_window_size(self) -> int:
+        """Return the maximum number of tokens this provider's model accepts.
+
+        Used by context builders that need to know the budget before
+        deciding whether to compact, truncate or otherwise rewrite the
+        history. The value reflects the model bound at construction
+        time, not the active request.
+
+        Returns:
+            Total tokens the model can consume in a single request.
+        """
+        ...
+
+    def count_tokens(self, messages: Sequence[Message]) -> int:
+        """Estimate the token count of ``messages`` for this provider.
+
+        Implementations may use vendor-specific tokenisers or
+        heuristic approximations. The result is best-effort and not
+        meant for billing — only for scheduling decisions like
+        compaction triggers.
+
+        Args:
+            messages: Domain messages to be sent to the provider.
+
+        Returns:
+            Estimated token count.
         """
         ...
