@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from phronesis.core.messages import (
     AssistantMessage,
+    CompactionSummaryBlock,
     ContentBlock,
     Message,
     SystemMessage,
@@ -19,6 +20,7 @@ from phronesis.core.messages import (
 
 __all__ = [
     "AssistantMessage",
+    "CompactionSummaryBlock",
     "ContentBlock",
     "Message",
     "SystemMessage",

@@ -67,7 +67,29 @@ class ToolResultBlock:
     is_error: bool = False
 
 
-ContentBlock = TextBlock | ToolUseBlock | ToolResultBlock
+@dataclass(frozen=True, slots=True)
+class CompactionSummaryBlock:
+    """Compacted summary of a span of prior conversation.
+
+    Produced by :class:`phronesis.context.CompactingContextBuilder`
+    when the rolling history outgrows the model's context window.
+    The summary text replaces the compacted slice on subsequent
+    iterations so the model still sees the gist without paying for
+    every original token.
+
+    Attributes:
+        text: Natural-language summary of the compacted messages.
+        original_message_count: Number of original messages this
+            block stands in for. Useful for observability and to
+            short-circuit re-compaction of an already-summarised
+            prefix.
+    """
+
+    text: str
+    original_message_count: int
+
+
+ContentBlock = TextBlock | ToolUseBlock | ToolResultBlock | CompactionSummaryBlock
 """Union of the MVP content block types."""
 
 
