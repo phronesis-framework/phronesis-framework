@@ -32,11 +32,14 @@ from phronesis.agents.id import AgentId
 from phronesis.agents.registry import current_registry
 from phronesis.agents.spec import AgentSpec
 from phronesis.agents.validation import validate_spec
+from phronesis.context.default import DefaultContextBuilder
+from phronesis.context.protocol import ContextBuilder
 from phronesis.providers.protocol import LLMProvider
 from phronesis.tools.tool import Tool
 
 _DEFAULT_VERSION = "0.1.0"
 _DEFAULT_MAX_ITERATIONS = 20
+_DEFAULT_BUILDER: ContextBuilder = DefaultContextBuilder()
 
 
 def _resolve_output_type(fn: Callable[..., Any]) -> type | None:
@@ -77,6 +80,7 @@ def _build_spec(
     output_type: type | None,
     max_iterations: int | None,
     version: str | None,
+    context_builder: ContextBuilder | None,
 ) -> AgentSpec:
     """Combine explicit overrides with defaults derived from ``fn``.
 
@@ -92,12 +96,14 @@ def _build_spec(
     resolved_output = output_type if output_type is not None else _resolve_output_type(fn)
     resolved_max = max_iterations if max_iterations is not None else _DEFAULT_MAX_ITERATIONS
     resolved_version = version if version is not None else _DEFAULT_VERSION
+    resolved_builder = context_builder if context_builder is not None else _DEFAULT_BUILDER
 
     return AgentSpec(
         id=resolved_id,
         name=resolved_name,
         model=model,
         system_prompt=resolved_prompt,
+        context_builder=resolved_builder,
         tools=resolved_tools,
         description=resolved_description,
         output_type=resolved_output,
@@ -117,6 +123,7 @@ def agent(
     output_type: type | None = None,
     max_iterations: int | None = None,
     version: str | None = None,
+    context_builder: ContextBuilder | None = None,
 ) -> Callable[[Callable[..., Any]], Agent]:
     """Declare an agent from a function used purely as metadata.
 
@@ -143,6 +150,9 @@ def agent(
             :data:`_DEFAULT_MAX_ITERATIONS`.
         version: Version string for the spec. Defaults to
             :data:`_DEFAULT_VERSION`.
+        context_builder: Optional :class:`ContextBuilder` driving
+            per-iteration message assembly. Defaults to a shared
+            :class:`DefaultContextBuilder` singleton.
 
     Returns:
         A decorator that consumes the target function and yields the
@@ -169,6 +179,7 @@ def agent(
             output_type=output_type,
             max_iterations=max_iterations,
             version=version,
+            context_builder=context_builder,
         )
         validate_spec(spec)
 

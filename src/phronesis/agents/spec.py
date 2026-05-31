@@ -14,11 +14,15 @@ provider-lookup step.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from phronesis.agents.id import AgentId
+from phronesis.context.default import DefaultContextBuilder
+from phronesis.context.protocol import ContextBuilder
 from phronesis.providers.protocol import LLMProvider
 from phronesis.tools.tool import Tool
+
+_DEFAULT_CONTEXT_BUILDER: ContextBuilder = DefaultContextBuilder()
 
 
 @dataclass(frozen=True, slots=True)
@@ -52,6 +56,11 @@ class AgentSpec:
             When the loop reaches this cap without a terminal answer
             it raises :class:`AgentMaxIterationsError`. Must be > 0.
         version: Free-form version string, defaulting to ``"0.1.0"``.
+        context_builder: :class:`ContextBuilder` instance the loop
+            invokes on every iteration to assemble the provider-facing
+            message list. The :func:`agent` decorator injects a shared
+            :class:`DefaultContextBuilder` singleton when the caller
+            does not override it.
     """
 
     id: AgentId
@@ -63,3 +72,4 @@ class AgentSpec:
     output_type: type | None = None
     max_iterations: int = 20
     version: str = "0.1.0"
+    context_builder: ContextBuilder = field(default=_DEFAULT_CONTEXT_BUILDER)
