@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Sequence
 
 import pytest
 
+from phronesis.core.messages import Message
 from phronesis.providers.chunks import Finish, LLMChunk, TextChunk
 from phronesis.providers.protocol import LLMProvider, ProviderFeature
 from phronesis.providers.types import LLMRequest, LLMResponse
@@ -26,6 +27,12 @@ class _MockProvider:
 
     def supports(self, feature: ProviderFeature) -> bool:
         return feature in self._supported
+
+    def context_window_size(self) -> int:
+        return 200_000
+
+    def count_tokens(self, messages: Sequence[Message]) -> int:
+        return 0
 
 
 class TestProviderFeature:
