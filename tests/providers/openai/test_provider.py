@@ -343,3 +343,64 @@ class TestOpenAIProviderStream:
         )
 
         assert hasattr(iterator, "__aiter__")
+
+
+class TestOpenAIContextWindowSize:
+    def test_known_model_returns_table_value(self) -> None:
+        provider = OpenAIProvider(
+            model="gpt-4o-mini",
+            api_key="sk-test",
+            http_client=_client(lambda r: httpx.Response(200, json=_ok_payload())),
+        )
+
+        assert provider.context_window_size() == 128_000
+
+    def test_o1_returns_200k(self) -> None:
+        provider = OpenAIProvider(
+            model="o1",
+            api_key="sk-test",
+            http_client=_client(lambda r: httpx.Response(200, json=_ok_payload())),
+        )
+
+        assert provider.context_window_size() == 200_000
+
+    def test_unknown_model_returns_default(self) -> None:
+        provider = OpenAIProvider(
+            model="gpt-future-unknown",
+            api_key="sk-test",
+            http_client=_client(lambda r: httpx.Response(200, json=_ok_payload())),
+        )
+
+        assert provider.context_window_size() == 128_000
+
+
+class TestOpenAICountTokens:
+    def test_empty_history_returns_zero(self) -> None:
+        provider = _make_provider(handler=lambda r: httpx.Response(200, json=_ok_payload()))
+
+        assert provider.count_tokens([]) == 0
+
+    def test_text_messages_estimated_via_char_heuristic(self) -> None:
+        from phronesis.core.messages import TextBlock, UserMessage
+
+        provider = _make_provider(handler=lambda r: httpx.Response(200, json=_ok_payload()))
+        messages = [UserMessage(content=(TextBlock(text="abcdefgh"),))]  # 8 chars
+
+        assert provider.count_tokens(messages) == 2
+
+    def test_compaction_summary_block_included(self) -> None:
+        from phronesis.core.messages import AssistantMessage, CompactionSummaryBlock
+
+        provider = _make_provider(handler=lambda r: httpx.Response(200, json=_ok_payload()))
+        messages = [
+            AssistantMessage(
+                content=(
+                    CompactionSummaryBlock(
+                        text="abcdefgh",
+                        original_message_count=10,
+                    ),
+                )
+            )
+        ]
+
+        assert provider.count_tokens(messages) == 2
