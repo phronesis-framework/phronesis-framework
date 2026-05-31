@@ -291,7 +291,7 @@ def _adjust_split_for_tool_pairs(history: tuple[Message, ...], split: int) -> in
         if not needed_ids:
             return split
 
-        if _has_matching_tool_uses(history[:split], needed_ids):
+        if not _has_matching_tool_uses(history[:split], needed_ids):
             return split
 
         split -= 1
