@@ -251,11 +251,30 @@ class HttpClient:
         headers: Mapping[str, str] | None = None,
         timeouts: HttpTimeouts | None = None,
     ) -> HttpResponse:
-        """Send an HTTP request and return the parsed :class:`HttpResponse`.
+        """Send an HTTP request and return the parsed response.
 
-        Raises :class:`HttpClientError` for 4xx, :class:`HttpServerError` for
-        5xx, :class:`HttpTimeoutError` on timeout, and
-        :class:`HttpConnectionError` for transport failures.
+        Args:
+            method: HTTP method (``GET``, ``POST``, ...).
+            url: Request URL. Resolved against ``base_url`` when
+                relative.
+            json: Body serialised as JSON. Mutually exclusive with
+                ``content``.
+            content: Raw body bytes.
+            params: URL query parameters.
+            headers: Per-request headers merged on top of the
+                client's default headers.
+            timeouts: Per-request timeout override.
+
+        Returns:
+            The parsed :class:`HttpResponse`.
+
+        Raises:
+            HttpClientError: For 4xx responses.
+            HttpServerError: For 5xx responses.
+            HttpTimeoutError: When a connect/read/write/pool timeout
+                fires before a response is delivered.
+            HttpConnectionError: For DNS, refused, reset and other
+                connection-level failures.
         """
         kwargs: dict[str, Any] = {}
 
@@ -359,9 +378,23 @@ class HttpClient:
     ) -> _StreamContext:
         """Open a streaming request.
 
-        Returns an async context manager that yields :class:`HttpStreamResponse`.
-        For 4xx/5xx responses the body is read in full and the appropriate
-        :class:`HttpResponseError` is raised on ``__aenter__``.
+        Args:
+            method: HTTP method (``GET``, ``POST``, ...).
+            url: Request URL. Resolved against ``base_url`` when
+                relative.
+            json: Body serialised as JSON. Mutually exclusive with
+                ``content``.
+            content: Raw body bytes.
+            params: URL query parameters.
+            headers: Per-request headers merged on top of the
+                client's default headers.
+            timeouts: Per-request timeout override.
+
+        Returns:
+            An async context manager that yields
+            :class:`HttpStreamResponse`. For 4xx/5xx the body is read
+            in full and the matching :class:`HttpResponseError` is
+            raised on ``__aenter__``.
         """
         return _StreamContext(
             self,
@@ -381,5 +414,16 @@ def configure_http_client(
     timeouts: HttpTimeouts | None = None,
     headers: Mapping[str, str] | None = None,
 ) -> HttpClient:
-    """Construct an :class:`HttpClient` with framework defaults."""
+    """Construct an :class:`HttpClient` with framework defaults.
+
+    Args:
+        base_url: Base URL prefix applied to relative request URLs.
+        timeouts: Per-phase timeouts. ``None`` uses :class:`HttpTimeouts`
+            defaults.
+        headers: Extra default headers merged on top of the framework
+            ``User-Agent``.
+
+    Returns:
+        A new :class:`HttpClient` instance.
+    """
     return HttpClient(base_url=base_url, timeouts=timeouts, headers=headers)
