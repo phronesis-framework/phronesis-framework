@@ -13,8 +13,7 @@ When the extra is installed, the underlying OpenTelemetry tracer takes
 care of recording exceptions and setting the span status to ``ERROR``
 on uncaught exceptions inside the ``with`` block.
 
-Span names follow the ``phronesis.<component>.<operation>`` convention
-documented in the obs design notes.
+Span names follow the ``phronesis.<component>.<operation>`` convention.
 """
 
 from __future__ import annotations
@@ -41,6 +40,14 @@ def start_span(name: str, *, attributes: dict[str, Any] | None = None) -> Iterat
     performs no other work. Otherwise delegates to OpenTelemetry's
     ``start_as_current_span``, which records any uncaught exception
     inside the ``with`` block and marks the span status as ``ERROR``.
+
+    Args:
+        name: Span name, typically ``phronesis.<component>.<operation>``.
+        attributes: Initial attribute mapping applied at span
+            creation. ``None`` skips initial attributes.
+
+    Yields:
+        The active span (real OpenTelemetry span or no-op fallback).
     """
     if not OBS_AVAILABLE:
         yield _NoopSpan()
@@ -69,10 +76,14 @@ def traced(
     is a coroutine: ``async def`` functions get ``start_span_async`` and
     plain ``def`` functions get ``start_span``.
 
-    ``attributes_from``, when provided, is invoked with the same
-    ``*args`` and ``**kwargs`` passed to the wrapped function and must
-    return a dictionary of attribute values applied to the span at
-    creation time.
+    Args:
+        name: Span name applied to every invocation.
+        attributes_from: Optional callable invoked with the wrapped
+            function's ``*args``/``**kwargs``; its return value is
+            applied as span attributes at creation time.
+
+    Returns:
+        The decorator producing the instrumented wrapper.
     """
 
     def decorator(fn: F) -> F:
@@ -105,10 +116,10 @@ def traced(
 def current_trace_id() -> str | None:
     """Return the active span's ``trace_id`` as a 32-char hex string.
 
-    Returns ``None`` when the ``obs`` extra is not installed or no valid
-    OpenTelemetry span is active. The runtime layer uses this helper to
-    align ``Context.trace_id`` with the OTel ``trace_id`` of the root
-    span, falling back to its own identifier when no span is active.
+    Returns:
+        The trace id of the current span, or ``None`` when the
+        ``obs`` extra is not installed or no valid OpenTelemetry
+        span is active.
     """
     if not OBS_AVAILABLE:
         return None
@@ -130,9 +141,17 @@ async def start_span_async(
 ) -> AsyncIterator[Any]:
     """Async counterpart of :func:`start_span`.
 
-    The semantics match the synchronous variant; this version exists so
-    callers in ``async def`` functions can use ``async with`` without
-    bouncing through a sync context manager.
+    The semantics match the synchronous variant; this version exists
+    so callers in ``async def`` functions can use ``async with``
+    without bouncing through a sync context manager.
+
+    Args:
+        name: Span name, typically ``phronesis.<component>.<operation>``.
+        attributes: Initial attribute mapping applied at span
+            creation. ``None`` skips initial attributes.
+
+    Yields:
+        The active span (real OpenTelemetry span or no-op fallback).
     """
     if not OBS_AVAILABLE:
         yield _NoopSpan()
