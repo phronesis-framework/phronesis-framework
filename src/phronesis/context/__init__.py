@@ -15,6 +15,7 @@ from phronesis.context.chain import ChainedContextBuilder, chain
 from phronesis.context.compacting import CompactingContextBuilder
 from phronesis.context.context import Context
 from phronesis.context.default import DefaultContextBuilder
+from phronesis.context.dry_run import DryRunReport, dry_run
 from phronesis.context.errors import (
     CompactionError,
     ContextBuilderError,
@@ -34,5 +35,7 @@ __all__ = [
     "ContextBuilderError",
     "ContextError",
     "DefaultContextBuilder",
+    "DryRunReport",
     "chain",
+    "dry_run",
 ]
