@@ -7,9 +7,19 @@ and every configurable property are read straight from it.
 
 Use :meth:`Agent.run` for a one-shot call and :meth:`Agent.session`
 to open a stateful multi-turn conversation backed by the same spec.
+
+Use the :meth:`Agent.with_provider`, :meth:`Agent.with_tools`,
+:meth:`Agent.with_system_prompt`, :meth:`Agent.with_max_iterations`,
+:meth:`Agent.with_context_builder`, :meth:`Agent.with_output_type` and
+:meth:`Agent.with_description` methods to derive a new agent with a
+single field swapped. They preserve immutability — the receiver agent
+is never mutated.
 """
 
 from __future__ import annotations
+
+import dataclasses
+from collections.abc import Sequence
 
 from phronesis.agents.id import AgentId
 from phronesis.agents.loop import run_loop
@@ -17,6 +27,9 @@ from phronesis.agents.run import Result, RunRequest
 from phronesis.agents.session import Session
 from phronesis.agents.spec import AgentSpec
 from phronesis.communication.session_id import SessionId
+from phronesis.context.protocol import ContextBuilder
+from phronesis.providers.protocol import LLMProvider
+from phronesis.tools.tool import Tool
 
 
 class Agent:
@@ -91,5 +104,150 @@ class Agent:
         """
         return Session(self.spec, session_id=session_id)
 
+    def with_provider(self, provider: LLMProvider) -> Agent:
+        """Return a copy of this agent backed by ``provider``.
+
+        Args:
+            provider: An :class:`LLMProvider` implementation that
+                replaces :attr:`AgentSpec.model` in the derived spec.
+
+        Returns:
+            A new :class:`Agent` sharing every other field with this
+            one. The receiver is not mutated.
+        """
+        return Agent(dataclasses.replace(self.spec, model=provider))
+
+    def with_tools(self, tools: Sequence[Tool]) -> Agent:
+        """Return a copy of this agent whose tools are ``tools``.
+
+        The replacement is total: the new spec carries exactly the
+        passed sequence. Use :meth:`with_added_tools` to extend
+        instead.
+
+        Args:
+            tools: Sequence of :class:`Tool` instances to set as the
+                full tool list of the derived spec.
+
+        Returns:
+            A new :class:`Agent` with the requested tool tuple.
+        """
+        return Agent(dataclasses.replace(self.spec, tools=tuple(tools)))
+
+    def with_added_tools(self, tools: Sequence[Tool]) -> Agent:
+        """Return a copy of this agent with ``tools`` appended.
+
+        Args:
+            tools: Sequence of :class:`Tool` instances to append to
+                the current tool tuple.
+
+        Returns:
+            A new :class:`Agent` whose tools are the original tuple
+            followed by ``tools``.
+        """
+        merged = (*self.spec.tools, *tools)
+
+        return Agent(dataclasses.replace(self.spec, tools=merged))
+
+    def with_system_prompt(self, system_prompt: str) -> Agent:
+        """Return a copy of this agent with a new system prompt.
+
+        Args:
+            system_prompt: Plain-text instructions sent on every turn
+                of the derived agent.
+
+        Returns:
+            A new :class:`Agent` with the updated prompt.
+        """
+        return Agent(dataclasses.replace(self.spec, system_prompt=system_prompt))
+
+    def with_max_iterations(self, max_iterations: int) -> Agent:
+        """Return a copy of this agent with a new iteration cap.
+
+        Args:
+            max_iterations: Upper bound on tool-calling loop
+                iterations of the derived agent. Must be positive;
+                the loop validates this when the derived agent runs.
+
+        Returns:
+            A new :class:`Agent` with the updated cap.
+        """
+        return Agent(dataclasses.replace(self.spec, max_iterations=max_iterations))
+
+    def with_context_builder(self, context_builder: ContextBuilder) -> Agent:
+        """Return a copy of this agent with a new :class:`ContextBuilder`.
+
+        Args:
+            context_builder: The builder the derived agent will use to
+                assemble provider-facing message lists.
+
+        Returns:
+            A new :class:`Agent` with the updated builder.
+        """
+        return Agent(dataclasses.replace(self.spec, context_builder=context_builder))
+
+    def with_output_type(self, output_type: type | None) -> Agent:
+        """Return a copy of this agent with a new ``output_type``.
+
+        Args:
+            output_type: Expected output class for structured runs,
+                or ``None`` for free-form text.
+
+        Returns:
+            A new :class:`Agent` with the updated output type.
+        """
+        return Agent(dataclasses.replace(self.spec, output_type=output_type))
+
+    def with_description(self, description: str) -> Agent:
+        """Return a copy of this agent with a new description.
+
+        Args:
+            description: Free-form human-readable summary stored on
+                the derived spec.
+
+        Returns:
+            A new :class:`Agent` with the updated description.
+        """
+        return Agent(dataclasses.replace(self.spec, description=description))
+
+    def describe(self) -> str:
+        """Return a multi-line human-readable summary of this agent.
+
+        The summary is intended for REPL / log inspection. It is not
+        a stable serialization format.
+
+        Returns:
+            A string with one line per significant spec field,
+            including model class name, tool names, builder class
+            name and the iteration cap.
+        """
+        spec = self.spec
+        tool_names = ", ".join(t.spec.name for t in spec.tools) or "<none>"
+        builder_name = type(spec.context_builder).__name__
+        model_name = type(spec.model).__name__
+        output_name = spec.output_type.__name__ if spec.output_type is not None else "<free-form>"
+        prompt_preview = _preview(spec.system_prompt, limit=80)
+        description = spec.description.strip() or "<no description>"
+
+        return (
+            f"Agent[{spec.name}] (id={spec.id.canonical})\n"
+            f"  version: {spec.version}\n"
+            f"  description: {description}\n"
+            f"  model: {model_name}\n"
+            f"  system_prompt: {prompt_preview}\n"
+            f"  tools: {tool_names}\n"
+            f"  context_builder: {builder_name}\n"
+            f"  output_type: {output_name}\n"
+            f"  max_iterations: {spec.max_iterations}"
+        )
+
     def __repr__(self) -> str:
         return f"Agent(id={self.spec.id.canonical!r}, name={self.spec.name!r})"
+
+
+def _preview(text: str, *, limit: int) -> str:
+    collapsed = " ".join(text.split())
+
+    if len(collapsed) <= limit:
+        return repr(collapsed)
+
+    return repr(collapsed[: limit - 1] + "\u2026")
