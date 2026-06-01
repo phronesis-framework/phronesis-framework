@@ -37,6 +37,7 @@ from phronesis.providers.anthropic.tools import to_anthropic_tools
 from phronesis.providers.chunks import LLMChunk
 from phronesis.providers.protocol import ProviderFeature
 from phronesis.providers.retry_config import RetryConfig, build_retry_decorator
+from phronesis.providers.translation import translate_history
 from phronesis.providers.types import LLMRequest, LLMResponse
 from phronesis.providers.usage import TokenUsage
 
@@ -75,6 +76,7 @@ class AnthropicProvider:
             ProviderFeature.VISION,
             ProviderFeature.DOCUMENTS,
             ProviderFeature.EXTENDED_THINKING,
+            ProviderFeature.NATIVE_TOKEN_COUNT,
         }
     )
 
@@ -149,6 +151,52 @@ class AnthropicProvider:
         total_chars = sum(_message_char_length(m) for m in messages)
 
         return total_chars // _CHARS_PER_TOKEN
+
+    async def count_tokens_exact(self, messages: Sequence[Message]) -> int | None:
+        """Return the exact token count via Anthropic's counting endpoint.
+
+        Calls ``POST /v1/messages/count_tokens`` with the translated
+        request body. The endpoint is unmetered but still a network
+        round-trip; callers should reserve it for decisions that
+        warrant the latency (precise budgeting, hard limits) and
+        keep :meth:`count_tokens` for hot-path scheduling.
+
+        Returns:
+            Exact token count, or ``None`` if the endpoint response
+            is malformed (defensive — the heuristic is a safe
+            fallback).
+        """
+        provider_messages = translate_history(messages)
+        translated_messages, system = to_anthropic_messages(provider_messages)
+        body: dict[str, Any] = {
+            "model": self._model,
+            "messages": translated_messages,
+        }
+
+        if system:
+            body["system"] = system
+
+        response = await self._http.post(
+            "/v1/messages/count_tokens",
+            json=body,
+            headers={
+                "x-api-key": self._api_key,
+                "anthropic-version": self._api_version,
+                "content-type": "application/json",
+            },
+        )
+
+        if response.status_code >= 400:
+            raise translate_response_error(response)
+
+        data = response.json()
+
+        if not isinstance(data, dict):
+            return None
+
+        raw = data.get("input_tokens")
+
+        return raw if isinstance(raw, int) else None
 
     async def complete(self, request: LLMRequest) -> LLMResponse:
         """Send ``request`` and await the full response.

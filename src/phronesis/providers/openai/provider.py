@@ -147,6 +147,16 @@ class OpenAIProvider:
 
         return total_chars // _CHARS_PER_TOKEN
 
+    async def count_tokens_exact(self, messages: Sequence[DomainMessage]) -> int | None:
+        """Return ``None``: OpenAI exposes no public counting endpoint.
+
+        Exact counting would require the optional ``tiktoken`` package
+        or the (paid) chat completions request itself; both are out
+        of scope for the MVP. Callers should fall back to
+        :meth:`count_tokens` when ``None`` is returned.
+        """
+        return None
+
     async def complete(self, request: LLMRequest) -> LLMResponse:
         """Send ``request`` and await the full response.
 

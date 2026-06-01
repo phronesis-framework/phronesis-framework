@@ -43,6 +43,9 @@ class ProviderFeature(StrEnum):
             effort knob.
         PREDICTED_OUTPUTS: Provider supports passing a draft of the
             expected output to accelerate decoding.
+        NATIVE_TOKEN_COUNT: Provider exposes an exact token-count
+            implementation via :meth:`LLMProvider.count_tokens_exact`
+            (vendor tokeniser or counting endpoint).
     """
 
     STRUCTURED_OUTPUT = "structured_output"
@@ -52,6 +55,7 @@ class ProviderFeature(StrEnum):
     EXTENDED_THINKING = "extended_thinking"
     REASONING_EFFORT = "reasoning_effort"
     PREDICTED_OUTPUTS = "predicted_outputs"
+    NATIVE_TOKEN_COUNT = "native_token_count"
 
 
 @runtime_checkable
@@ -127,5 +131,26 @@ class LLMProvider(Protocol):
 
         Returns:
             Estimated token count.
+        """
+        ...
+
+    async def count_tokens_exact(self, messages: Sequence[Message]) -> int | None:
+        """Return an exact token count for ``messages``, or ``None``.
+
+        Providers that advertise
+        :attr:`ProviderFeature.NATIVE_TOKEN_COUNT` return an integer
+        derived from their official tokeniser or counting endpoint.
+        Providers that do not return ``None`` so callers can fall
+        back to the synchronous :meth:`count_tokens` heuristic.
+
+        This method is async because some providers (e.g. Anthropic)
+        expose token counting only as a network endpoint. Callers
+        should be prepared to await it.
+
+        Args:
+            messages: Domain messages to be sent to the provider.
+
+        Returns:
+            Exact token count, or ``None`` when not supported.
         """
         ...
