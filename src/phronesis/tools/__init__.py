@@ -24,6 +24,7 @@ Anything else is internal and may change without notice.
 from __future__ import annotations
 
 from phronesis.context.context import Context
+from phronesis.tools.cache import CachePolicy
 from phronesis.tools.decorator import tool
 from phronesis.tools.discover import discover
 from phronesis.tools.effects import ToolEffect
@@ -47,6 +48,7 @@ from phronesis.tools.tool_id import ToolId, ToolName
 from phronesis.tools.version import InvalidVersionError, ToolVersion, parse_version
 
 __all__ = [
+    "CachePolicy",
     "Context",
     "DuplicateToolError",
     "InvalidVersionError",

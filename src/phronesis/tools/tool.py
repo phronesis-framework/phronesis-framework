@@ -25,6 +25,7 @@ from collections.abc import Callable
 from typing import Any
 
 from phronesis.context.context import Context
+from phronesis.tools.cache import NO_CACHE, CachePolicy, ToolCache, make_cache_key
 from phronesis.tools.errors import ToolError, ToolValidationError, auto_map_exception
 from phronesis.tools.injection import detect_context_param
 from phronesis.tools.lifecycle import NO_LIFECYCLE, ToolLifecycle
@@ -61,6 +62,7 @@ class Tool:
         lazy: bool = False,
         retry: RetryPolicy | None = None,
         lifecycle: ToolLifecycle | None = None,
+        cache: CachePolicy | None = None,
     ) -> None:
         """Bind ``fn`` and ``spec`` into a callable tool.
 
@@ -81,11 +83,16 @@ class Tool:
                 ``setup`` runs once before the first invocation and
                 whose ``teardown`` runs once at the end of the agent
                 run. Defaults to :data:`NO_LIFECYCLE`.
+            cache: Optional :class:`CachePolicy` that memoises
+                successful invocations keyed by their validated
+                arguments. Defaults to :data:`NO_CACHE`.
         """
         self._fn = fn
         self.spec = spec
         self.retry: RetryPolicy = retry if retry is not None else NO_RETRY
         self.lifecycle: ToolLifecycle = lifecycle if lifecycle is not None else NO_LIFECYCLE
+        self.cache: CachePolicy = cache if cache is not None else NO_CACHE
+        self._cache_store: ToolCache | None = ToolCache(self.cache) if self.cache.enabled else None
         self.is_async = inspect.iscoroutinefunction(fn)
         self._signature = inspect.signature(fn)
         self._validator = build_validator(fn)
@@ -161,14 +168,56 @@ class Tool:
             raw = {self._single_model_param: raw}
 
         validated = self._validator(raw)
+        cache_key = self._cache_key_from(validated)
 
         if self._context_param is not None and context is not None:
             validated[self._context_param] = context
 
         if self.is_async:
-            return self._invoke_async(validated)
+            return self._invoke_async_cached(validated, cache_key)
 
-        return self._invoke_sync(validated)
+        return self._invoke_sync_cached(validated, cache_key)
+
+    def _cache_key_from(self, validated: dict[str, Any]) -> str | None:
+        if self._cache_store is None:
+            return None
+
+        key_args = {k: v for k, v in validated.items() if k != self._context_param}
+
+        return make_cache_key(key_args)
+
+    def _invoke_sync_cached(self, validated: dict[str, Any], cache_key: str | None) -> Any:
+        if self._cache_store is not None and cache_key is not None:
+            hit, value = self._cache_store.get(cache_key)
+
+            if hit:
+                return value
+
+        result = self._invoke_sync(validated)
+
+        if self._cache_store is not None and cache_key is not None:
+            self._cache_store.set(cache_key, result)
+
+        return result
+
+    async def _invoke_async_cached(self, validated: dict[str, Any], cache_key: str | None) -> Any:
+        if self._cache_store is not None and cache_key is not None:
+            hit, value = self._cache_store.get(cache_key)
+
+            if hit:
+                return value
+
+        result = await self._invoke_async(validated)
+
+        if self._cache_store is not None and cache_key is not None:
+            self._cache_store.set(cache_key, result)
+
+        return result
+
+    def clear_cache(self) -> None:
+        """Drop every cached invocation result for this tool."""
+        if self._cache_store is not None:
+            self._cache_store.clear()
 
     def _invoke_sync(self, validated: dict[str, Any]) -> Any:
         try:
