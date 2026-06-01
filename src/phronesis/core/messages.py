@@ -19,7 +19,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from types import MappingProxyType
-from typing import Any, Final
+from typing import Any, Final, Literal
 
 from phronesis._internal.ids.generator import IdGenerator
 from phronesis._internal.ids.id import Id
@@ -130,7 +130,52 @@ class CompactionSummaryBlock:
     original_message_count: int
 
 
-ContentBlock = TextBlock | ToolUseBlock | ToolResultBlock | CompactionSummaryBlock
+@dataclass(frozen=True, slots=True)
+class ImageBlock:
+    """Image content carried in a message.
+
+    Attributes:
+        data: Either a fully qualified URL or a base64-encoded payload,
+            disambiguated by :attr:`source_type`.
+        media_type: IANA media type of the image. Defaults to
+            ``"image/png"``.
+        source_type: ``"url"`` when :attr:`data` is a URL, ``"base64"``
+            when it is an inline payload. Defaults to ``"url"``.
+
+    Providers that advertise :attr:`ProviderFeature.VISION` translate
+    the block into their native shape; providers that do not silently
+    drop it.
+    """
+
+    data: str
+    media_type: str = "image/png"
+    source_type: Literal["url", "base64"] = "url"
+
+
+@dataclass(frozen=True, slots=True)
+class DocumentBlock:
+    """Document content carried in a message.
+
+    Attributes:
+        data: Either a fully qualified URL or a base64-encoded payload,
+            disambiguated by :attr:`source_type`.
+        media_type: IANA media type. Defaults to ``"application/pdf"``.
+        source_type: ``"url"`` when :attr:`data` is a URL, ``"base64"``
+            when it is an inline payload. Defaults to ``"url"``.
+
+    Providers that advertise :attr:`ProviderFeature.DOCUMENTS`
+    translate the block into their native shape; providers that do
+    not silently drop it.
+    """
+
+    data: str
+    media_type: str = "application/pdf"
+    source_type: Literal["url", "base64"] = "url"
+
+
+ContentBlock = (
+    TextBlock | ToolUseBlock | ToolResultBlock | CompactionSummaryBlock | ImageBlock | DocumentBlock
+)
 """Union of the MVP content block types."""
 
 
