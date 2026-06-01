@@ -3,10 +3,12 @@
 Provides ``configure_obs`` and the immutable ``ObsConfig`` snapshot
 that drives tracer provider initialization.
 
-The default configuration sends spans to ``ConsoleSpanExporter`` with
-100% sampling and the ``phronesis`` service name, so installing the
-``obs`` extra and calling ``configure_obs()`` produces useful output
-without any further setup.
+The default configuration sends spans to ``ConsoleSpanExporter`` and
+metrics to ``ConsoleMetricExporter`` via a
+``PeriodicExportingMetricReader``, with 100% sampling and the
+``phronesis`` service name, so installing the ``obs`` extra and
+calling ``configure_obs()`` produces useful output without any
+further setup.
 
 ``configure_obs`` is idempotent: subsequent calls fully replace the
 previous tracer provider rather than stacking processors.
@@ -215,7 +217,12 @@ def _build_metric_readers(
 
         return [PeriodicExportingMetricReader(OTLPMetricExporter(endpoint=endpoint))]
 
-    return []
+    from opentelemetry.sdk.metrics.export import (
+        ConsoleMetricExporter,
+        PeriodicExportingMetricReader,
+    )
+
+    return [PeriodicExportingMetricReader(ConsoleMetricExporter())]
 
 
 def _reset_state() -> None:
