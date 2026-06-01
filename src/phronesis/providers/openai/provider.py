@@ -56,6 +56,26 @@ _CONTEXT_WINDOWS: dict[str, int] = {
     "o4-mini": 200_000,
 }
 
+_OSS_CONTEXT_WINDOWS: dict[str, int] = {
+    "qwen2.5": 32_768,
+    "qwen2": 32_768,
+    "qwen": 8_192,
+    "llama-3.1": 128_000,
+    "llama-3.2": 128_000,
+    "llama-3": 8_192,
+    "llama-2": 4_096,
+    "mistral": 32_768,
+    "mixtral": 32_768,
+    "deepseek-r1": 64_000,
+    "deepseek-coder": 16_384,
+    "deepseek": 32_768,
+    "phi-3": 128_000,
+    "gemma-2": 8_192,
+    "gemma": 8_192,
+    "command-r": 128_000,
+    "yi": 32_768,
+}
+
 
 class OpenAIProvider:
     """Concrete OpenAI provider.
@@ -87,6 +107,8 @@ class OpenAIProvider:
         default_max_tokens: int | None = None,
         default_temperature: float | None = None,
         retry_config: RetryConfig | None = None,
+        features: frozenset[ProviderFeature] | None = None,
+        context_window: int | None = None,
     ) -> None:
         """Bind the provider to a model and HTTP client.
 
@@ -94,7 +116,8 @@ class OpenAIProvider:
             model: Default OpenAI model id used when
                 :attr:`LLMRequest.model` is empty.
             api_key: OpenAI API key sent as a Bearer token in the
-                ``Authorization`` header.
+                ``Authorization`` header. Empty string disables the
+                header (anonymous local backends).
             http_client: Pre-built async HTTP client. The provider
                 does not close it on shutdown.
             default_max_tokens: Output cap used when the request
@@ -105,12 +128,18 @@ class OpenAIProvider:
             retry_config: Retry policy applied to
                 :meth:`complete`. ``None`` uses
                 :class:`RetryConfig` defaults.
+            features: Capability set advertised by :meth:`supports`.
+                ``None`` uses :attr:`_SUPPORTED_FEATURES`.
+            context_window: Override for :meth:`context_window_size`.
+                ``None`` falls back to the static prefix tables.
         """
         self._model = model
         self._api_key = api_key
         self._http = http_client
         self._default_max_tokens = default_max_tokens
         self._default_temperature = default_temperature
+        self._features = features if features is not None else self._SUPPORTED_FEATURES
+        self._context_window_override = context_window
 
         decorator = build_retry_decorator(retry_config or RetryConfig())
         self._post_with_retry = decorator(self._post_chat)
@@ -122,15 +151,24 @@ class OpenAIProvider:
 
     def supports(self, feature: ProviderFeature) -> bool:
         """Return ``True`` when this provider advertises ``feature``."""
-        return feature in self._SUPPORTED_FEATURES
+        return feature in self._features
 
     def context_window_size(self) -> int:
-        """Return the context window size for the bound OpenAI model.
+        """Return the context window size for the bound model.
 
-        Looked up in a static table keyed by the model prefix; unknown
-        models fall back to the modern default (128_000 tokens).
+        Resolution order: explicit per-instance override, then the
+        OpenAI prefix table, then the OSS prefix table (Qwen, Llama,
+        Mistral, etc.), and finally the modern default
+        (128_000 tokens).
         """
+        if self._context_window_override is not None:
+            return self._context_window_override
+
         for prefix, size in _CONTEXT_WINDOWS.items():
+            if self._model.startswith(prefix):
+                return size
+
+        for prefix, size in _OSS_CONTEXT_WINDOWS.items():
             if self._model.startswith(prefix):
                 return size
 
@@ -195,13 +233,15 @@ class OpenAIProvider:
         )
 
     async def _post_chat(self, body: dict[str, Any]) -> dict[str, Any]:
+        headers: dict[str, str] = {"content-type": "application/json"}
+
+        if self._api_key:
+            headers["authorization"] = f"Bearer {self._api_key}"
+
         response = await self._http.post(
             "/v1/chat/completions",
             json=body,
-            headers={
-                "authorization": f"Bearer {self._api_key}",
-                "content-type": "application/json",
-            },
+            headers=headers,
         )
 
         if response.status_code >= 400:
@@ -241,6 +281,9 @@ class OpenAIProvider:
 
         if request.response_format is not None:
             body["response_format"] = _to_openai_response_format(request.response_format)
+
+        if request.extra_body is not None:
+            body.update(request.extra_body)
 
         return body
 

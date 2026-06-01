@@ -373,6 +373,141 @@ class TestOpenAIContextWindowSize:
 
         assert provider.context_window_size() == 128_000
 
+    @pytest.mark.parametrize(
+        ("model", "expected"),
+        [
+            ("qwen2.5", 32_768),
+            ("qwen2.5-7b-instruct", 32_768),
+            ("qwen2-72b", 32_768),
+            ("qwen-7b", 8_192),
+            ("llama-3.1-70b", 128_000),
+            ("llama-3.2-3b", 128_000),
+            ("llama-3-8b", 8_192),
+            ("llama-2-13b", 4_096),
+            ("mistral-7b", 32_768),
+            ("mixtral-8x7b", 32_768),
+            ("deepseek-r1-distill", 64_000),
+            ("deepseek-coder-6.7b", 16_384),
+            ("deepseek-v2", 32_768),
+            ("phi-3-mini", 128_000),
+            ("gemma-2-9b", 8_192),
+            ("gemma-7b", 8_192),
+            ("command-r-plus", 128_000),
+            ("yi-34b", 32_768),
+        ],
+    )
+    def test_oss_models_return_table_value(self, model: str, expected: int) -> None:
+        provider = OpenAIProvider(
+            model=model,
+            api_key="",
+            http_client=_client(lambda r: httpx.Response(200, json=_ok_payload())),
+        )
+
+        assert provider.context_window_size() == expected
+
+    def test_instance_override_takes_precedence(self) -> None:
+        provider = OpenAIProvider(
+            model="gpt-4o",
+            api_key="sk-test",
+            http_client=_client(lambda r: httpx.Response(200, json=_ok_payload())),
+            context_window=4096,
+        )
+
+        assert provider.context_window_size() == 4096
+
+
+class TestOpenAIProviderInstanceFeatures:
+    def test_custom_features_override_classvar(self) -> None:
+        provider = OpenAIProvider(
+            model="qwen2.5",
+            api_key="",
+            http_client=_client(lambda r: httpx.Response(200, json=_ok_payload())),
+            features=frozenset({ProviderFeature.STRUCTURED_OUTPUT}),
+        )
+
+        assert provider.supports(ProviderFeature.STRUCTURED_OUTPUT)
+        assert not provider.supports(ProviderFeature.VISION)
+        assert not provider.supports(ProviderFeature.REASONING_EFFORT)
+
+    def test_none_features_fall_back_to_class_default(self) -> None:
+        provider = OpenAIProvider(
+            model="gpt-4o",
+            api_key="sk-test",
+            http_client=_client(lambda r: httpx.Response(200, json=_ok_payload())),
+            features=None,
+        )
+
+        assert provider.supports(ProviderFeature.VISION)
+        assert provider.supports(ProviderFeature.REASONING_EFFORT)
+
+
+class TestOpenAIExtraBody:
+    @pytest.mark.asyncio
+    async def test_extra_body_merged_into_payload(self) -> None:
+        captured: list[dict[str, Any]] = []
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            captured.append(json.loads(request.content))
+
+            return httpx.Response(200, json=_ok_payload())
+
+        provider = _make_provider(handler=handler)
+        await provider.complete(
+            LLMRequest(
+                model="",
+                messages=(Message(role=Role.USER, content="hi"),),
+                extra_body={"keep_alive": "5m", "options": {"num_ctx": 32768}},
+            ),
+        )
+
+        body = captured[0]
+        assert body["keep_alive"] == "5m"
+        assert body["options"] == {"num_ctx": 32768}
+
+    @pytest.mark.asyncio
+    async def test_extra_body_overrides_existing_field(self) -> None:
+        captured: list[dict[str, Any]] = []
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            captured.append(json.loads(request.content))
+
+            return httpx.Response(200, json=_ok_payload())
+
+        provider = _make_provider(handler=handler)
+        await provider.complete(
+            LLMRequest(
+                model="",
+                messages=(Message(role=Role.USER, content="hi"),),
+                temperature=0.1,
+                extra_body={"temperature": 0.9},
+            ),
+        )
+
+        assert captured[0]["temperature"] == 0.9
+
+
+class TestOpenAIEmptyApiKey:
+    @pytest.mark.asyncio
+    async def test_no_authorization_header_when_key_empty(self) -> None:
+        captured: list[httpx.Request] = []
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            captured.append(request)
+
+            return httpx.Response(200, json=_ok_payload())
+
+        provider = OpenAIProvider(
+            model="qwen2.5",
+            api_key="",
+            http_client=_client(handler),
+            retry_config=RetryConfig(backoff=FixedBackoff(0)),
+        )
+        await provider.complete(
+            LLMRequest(model="", messages=(Message(role=Role.USER, content="hi"),)),
+        )
+
+        assert "authorization" not in captured[0].headers
+
 
 class TestOpenAICountTokens:
     def test_empty_history_returns_zero(self) -> None:
