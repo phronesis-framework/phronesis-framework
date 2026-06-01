@@ -63,6 +63,9 @@ class _ScriptedProvider:
     def count_tokens(self, messages: Sequence[Message]) -> int:
         return 0
 
+    async def count_tokens_exact(self, messages: Sequence[Message]) -> int | None:
+        return None
+
 
 class _ExplodingProvider:
     async def complete(self, request: LLMRequest) -> LLMResponse:
@@ -83,6 +86,9 @@ class _ExplodingProvider:
 
     def count_tokens(self, messages: Sequence[Message]) -> int:
         return 0
+
+    async def count_tokens_exact(self, messages: Sequence[Message]) -> int | None:
+        return None
 
 
 def _spec(

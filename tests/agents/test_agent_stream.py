@@ -48,6 +48,9 @@ class _StubProvider:
     def count_tokens(self, messages: Sequence[Message]) -> int:
         return 0
 
+    async def count_tokens_exact(self, messages: Sequence[Message]) -> int | None:
+        return None
+
 
 def _spec(provider: object) -> AgentSpec:
     return AgentSpec(

@@ -34,6 +34,9 @@ class _MockProvider:
     def count_tokens(self, messages: Sequence[Message]) -> int:
         return 0
 
+    async def count_tokens_exact(self, messages: Sequence[Message]) -> int | None:
+        return None
+
 
 class TestProviderFeature:
     def test_known_members(self) -> None:

@@ -50,6 +50,9 @@ class _RecordingProvider:
     def count_tokens(self, messages: Sequence[Message]) -> int:
         return 0
 
+    async def count_tokens_exact(self, messages: Sequence[Message]) -> int | None:
+        return None
+
 
 class _RecordingBuilder:
     def __init__(self) -> None:

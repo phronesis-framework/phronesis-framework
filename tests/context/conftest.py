@@ -46,6 +46,9 @@ class FakeProvider:
     def count_tokens(self, messages: Sequence[Message]) -> int:
         return self._token_estimate
 
+    async def count_tokens_exact(self, messages: Sequence[Message]) -> int | None:
+        return None
+
 
 class ExplodingProvider(FakeProvider):
     """Provider whose :meth:`complete` always raises."""

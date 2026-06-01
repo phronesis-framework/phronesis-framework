@@ -40,6 +40,9 @@ class _FakeProvider:
     def count_tokens(self, messages: Sequence[Message]) -> int:
         return 0
 
+    async def count_tokens_exact(self, messages: Sequence[Message]) -> int | None:
+        return None
+
 
 @pytest.fixture
 def provider() -> LLMProvider:

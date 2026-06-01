@@ -37,6 +37,9 @@ class _StubProvider:
     def count_tokens(self, messages: Sequence[Message]) -> int:
         return self._count
 
+    async def count_tokens_exact(self, messages: Sequence[Message]) -> int | None:
+        return None
+
 
 class TestDryRun:
     @pytest.mark.asyncio

@@ -40,6 +40,9 @@ class _StubProvider:
     def count_tokens(self, messages: Sequence[object]) -> int:
         return 0
 
+    async def count_tokens_exact(self, messages: Sequence[object]) -> int | None:
+        return None
+
 
 class _FlakyError(ToolError):
     pass

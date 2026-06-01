@@ -40,6 +40,9 @@ class _StubProvider:
     def count_tokens(self, messages: Sequence[object]) -> int:
         return 0
 
+    async def count_tokens_exact(self, messages: Sequence[object]) -> int | None:
+        return None
+
 
 def _make_agent(t: object) -> Agent:
     provider = _StubProvider([LLMResponse(text="done", finish_reason="stop")])
