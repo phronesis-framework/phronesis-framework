@@ -285,6 +285,9 @@ class AnthropicProvider:
         if request.tools:
             body["tools"] = to_anthropic_tools(request.tools)
 
+        if request.extra_body is not None:
+            body.update(request.extra_body)
+
         return body
 
     def _parse_response(self, payload: dict[str, Any]) -> LLMResponse:

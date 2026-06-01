@@ -408,3 +408,30 @@ class TestAnthropicCountTokens:
         ]
 
         assert provider.count_tokens(messages) == 2
+
+
+class TestAnthropicExtraBody:
+    @pytest.mark.asyncio
+    async def test_extra_body_merged_into_payload(self) -> None:
+        import json
+
+        captured: list[dict[str, Any]] = []
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            captured.append(json.loads(request.content))
+
+            return httpx.Response(200, json=_ok_payload())
+
+        provider = _make_provider(handler=handler)
+        await provider.complete(
+            LLMRequest(
+                model="",
+                messages=(Message(role=Role.USER, content="hi"),),
+                max_tokens=10,
+                extra_body={"top_k": 5, "metadata": {"user_id": "abc"}},
+            ),
+        )
+
+        body = captured[0]
+        assert body["top_k"] == 5
+        assert body["metadata"] == {"user_id": "abc"}
