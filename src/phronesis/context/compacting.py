@@ -23,9 +23,14 @@ Algorithm (high level):
   ``preserve_recent`` messages without breaking ``tool_use`` /
   ``tool_result`` pairs.
 * Call the configured compactor provider (or the run's provider by
-  default) with a fixed compaction prompt and the older slice.
+  default) with a fixed compaction prompt and the older slice. When a
+  prior :class:`CompactionSummaryBlock` exists at the head of the
+  history, the compactor receives it as additional context so the new
+  output consolidates everything into a single rolling summary
+  (incremental compaction).
 * Wrap the response in a :class:`CompactionSummaryBlock` and emit
-  ``[system, *prior_summaries, new_summary, *preserved, new_input?]``.
+  ``[system, new_summary, *preserved, new_input?]`` — at most one
+  summary message survives across iterations.
 
 Failures of the compactor LLM call propagate as :class:`CompactionError`
 without fallback — silent degradation would hide budget overruns from
@@ -120,18 +125,19 @@ class CompactingContextBuilder:
             return _default_messages(input)
 
         leading_system, tail = _split_leading_system(input.history)
-        already_summary, remaining = _split_existing_summary(tail)
+        prior_summary, remaining = _split_existing_summary(tail)
         compactable, preserved = _split_preserving_pairs(remaining, self._preserve_recent)
 
         if not compactable:
             return _default_messages(input)
 
-        summary_text = await self._summarise(compactable, input)
+        summary_text = await self._summarise(compactable, prior_summary, input)
+        rolled_count = _prior_summary_count(prior_summary) + len(compactable)
         summary_message = AssistantMessage(
             content=(
                 CompactionSummaryBlock(
                     text=summary_text,
-                    original_message_count=len(compactable),
+                    original_message_count=rolled_count,
                 ),
             ),
         )
@@ -143,7 +149,6 @@ class CompactingContextBuilder:
         elif input.system_prompt:
             messages.append(SystemMessage(content=(TextBlock(text=input.system_prompt),)))
 
-        messages.extend(already_summary)
         messages.append(summary_message)
         messages.extend(preserved)
 
@@ -169,12 +174,14 @@ class CompactingContextBuilder:
     async def _summarise(
         self,
         compactable: tuple[Message, ...],
+        prior_summary: tuple[Message, ...],
         input: BuildInput,
     ) -> str:
         provider = self._compactor_provider or input.provider
+        compactor_messages = _translate_for_compactor(prior_summary + compactable)
         request = LLMRequest(
             model="",
-            messages=_translate_for_compactor(compactable),
+            messages=compactor_messages,
             tools=(),
             system=self._compaction_prompt,
         )
@@ -256,6 +263,21 @@ def _is_summary_message(message: Message) -> bool:
         return False
 
     return any(isinstance(b, CompactionSummaryBlock) for b in message.content)
+
+
+def _prior_summary_count(prior_summary: tuple[Message, ...]) -> int:
+    """Sum the ``original_message_count`` of any prior summary messages."""
+    total = 0
+
+    for msg in prior_summary:
+        if not isinstance(msg, AssistantMessage):
+            continue
+
+        for block in msg.content:
+            if isinstance(block, CompactionSummaryBlock):
+                total += block.original_message_count
+
+    return total
 
 
 def _split_preserving_pairs(
