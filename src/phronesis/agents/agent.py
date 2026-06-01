@@ -19,10 +19,11 @@ is never mutated.
 from __future__ import annotations
 
 import dataclasses
-from collections.abc import Sequence
+from collections.abc import AsyncIterator, Sequence
 
+from phronesis.agents.events import AgentEvent
 from phronesis.agents.id import AgentId
-from phronesis.agents.loop import run_loop
+from phronesis.agents.loop import run_loop, run_loop_stream
 from phronesis.agents.run import Result, RunRequest
 from phronesis.agents.session import Session
 from phronesis.agents.spec import AgentSpec
@@ -91,6 +92,31 @@ class Agent:
         )
 
         return await run_loop(self.spec, request)
+
+    def stream(self, input_or_request: str | RunRequest) -> AsyncIterator[AgentEvent]:
+        """Execute the run and yield :class:`AgentEvent` instances.
+
+        The returned iterator emits one :class:`RunStarted`, a sequence
+        of :class:`TextDelta` / :class:`ToolCallStarted` /
+        :class:`ToolCallCompleted` events, and ends with either
+        :class:`RunCompleted` or :class:`RunFailed`. The iterator
+        does **not** re-raise on failure — consumers must inspect the
+        terminal event to detect aborted runs.
+
+        Args:
+            input_or_request: Either a free-form string or an explicit
+                :class:`RunRequest`, identical to :meth:`run`.
+
+        Returns:
+            An :class:`AsyncIterator` of :class:`AgentEvent`.
+        """
+        request = (
+            input_or_request
+            if isinstance(input_or_request, RunRequest)
+            else RunRequest(input=input_or_request)
+        )
+
+        return run_loop_stream(self.spec, request)
 
     def session(self, session_id: SessionId | None = None) -> Session:
         """Open a multi-turn :class:`Session` bound to this agent.

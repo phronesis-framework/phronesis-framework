@@ -37,14 +37,24 @@ import asyncio
 import inspect
 import time
 import uuid
-from collections.abc import Mapping
+from collections.abc import AsyncIterator, Mapping
 from typing import Any
 
 from phronesis.agents.errors import (
     AgentBudgetExceededError,
+    AgentError,
     AgentExecutionError,
     AgentMaxIterationsError,
     AgentTimeoutError,
+)
+from phronesis.agents.events import (
+    AgentEvent,
+    RunCompleted,
+    RunFailed,
+    RunStarted,
+    TextDelta,
+    ToolCallCompleted,
+    ToolCallStarted,
 )
 from phronesis.agents.run import (
     Result,
@@ -491,3 +501,166 @@ def _check_budget(
     # their provider; this MVP check only fires when a cost lands on
     # ``usage`` via a future provider extension. Left as a placeholder
     # so the field on ``RunRequest`` is honoured the moment costs land.
+
+
+async def run_loop_stream(
+    spec: AgentSpec,
+    request: RunRequest,
+    *,
+    initial_history: tuple[Message, ...] | None = None,
+) -> AsyncIterator[AgentEvent]:
+    """Yield an :class:`AgentEvent` stream for one execution of ``spec``.
+
+    Equivalent to :func:`run_loop` but exposes the run as a sequence
+    of events. Used by :meth:`phronesis.agents.Agent.stream`.
+
+    Events are emitted in the order documented on
+    :data:`phronesis.agents.events.AgentEvent`. A successful run ends
+    with :class:`RunCompleted`; a run aborted by an :class:`AgentError`
+    ends with :class:`RunFailed` and the iterator stops without
+    re-raising.
+
+    Args:
+        spec: The :class:`AgentSpec` to execute.
+        request: The :class:`RunRequest` describing this call.
+        initial_history: Optional pre-existing message history,
+            matching the semantics of :func:`run_loop`.
+
+    Yields:
+        :class:`AgentEvent` instances in arrival order.
+    """
+    run_id = _generate_run_id()
+    yield RunStarted(run_id=run_id, agent_id=spec.id)
+
+    tool_by_name: dict[str, Tool] = {t.spec.name: t for t in spec.tools}
+    context = _build_context(spec, request, run_id)
+    run_attrs = _run_attributes(spec, request, run_id)
+
+    user_input: Message | None = UserMessage(content=(TextBlock(text=request.input),))
+
+    if initial_history is not None:
+        history: tuple[Message, ...] = initial_history
+    elif spec.system_prompt:
+        history = (SystemMessage(content=(TextBlock(text=spec.system_prompt),)),)
+    else:
+        history = ()
+
+    aggregated_usage = TokenUsage()
+    aggregated_tool_calls: list[ToolUseBlock] = []
+    iterations = 0
+    max_iterations = request.max_iterations or spec.max_iterations
+    started = time.monotonic()
+    obs_metrics.agent_runs.add(1, attributes=run_attrs)
+
+    deadline = started + request.timeout_seconds if request.timeout_seconds is not None else None
+
+    try:
+        async with start_span_async("phronesis.agents.run", attributes=run_attrs):
+            while iterations < max_iterations:
+                if deadline is not None and time.monotonic() > deadline:
+                    yield RunFailed(
+                        error=AgentTimeoutError(
+                            (
+                                f"Agent {spec.id.canonical!r} timed out after "
+                                f"{request.timeout_seconds}s."
+                            ),
+                            details={
+                                "agent_id": spec.id.canonical,
+                                "limit": "timeout_seconds",
+                                "threshold": request.timeout_seconds,
+                            },
+                        ),
+                    )
+                    return
+
+                iterations += 1
+                step_attrs = {**run_attrs, "agent.step": iterations}
+
+                try:
+                    async with start_span_async("phronesis.agents.step", attributes=step_attrs):
+                        messages = await _build_messages(spec, history, user_input, run_attrs)
+
+                        if user_input is not None:
+                            history = (*history, user_input)
+                            user_input = None
+
+                        response = await _complete(spec, messages)
+                        aggregated_usage = _merge_usage(aggregated_usage, response.usage)
+
+                        try:
+                            _check_budget(spec, request, aggregated_usage)
+                        except AgentBudgetExceededError as exc:
+                            yield RunFailed(error=exc)
+                            return
+
+                        if response.text:
+                            yield TextDelta(text=response.text)
+
+                        assistant_message, requested_calls = _assistant_message_from_response(
+                            response
+                        )
+                        history = (*history, assistant_message)
+                        aggregated_tool_calls.extend(requested_calls)
+
+                        if not requested_calls:
+                            yield RunCompleted(
+                                result=Result(
+                                    run_id=run_id,
+                                    output=response.text,
+                                    tokens=aggregated_usage,
+                                    iterations=iterations,
+                                    tool_calls=tuple(aggregated_tool_calls),
+                                    messages=history,
+                                ),
+                            )
+                            return
+
+                        for call in requested_calls:
+                            tool = tool_by_name.get(call.tool_name)
+                            yield ToolCallStarted(
+                                tool_call_id=call.tool_call_id,
+                                tool_id=tool.spec.id if tool else _missing_tool_id(),
+                                tool_name=call.tool_name,
+                                args=dict(call.args),
+                            )
+
+                        result_blocks = await _execute_calls(
+                            tool_by_name, requested_calls, context, run_attrs
+                        )
+
+                        for block in result_blocks:
+                            yield ToolCallCompleted(
+                                tool_call_id=block.tool_call_id,
+                                result=block.output,
+                                is_error=block.is_error,
+                            )
+
+                        history = (*history, ToolMessage(content=tuple(result_blocks)))
+                except AgentError as exc:
+                    yield RunFailed(error=exc)
+                    return
+
+            yield RunFailed(
+                error=AgentMaxIterationsError(
+                    (
+                        f"Agent {spec.id.canonical!r} hit max_iterations={max_iterations} "
+                        "without finishing."
+                    ),
+                    details={
+                        "agent_id": spec.id.canonical,
+                        "max_iterations": max_iterations,
+                    },
+                ),
+            )
+    finally:
+        elapsed = time.monotonic() - started
+        obs_metrics.agent_run_duration.record(elapsed, attributes=run_attrs)
+        obs_metrics.agent_tool_calls_per_run.record(
+            len(aggregated_tool_calls), attributes=run_attrs
+        )
+
+
+def _missing_tool_id() -> Any:
+    from phronesis.tools.tool_id import ToolId
+
+    return ToolId("phronesis.tools.unknown")
