@@ -18,6 +18,8 @@ from phronesis.providers.errors import RateLimitError as _RateImpl
 from phronesis.providers.errors import ServerError as _ServerImpl
 from phronesis.providers.errors import StreamError as _StreamImpl
 from phronesis.providers.errors import TransportError as _TransportImpl
+from phronesis.providers.fallback import FallbackExhaustedError as _FallbackExhaustedImpl
+from phronesis.providers.fallback import FallbackProvider as _FallbackProviderImpl
 from phronesis.providers.openai.factory import openai as _openai_impl
 from phronesis.providers.protocol import LLMProvider as _LLMProviderImpl
 from phronesis.providers.protocol import ProviderFeature as _ProviderFeatureImpl
@@ -35,6 +37,8 @@ _EXPECTED_NAMES = {
     "AuthenticationError": _AuthImpl,
     "BadRequestError": _BadReqImpl,
     "ContextWindowExceededError": _CtxImpl,
+    "FallbackExhaustedError": _FallbackExhaustedImpl,
+    "FallbackProvider": _FallbackProviderImpl,
     "Finish": _FinishImpl,
     "LLMChunk": _LLMChunkImpl,
     "LLMProvider": _LLMProviderImpl,
