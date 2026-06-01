@@ -30,7 +30,7 @@ from phronesis.providers.errors import (
     TransportError,
 )
 from phronesis.providers.fallback import FallbackExhaustedError, FallbackProvider
-from phronesis.providers.openai import openai
+from phronesis.providers.openai import ollama, openai, openwebui, vllm
 from phronesis.providers.protocol import LLMProvider, ProviderFeature
 from phronesis.providers.retry_config import RetryConfig
 from phronesis.providers.types import (
@@ -73,5 +73,8 @@ __all__ = [
     "ToolResult",
     "TransportError",
     "anthropic",
+    "ollama",
     "openai",
+    "openwebui",
+    "vllm",
 ]

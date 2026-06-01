@@ -21,6 +21,9 @@ from phronesis.providers.errors import TransportError as _TransportImpl
 from phronesis.providers.fallback import FallbackExhaustedError as _FallbackExhaustedImpl
 from phronesis.providers.fallback import FallbackProvider as _FallbackProviderImpl
 from phronesis.providers.openai.factory import openai as _openai_impl
+from phronesis.providers.openai.helpers import ollama as _ollama_impl
+from phronesis.providers.openai.helpers import openwebui as _openwebui_impl
+from phronesis.providers.openai.helpers import vllm as _vllm_impl
 from phronesis.providers.protocol import LLMProvider as _LLMProviderImpl
 from phronesis.providers.protocol import ProviderFeature as _ProviderFeatureImpl
 from phronesis.providers.retry_config import RetryConfig as _RetryConfigImpl
@@ -62,7 +65,10 @@ _EXPECTED_NAMES = {
     "ToolResult": _ToolResultImpl,
     "TransportError": _TransportImpl,
     "anthropic": _anthropic_impl,
+    "ollama": _ollama_impl,
     "openai": _openai_impl,
+    "openwebui": _openwebui_impl,
+    "vllm": _vllm_impl,
 }
 
 
@@ -103,3 +109,12 @@ class TestFactoryWiring:
 
     def test_openai_factory_is_re_exported(self) -> None:
         assert providers_pkg.openai is _openai_impl
+
+    def test_ollama_factory_is_re_exported(self) -> None:
+        assert providers_pkg.ollama is _ollama_impl
+
+    def test_vllm_factory_is_re_exported(self) -> None:
+        assert providers_pkg.vllm is _vllm_impl
+
+    def test_openwebui_factory_is_re_exported(self) -> None:
+        assert providers_pkg.openwebui is _openwebui_impl
