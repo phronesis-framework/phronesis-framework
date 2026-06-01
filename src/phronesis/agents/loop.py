@@ -369,12 +369,40 @@ async def _invoke_tool(
     }
 
     async with start_span_async("phronesis.agents.tool_call", attributes=call_attrs):
-        outcome = tool.invoke(dict(call.args), context=context)
+        return await _invoke_with_retry(tool, call, context)
 
-        if inspect.isawaitable(outcome):
-            return await outcome
 
-        return outcome
+async def _invoke_with_retry(
+    tool: Tool,
+    call: ToolUseBlock,
+    context: Context,
+) -> Any:
+    """Invoke ``tool`` honouring its :class:`RetryPolicy`.
+
+    Retries up to ``tool.retry.max_attempts`` times when the raised
+    exception matches the policy. Sleeps ``tool.retry.backoff_seconds``
+    between attempts. The exception raised on the **final** failed
+    attempt propagates unchanged.
+    """
+    policy = tool.retry
+    attempt = 0
+
+    while True:
+        attempt += 1
+
+        try:
+            outcome = tool.invoke(dict(call.args), context=context)
+
+            if inspect.isawaitable(outcome):
+                return await outcome
+
+            return outcome
+        except Exception as exc:
+            if attempt >= policy.max_attempts or not policy.should_retry(exc):
+                raise
+
+            if policy.backoff_seconds > 0:
+                await asyncio.sleep(policy.backoff_seconds)
 
 
 def _build_context(spec: AgentSpec, request: RunRequest, run_id: RunId) -> Context:

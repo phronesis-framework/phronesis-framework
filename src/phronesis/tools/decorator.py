@@ -27,6 +27,7 @@ from typing import Any, overload
 from phronesis._internal.ids.derivation import canonical_from_function
 from phronesis.tools.effects import ToolEffect
 from phronesis.tools.registry import current_registry
+from phronesis.tools.retry import RetryPolicy
 from phronesis.tools.schema import build_canonical_schema
 from phronesis.tools.spec import ToolSpec
 from phronesis.tools.tool import Tool
@@ -82,6 +83,7 @@ def tool(
     effects: Iterable[ToolEffect] | None = None,
     version: str | None = None,
     lazy: bool = False,
+    retry: RetryPolicy | None = None,
 ) -> Callable[[Callable[..., Any]], Tool]: ...
 
 
@@ -95,6 +97,7 @@ def tool(
     effects: Iterable[ToolEffect] | None = None,
     version: str | None = None,
     lazy: bool = False,
+    retry: RetryPolicy | None = None,
 ) -> Tool | Callable[[Callable[..., Any]], Tool]:
     """Decorate a function as a Phronesis tool.
 
@@ -120,6 +123,9 @@ def tool(
             :data:`_DEFAULT_VERSION`.
         lazy: When ``True``, defer canonical schema generation until
             :meth:`Tool.get_schema` is first called.
+        retry: Optional :class:`RetryPolicy` consulted by the agent
+            loop when this tool raises a retryable exception.
+            Defaults to :data:`NO_RETRY` (single attempt).
 
     Returns:
         The built :class:`Tool` (bare form) or a decorator producing
@@ -144,7 +150,7 @@ def tool(
             version=version,
             input_schema=canonical_schema,
         )
-        built = Tool(target, spec, lazy=lazy)
+        built = Tool(target, spec, lazy=lazy, retry=retry)
 
         if canonical_schema is not None:
             built._canonical_schema = canonical_schema

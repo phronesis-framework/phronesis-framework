@@ -27,6 +27,7 @@ from typing import Any
 from phronesis.context.context import Context
 from phronesis.tools.errors import ToolError, ToolValidationError, auto_map_exception
 from phronesis.tools.injection import detect_context_param
+from phronesis.tools.retry import NO_RETRY, RetryPolicy
 from phronesis.tools.schema import build_canonical_schema
 from phronesis.tools.single_model import get_single_model
 from phronesis.tools.spec import ToolSpec
@@ -57,6 +58,7 @@ class Tool:
         spec: ToolSpec,
         *,
         lazy: bool = False,
+        retry: RetryPolicy | None = None,
     ) -> None:
         """Bind ``fn`` and ``spec`` into a callable tool.
 
@@ -70,9 +72,13 @@ class Tool:
                 time :meth:`get_schema` is invoked. When ``False``,
                 the decorator passes the pre-computed schema in
                 separately via :attr:`_canonical_schema`.
+            retry: Optional :class:`RetryPolicy` consulted by the
+                agent loop when this tool raises a retryable
+                exception. Defaults to :data:`NO_RETRY`.
         """
         self._fn = fn
         self.spec = spec
+        self.retry: RetryPolicy = retry if retry is not None else NO_RETRY
         self.is_async = inspect.iscoroutinefunction(fn)
         self._signature = inspect.signature(fn)
         self._validator = build_validator(fn)
