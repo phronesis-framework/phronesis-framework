@@ -438,14 +438,24 @@ def _translate_history(history: tuple[Message, ...]) -> tuple[ProviderMessage, .
 
 
 def _translate_one(message: Message) -> list[ProviderMessage]:
+    cache_hint = _has_cache_hint(message.content)
+
     if isinstance(message, SystemMessage):
         return [
-            ProviderMessage(role=ProviderRole.SYSTEM, content=_concat_text(message.content)),
+            ProviderMessage(
+                role=ProviderRole.SYSTEM,
+                content=_concat_text(message.content),
+                cache=cache_hint,
+            ),
         ]
 
     if isinstance(message, UserMessage):
         return [
-            ProviderMessage(role=ProviderRole.USER, content=_concat_text(message.content)),
+            ProviderMessage(
+                role=ProviderRole.USER,
+                content=_concat_text(message.content),
+                cache=cache_hint,
+            ),
         ]
 
     if isinstance(message, AssistantMessage):
@@ -464,6 +474,7 @@ def _translate_one(message: Message) -> list[ProviderMessage]:
                 role=ProviderRole.ASSISTANT,
                 content=_concat_text(message.content),
                 tool_calls=tool_calls,
+                cache=cache_hint,
             ),
         ]
 
@@ -478,6 +489,11 @@ def _translate_one(message: Message) -> list[ProviderMessage]:
         for block in message.content
         if isinstance(block, ToolResultBlock)
     ]
+
+
+def _has_cache_hint(blocks: tuple[ContentBlock, ...]) -> bool:
+    """Return ``True`` if any :class:`TextBlock` in ``blocks`` is cached."""
+    return any(isinstance(block, TextBlock) and block.cache for block in blocks)
 
 
 def _concat_text(blocks: tuple[ContentBlock, ...]) -> str:

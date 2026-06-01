@@ -27,6 +27,14 @@ def _text_block(text: str) -> dict[str, Any]:
     return {"type": "text", "text": text}
 
 
+def _ephemeral_cache_control() -> dict[str, str]:
+    return {"type": "ephemeral"}
+
+
+def _mark_cached(block: dict[str, Any]) -> dict[str, Any]:
+    return {**block, "cache_control": _ephemeral_cache_control()}
+
+
 def _tool_use_block(call: ToolCall) -> dict[str, Any]:
     return {
         "type": "tool_use",
@@ -61,13 +69,21 @@ def _assistant_blocks(message: Message) -> list[dict[str, Any]]:
 
 def to_anthropic_messages(
     messages: Sequence[Message],
-) -> tuple[list[dict[str, Any]], str | None]:
+) -> tuple[list[dict[str, Any]], str | list[dict[str, Any]] | None]:
     """Translate ``messages`` into the Anthropic request shape.
 
-    System messages are extracted from the sequence and joined with
-    two newlines into a single string for the top-level ``system``
-    field. Tool result messages are folded into ``user`` turns whose
-    only block is a ``tool_result`` block.
+    System messages are extracted from the sequence and joined into
+    the top-level ``system`` field. When no system chunk is cached
+    the field is a plain string (two-newline join); when at least
+    one chunk carries a cache hint the field is a list of typed
+    text blocks so the per-chunk ``cache_control`` marker survives
+    serialisation. Tool result messages are folded into ``user``
+    turns whose only block is a ``tool_result`` block.
+
+    Messages whose ``cache`` flag is ``True`` get a
+    ``cache_control: {"type": "ephemeral"}`` marker on the **last**
+    block of their translated content, opting the prefix up to and
+    including the message into Anthropic's prompt cache.
 
     Args:
         messages: Conversation history in framework form.
@@ -76,32 +92,76 @@ def to_anthropic_messages(
         A ``(messages, system)`` pair: ``messages`` is the value of
         the ``messages`` field in the request body and ``system`` is
         the value of the ``system`` field (``None`` when there are
-        no system messages).
+        no system messages, plain string when no caching is
+        requested, list of blocks otherwise).
     """
-    system_chunks: list[str] = []
+    system_chunks: list[tuple[str, bool]] = []
     out: list[dict[str, Any]] = []
 
     for message in messages:
         if message.role is Role.SYSTEM:
             if message.content:
-                system_chunks.append(message.content)
+                system_chunks.append((message.content, message.cache))
             continue
 
         if message.role is Role.USER:
-            out.append({"role": "user", "content": [_text_block(message.content)]})
+            blocks: list[dict[str, Any]] = [_text_block(message.content)]
+
+            if message.cache and blocks:
+                blocks[-1] = _mark_cached(blocks[-1])
+
+            out.append({"role": "user", "content": blocks})
             continue
 
         if message.role is Role.ASSISTANT:
-            blocks = _assistant_blocks(message)
-            out.append({"role": "assistant", "content": blocks})
+            assistant_blocks = _assistant_blocks(message)
+
+            if message.cache and assistant_blocks:
+                assistant_blocks[-1] = _mark_cached(assistant_blocks[-1])
+
+            out.append({"role": "assistant", "content": assistant_blocks})
             continue
 
         if message.role is Role.TOOL:
-            out.append({"role": "user", "content": [_tool_result_block(message)]})
+            tool_blocks: list[dict[str, Any]] = [_tool_result_block(message)]
 
-    system = "\n\n".join(system_chunks) if system_chunks else None
+            if message.cache and tool_blocks:
+                tool_blocks[-1] = _mark_cached(tool_blocks[-1])
+
+            out.append({"role": "user", "content": tool_blocks})
+
+    system = _build_system(system_chunks)
 
     return out, system
+
+
+def _build_system(
+    chunks: list[tuple[str, bool]],
+) -> str | list[dict[str, Any]] | None:
+    """Build the Anthropic ``system`` field from ``chunks``.
+
+    Returns a plain string when no chunk is cached (back-compat
+    fast path), or a list of typed text blocks when at least one
+    chunk carries a cache hint. Returns ``None`` when there are
+    no system chunks.
+    """
+    if not chunks:
+        return None
+
+    if not any(cache for _, cache in chunks):
+        return "\n\n".join(text for text, _ in chunks)
+
+    blocks: list[dict[str, Any]] = []
+
+    for text, cache in chunks:
+        block = _text_block(text)
+
+        if cache:
+            block = _mark_cached(block)
+
+        blocks.append(block)
+
+    return blocks
 
 
 def from_anthropic_content(blocks: Sequence[dict[str, Any]]) -> tuple[str, tuple[ToolCall, ...]]:
