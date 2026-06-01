@@ -20,7 +20,7 @@ import json
 from collections.abc import Sequence
 from typing import Any
 
-from phronesis.providers.types import Message, Role, ToolCall
+from phronesis.providers.types import MediaRef, Message, Role, ToolCall
 
 
 def _text_block(text: str) -> dict[str, Any]:
@@ -33,6 +33,19 @@ def _ephemeral_cache_control() -> dict[str, str]:
 
 def _mark_cached(block: dict[str, Any]) -> dict[str, Any]:
     return {**block, "cache_control": _ephemeral_cache_control()}
+
+
+def _media_block(ref: MediaRef) -> dict[str, Any]:
+    source: dict[str, Any] = (
+        {"type": "url", "url": ref.data}
+        if ref.source_type == "url"
+        else {"type": "base64", "media_type": ref.media_type, "data": ref.data}
+    )
+
+    return {
+        "type": "image" if ref.kind == "image" else "document",
+        "source": source,
+    }
 
 
 def _tool_use_block(call: ToolCall) -> dict[str, Any]:
@@ -105,9 +118,17 @@ def to_anthropic_messages(
             continue
 
         if message.role is Role.USER:
-            blocks: list[dict[str, Any]] = [_text_block(message.content)]
+            blocks: list[dict[str, Any]] = []
 
-            if message.cache and blocks:
+            if message.content:
+                blocks.append(_text_block(message.content))
+
+            blocks.extend(_media_block(ref) for ref in message.media)
+
+            if not blocks:
+                blocks.append(_text_block(""))
+
+            if message.cache:
                 blocks[-1] = _mark_cached(blocks[-1])
 
             out.append({"role": "user", "content": blocks})
