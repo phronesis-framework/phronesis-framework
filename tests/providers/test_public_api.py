@@ -25,6 +25,7 @@ from phronesis.providers.retry_config import RetryConfig as _RetryConfigImpl
 from phronesis.providers.types import LLMRequest as _LLMRequestImpl
 from phronesis.providers.types import LLMResponse as _LLMResponseImpl
 from phronesis.providers.types import Message as _MessageImpl
+from phronesis.providers.types import ResponseFormat as _ResponseFormatImpl
 from phronesis.providers.types import Role as _RoleImpl
 from phronesis.providers.types import ToolCall as _ToolCallImpl
 from phronesis.providers.usage import TokenUsage as _TokenUsageImpl
@@ -42,6 +43,7 @@ _EXPECTED_NAMES = {
     "ProviderError": _ProviderErrImpl,
     "ProviderFeature": _ProviderFeatureImpl,
     "RateLimitError": _RateImpl,
+    "ResponseFormat": _ResponseFormatImpl,
     "RetryConfig": _RetryConfigImpl,
     "Role": _RoleImpl,
     "ServerError": _ServerImpl,
