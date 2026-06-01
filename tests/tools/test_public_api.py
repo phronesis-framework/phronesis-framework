@@ -54,10 +54,14 @@ from phronesis.tools.spec import ToolSpec as _ToolSpecImpl
 from phronesis.tools.tool import Tool as _ToolImpl
 from phronesis.tools.tool_id import ToolId as _ToolIdImpl
 from phronesis.tools.tool_id import ToolName as _ToolNameImpl
+from phronesis.tools.version import InvalidVersionError as _InvalidVersion
+from phronesis.tools.version import ToolVersion as _ToolVersionImpl
+from phronesis.tools.version import parse_version as _parse_version_impl
 
 _EXPECTED_TOOLS_NAMES = {
     "Context": _CtxImpl,
     "DuplicateToolError": _Duplicate,
+    "InvalidVersionError": _InvalidVersion,
     "SchemaDegradationWarning": _Warn,
     "Tool": _ToolImpl,
     "ToolDefinitionError": _ToolDefImpl,
@@ -71,10 +75,12 @@ _EXPECTED_TOOLS_NAMES = {
     "ToolSpec": _ToolSpecImpl,
     "ToolTimeoutError": _Timeout,
     "ToolValidationError": _Valid,
+    "ToolVersion": _ToolVersionImpl,
     "UnsupportedProviderError": _Unsupported,
     "auto_map_exception": _automap,
     "current_registry": _cur_reg,
     "discover": _discover_impl,
+    "parse_version": _parse_version_impl,
     "tool": _tool_impl,
     "tool_scope": _scope_impl,
 }
