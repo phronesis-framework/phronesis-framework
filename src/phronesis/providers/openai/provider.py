@@ -34,7 +34,7 @@ from phronesis.providers.openai.streaming import stream_openai_chat
 from phronesis.providers.openai.tools import to_openai_tools
 from phronesis.providers.protocol import ProviderFeature
 from phronesis.providers.retry_config import RetryConfig, build_retry_decorator
-from phronesis.providers.types import LLMRequest, LLMResponse, Message, Role
+from phronesis.providers.types import LLMRequest, LLMResponse, Message, ResponseFormat, Role
 from phronesis.providers.usage import TokenUsage
 
 _DEFAULT_CONTEXT_WINDOW = 128_000
@@ -239,6 +239,9 @@ class OpenAIProvider:
         if request.tools:
             body["tools"] = to_openai_tools(request.tools)
 
+        if request.response_format is not None:
+            body["response_format"] = _to_openai_response_format(request.response_format)
+
         return body
 
     @staticmethod
@@ -266,6 +269,17 @@ class OpenAIProvider:
             finish_reason=str(finish_reason) if finish_reason else "",
             usage=usage,
         )
+
+
+def _to_openai_response_format(response_format: ResponseFormat) -> dict[str, Any]:
+    return {
+        "type": "json_schema",
+        "json_schema": {
+            "name": response_format.name,
+            "schema": response_format.schema,
+            "strict": response_format.strict,
+        },
+    }
 
 
 def _parse_usage(raw: Any) -> TokenUsage | None:
