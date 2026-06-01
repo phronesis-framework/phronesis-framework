@@ -18,7 +18,7 @@ import json
 from collections.abc import Iterable
 from typing import Any
 
-from phronesis.providers.types import Message, Role, ToolCall
+from phronesis.providers.types import MediaRef, Message, Role, ToolCall
 
 
 def to_openai_messages(messages: Iterable[Message]) -> list[dict[str, Any]]:
@@ -67,7 +67,29 @@ def _message_to_dict(message: Message) -> dict[str, Any]:
     if message.role is Role.TOOL:
         return _tool_to_dict(message)
 
+    images = tuple(ref for ref in message.media if ref.kind == "image")
+
+    if images and message.role is Role.USER:
+        parts: list[dict[str, Any]] = []
+
+        if message.content:
+            parts.append({"type": "text", "text": message.content})
+
+        parts.extend(_image_part(ref) for ref in images)
+
+        return {"role": "user", "content": parts}
+
     return {"role": str(message.role), "content": message.content}
+
+
+def _image_part(ref: MediaRef) -> dict[str, Any]:
+    if ref.source_type == "url":
+        return {"type": "image_url", "image_url": {"url": ref.data}}
+
+    return {
+        "type": "image_url",
+        "image_url": {"url": f"data:{ref.media_type};base64,{ref.data}"},
+    }
 
 
 def _assistant_to_dict(message: Message) -> dict[str, Any]:
