@@ -24,6 +24,7 @@ from phronesis.providers.protocol import ProviderFeature as _ProviderFeatureImpl
 from phronesis.providers.retry_config import RetryConfig as _RetryConfigImpl
 from phronesis.providers.types import LLMRequest as _LLMRequestImpl
 from phronesis.providers.types import LLMResponse as _LLMResponseImpl
+from phronesis.providers.types import MediaRef as _MediaRefImpl
 from phronesis.providers.types import Message as _MessageImpl
 from phronesis.providers.types import ResponseFormat as _ResponseFormatImpl
 from phronesis.providers.types import Role as _RoleImpl
@@ -39,6 +40,7 @@ _EXPECTED_NAMES = {
     "LLMProvider": _LLMProviderImpl,
     "LLMRequest": _LLMRequestImpl,
     "LLMResponse": _LLMResponseImpl,
+    "MediaRef": _MediaRefImpl,
     "Message": _MessageImpl,
     "ProviderError": _ProviderErrImpl,
     "ProviderFeature": _ProviderFeatureImpl,
