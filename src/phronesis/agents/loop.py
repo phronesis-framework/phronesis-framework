@@ -34,6 +34,7 @@ no-ops with no performance cost beyond the wrapper calls.
 from __future__ import annotations
 
 import asyncio
+import difflib
 import inspect
 import logging
 import time
@@ -359,10 +360,7 @@ async def _invoke_tool(
     tool = tool_by_name.get(call.tool_name)
 
     if tool is None:
-        raise ToolNotFoundError(
-            f"Tool {call.tool_name!r} is not bound to this agent.",
-            details={"tool_name": call.tool_name},
-        )
+        raise _build_tool_not_found(call.tool_name, tool_by_name)
 
     call_attrs = {
         **run_attrs,
@@ -714,6 +712,39 @@ def _missing_tool_id() -> Any:
     from phronesis.tools.tool_id import ToolId
 
     return ToolId("phronesis.tools.unknown")
+
+
+def _build_tool_not_found(
+    requested: str,
+    available: Mapping[str, Tool],
+) -> ToolNotFoundError:
+    """Build a :class:`ToolNotFoundError` with a "did you mean" hint.
+
+    The hint is computed from the set of bound tool names using
+    :func:`difflib.get_close_matches`. When no candidate is close
+    enough the message and ``details`` simply list every available
+    tool so the model can pick from the legal set.
+    """
+    names = sorted(available)
+    suggestions = difflib.get_close_matches(requested, names, n=3, cutoff=0.6)
+
+    if suggestions:
+        hint = "Did you mean: " + ", ".join(repr(s) for s in suggestions) + "?"
+    elif names:
+        hint = "Available tools: " + ", ".join(repr(n) for n in names) + "."
+    else:
+        hint = "This agent has no tools bound."
+
+    message = f"Tool {requested!r} is not bound to this agent. {hint}"
+
+    return ToolNotFoundError(
+        message,
+        details={
+            "tool_name": requested,
+            "suggestions": suggestions,
+            "available": names,
+        },
+    )
 
 
 async def _dispatch_hook(hook: Any, *args: Any) -> None:
