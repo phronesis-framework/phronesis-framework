@@ -11,6 +11,7 @@ Two distinct concerns share this package:
 """
 
 from phronesis.context.budget import Budget
+from phronesis.context.chain import ChainedContextBuilder, chain
 from phronesis.context.compacting import CompactingContextBuilder
 from phronesis.context.context import Context
 from phronesis.context.default import DefaultContextBuilder
@@ -25,6 +26,7 @@ from phronesis.context.protocol import ContextBuilder
 __all__ = [
     "Budget",
     "BuildInput",
+    "ChainedContextBuilder",
     "CompactingContextBuilder",
     "CompactionError",
     "Context",
@@ -32,4 +34,5 @@ __all__ = [
     "ContextBuilderError",
     "ContextError",
     "DefaultContextBuilder",
+    "chain",
 ]
