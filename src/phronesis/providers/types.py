@@ -64,6 +64,9 @@ class Message:
             originating tool call.
         tool_output: For ``Role.TOOL`` messages, the result the tool
             produced.
+        cache: Prompt caching hint. When ``True``, providers that
+            support prompt caching mark this message as the end of a
+            cacheable prefix; others ignore it.
     """
 
     role: Role
@@ -71,6 +74,7 @@ class Message:
     tool_calls: tuple[ToolCall, ...] = ()
     tool_call_id: str | None = None
     tool_output: Any = None
+    cache: bool = False
 
 
 @dataclass(frozen=True, slots=True)

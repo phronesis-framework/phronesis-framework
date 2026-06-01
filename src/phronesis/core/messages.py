@@ -54,9 +54,20 @@ def _now() -> datetime:
 
 @dataclass(frozen=True, slots=True)
 class TextBlock:
-    """Plain text content."""
+    """Plain text content.
+
+    Attributes:
+        text: The block's textual content.
+        cache: Marks this block as the end of a cacheable prefix.
+            Providers that support prompt caching (e.g. Anthropic)
+            translate the flag into their native cache hint; providers
+            that don't ignore it. The flag is advisory — set it on the
+            last block of a stable prefix (system prompt, tool
+            definitions, long static context) to opt into caching.
+    """
 
     text: str
+    cache: bool = False
 
 
 @dataclass(frozen=True, slots=True)
