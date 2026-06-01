@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 from types import MappingProxyType
 
 import pytest
@@ -11,12 +12,14 @@ from phronesis.core.messages import (
     CompactionSummaryBlock,
     ContentBlock,
     Message,
+    MessageId,
     SystemMessage,
     TextBlock,
     ToolMessage,
     ToolResultBlock,
     ToolUseBlock,
     UserMessage,
+    message_id_generator,
 )
 
 
@@ -177,3 +180,68 @@ class TestMessageUnion:
         b = UserMessage(content=(TextBlock(text="hi"),))
 
         assert a == b
+
+
+class TestMessageId:
+    def test_prefix_is_mid(self) -> None:
+        assert MessageId.prefix == "MID"
+
+    def test_generator_returns_message_id(self) -> None:
+        mid = message_id_generator.from_canonical("phronesis.core.messages.mabc")
+
+        assert isinstance(mid, MessageId)
+
+
+class TestMessageMetadata:
+    def test_user_has_auto_id(self) -> None:
+        msg = UserMessage(content=(TextBlock(text="hi"),))
+
+        assert isinstance(msg.id, MessageId)
+
+    def test_system_has_auto_id(self) -> None:
+        msg = SystemMessage(content=(TextBlock(text="hi"),))
+
+        assert isinstance(msg.id, MessageId)
+
+    def test_assistant_has_auto_id(self) -> None:
+        msg = AssistantMessage(content=(TextBlock(text="hi"),))
+
+        assert isinstance(msg.id, MessageId)
+
+    def test_tool_has_auto_id(self) -> None:
+        msg = ToolMessage(content=(ToolResultBlock(tool_call_id="t1", output="ok"),))
+
+        assert isinstance(msg.id, MessageId)
+
+    def test_ids_are_unique_per_instance(self) -> None:
+        a = UserMessage(content=(TextBlock(text="hi"),))
+        b = UserMessage(content=(TextBlock(text="hi"),))
+
+        assert a.id != b.id
+
+    def test_created_at_is_utc(self) -> None:
+        msg = UserMessage(content=(TextBlock(text="hi"),))
+
+        assert isinstance(msg.created_at, datetime)
+        assert msg.created_at.tzinfo is not None
+
+    def test_id_excluded_from_equality(self) -> None:
+        a = UserMessage(content=(TextBlock(text="hi"),))
+        b = UserMessage(content=(TextBlock(text="hi"),))
+
+        assert a == b
+        assert a.id != b.id
+
+    def test_id_excluded_from_repr(self) -> None:
+        msg = UserMessage(content=(TextBlock(text="hi"),))
+
+        text = repr(msg)
+
+        assert msg.id.canonical not in text
+
+    def test_explicit_id_round_trips(self) -> None:
+        explicit = message_id_generator.from_canonical("phronesis.core.messages.mxyz")
+
+        msg = UserMessage(content=(TextBlock(text="hi"),), id=explicit)
+
+        assert msg.id is explicit

@@ -14,12 +14,42 @@ when calling a provider.
 
 from __future__ import annotations
 
+import uuid
 from collections.abc import Mapping
 from dataclasses import dataclass, field
+from datetime import UTC, datetime
 from types import MappingProxyType
 from typing import Any, Final
 
+from phronesis._internal.ids.generator import IdGenerator
+from phronesis._internal.ids.id import Id
+
 _EMPTY_ARGS: Final[Mapping[str, Any]] = MappingProxyType({})
+
+
+class MessageId(Id):
+    """Stable identifier for a single :class:`Message` instance.
+
+    Subclass of :class:`phronesis._internal.ids.id.Id` with the short
+    prefix ``"MID"``. Useful for replay, tracing and observability —
+    every message produced by the framework carries one.
+    """
+
+    prefix = "MID"
+
+
+message_id_generator: IdGenerator[MessageId] = IdGenerator(MessageId)
+"""Process-wide :class:`IdGenerator` bound to :class:`MessageId`."""
+
+
+def _new_message_id() -> MessageId:
+    return message_id_generator.from_canonical(
+        f"phronesis.core.messages.m{uuid.uuid4().hex[:12]}",
+    )
+
+
+def _now() -> datetime:
+    return datetime.now(UTC)
 
 
 @dataclass(frozen=True, slots=True)
@@ -95,16 +125,34 @@ ContentBlock = TextBlock | ToolUseBlock | ToolResultBlock | CompactionSummaryBlo
 
 @dataclass(frozen=True, slots=True)
 class SystemMessage:
-    """System prompt or directive (typically a single :class:`TextBlock`)."""
+    """System prompt or directive (typically a single :class:`TextBlock`).
+
+    Attributes:
+        content: Tuple of :class:`ContentBlock` instances.
+        id: Auto-generated :class:`MessageId`. Excluded from equality
+            comparison and :func:`repr` so existing tests stay stable.
+        created_at: Timezone-aware UTC creation timestamp.
+    """
 
     content: tuple[ContentBlock, ...]
+    id: MessageId = field(default_factory=_new_message_id, compare=False, repr=False)
+    created_at: datetime = field(default_factory=_now, compare=False, repr=False)
 
 
 @dataclass(frozen=True, slots=True)
 class UserMessage:
-    """A message authored by the human or upstream caller."""
+    """A message authored by the human or upstream caller.
+
+    Attributes:
+        content: Tuple of :class:`ContentBlock` instances.
+        id: Auto-generated :class:`MessageId`. Excluded from equality
+            comparison and :func:`repr`.
+        created_at: Timezone-aware UTC creation timestamp.
+    """
 
     content: tuple[ContentBlock, ...]
+    id: MessageId = field(default_factory=_new_message_id, compare=False, repr=False)
+    created_at: datetime = field(default_factory=_now, compare=False, repr=False)
 
 
 @dataclass(frozen=True, slots=True)
@@ -112,9 +160,17 @@ class AssistantMessage:
     """A message produced by the model.
 
     May contain a mix of :class:`TextBlock` and :class:`ToolUseBlock`.
+
+    Attributes:
+        content: Tuple of :class:`ContentBlock` instances.
+        id: Auto-generated :class:`MessageId`. Excluded from equality
+            comparison and :func:`repr`.
+        created_at: Timezone-aware UTC creation timestamp.
     """
 
     content: tuple[ContentBlock, ...]
+    id: MessageId = field(default_factory=_new_message_id, compare=False, repr=False)
+    created_at: datetime = field(default_factory=_now, compare=False, repr=False)
 
 
 @dataclass(frozen=True, slots=True)
@@ -122,9 +178,17 @@ class ToolMessage:
     """Results of tool executions returned to the model.
 
     Carries one or more :class:`ToolResultBlock`.
+
+    Attributes:
+        content: Tuple of :class:`ContentBlock` instances.
+        id: Auto-generated :class:`MessageId`. Excluded from equality
+            comparison and :func:`repr`.
+        created_at: Timezone-aware UTC creation timestamp.
     """
 
     content: tuple[ContentBlock, ...]
+    id: MessageId = field(default_factory=_new_message_id, compare=False, repr=False)
+    created_at: datetime = field(default_factory=_now, compare=False, repr=False)
 
 
 Message = SystemMessage | UserMessage | AssistantMessage | ToolMessage
