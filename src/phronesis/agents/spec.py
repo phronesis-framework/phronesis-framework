@@ -16,6 +16,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
+from phronesis.agents.hooks import AgentHooks
 from phronesis.agents.id import AgentId
 from phronesis.context.default import DefaultContextBuilder
 from phronesis.context.protocol import ContextBuilder
@@ -23,6 +24,7 @@ from phronesis.providers.protocol import LLMProvider
 from phronesis.tools.tool import Tool
 
 _DEFAULT_CONTEXT_BUILDER: ContextBuilder = DefaultContextBuilder()
+_DEFAULT_HOOKS: AgentHooks = AgentHooks()
 
 
 @dataclass(frozen=True, slots=True)
@@ -61,6 +63,9 @@ class AgentSpec:
             message list. The :func:`agent` decorator injects a shared
             :class:`DefaultContextBuilder` singleton when the caller
             does not override it.
+        hooks: :class:`AgentHooks` aggregate of optional lifecycle
+            callbacks. Defaults to an :class:`AgentHooks` instance
+            with every field unset.
     """
 
     id: AgentId
@@ -73,6 +78,7 @@ class AgentSpec:
     max_iterations: int = 20
     version: str = "0.1.0"
     context_builder: ContextBuilder = field(default=_DEFAULT_CONTEXT_BUILDER)
+    hooks: AgentHooks = field(default=_DEFAULT_HOOKS)
 
     def __repr__(self) -> str:
         return (

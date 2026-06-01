@@ -28,6 +28,7 @@ from typing import Any, get_type_hints
 
 from phronesis._internal.ids.derivation import canonical_from_function
 from phronesis.agents.agent import Agent
+from phronesis.agents.hooks import AgentHooks
 from phronesis.agents.id import AgentId
 from phronesis.agents.registry import current_registry
 from phronesis.agents.spec import AgentSpec
@@ -40,6 +41,7 @@ from phronesis.tools.tool import Tool
 _DEFAULT_VERSION = "0.1.0"
 _DEFAULT_MAX_ITERATIONS = 20
 _DEFAULT_BUILDER: ContextBuilder = DefaultContextBuilder()
+_DEFAULT_HOOKS: AgentHooks = AgentHooks()
 
 
 def _resolve_output_type(fn: Callable[..., Any]) -> type | None:
@@ -81,6 +83,7 @@ def _build_spec(
     max_iterations: int | None,
     version: str | None,
     context_builder: ContextBuilder | None,
+    hooks: AgentHooks | None,
 ) -> AgentSpec:
     """Combine explicit overrides with defaults derived from ``fn``.
 
@@ -97,6 +100,7 @@ def _build_spec(
     resolved_max = max_iterations if max_iterations is not None else _DEFAULT_MAX_ITERATIONS
     resolved_version = version if version is not None else _DEFAULT_VERSION
     resolved_builder = context_builder if context_builder is not None else _DEFAULT_BUILDER
+    resolved_hooks = hooks if hooks is not None else _DEFAULT_HOOKS
 
     return AgentSpec(
         id=resolved_id,
@@ -109,6 +113,7 @@ def _build_spec(
         output_type=resolved_output,
         max_iterations=resolved_max,
         version=resolved_version,
+        hooks=resolved_hooks,
     )
 
 
@@ -124,6 +129,7 @@ def agent(
     max_iterations: int | None = None,
     version: str | None = None,
     context_builder: ContextBuilder | None = None,
+    hooks: AgentHooks | None = None,
 ) -> Callable[[Callable[..., Any]], Agent]:
     """Declare an agent from a function used purely as metadata.
 
@@ -153,6 +159,8 @@ def agent(
         context_builder: Optional :class:`ContextBuilder` driving
             per-iteration message assembly. Defaults to a shared
             :class:`DefaultContextBuilder` singleton.
+        hooks: Optional :class:`AgentHooks` aggregate of lifecycle
+            callbacks. Defaults to an empty :class:`AgentHooks`.
 
     Returns:
         A decorator that consumes the target function and yields the
@@ -180,6 +188,7 @@ def agent(
             max_iterations=max_iterations,
             version=version,
             context_builder=context_builder,
+            hooks=hooks,
         )
         validate_spec(spec)
 

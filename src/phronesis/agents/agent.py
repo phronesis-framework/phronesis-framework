@@ -22,6 +22,7 @@ import dataclasses
 from collections.abc import AsyncIterator, Sequence
 
 from phronesis.agents.events import AgentEvent
+from phronesis.agents.hooks import AgentHooks
 from phronesis.agents.id import AgentId
 from phronesis.agents.loop import run_loop, run_loop_stream
 from phronesis.agents.run import Result, RunRequest
@@ -222,6 +223,18 @@ class Agent:
             A new :class:`Agent` with the updated output type.
         """
         return Agent(dataclasses.replace(self.spec, output_type=output_type))
+
+    def with_hooks(self, hooks: AgentHooks) -> Agent:
+        """Return a copy of this agent with a new :class:`AgentHooks`.
+
+        Args:
+            hooks: The :class:`AgentHooks` aggregate that replaces
+                :attr:`AgentSpec.hooks` in the derived spec.
+
+        Returns:
+            A new :class:`Agent` with the updated hooks.
+        """
+        return Agent(dataclasses.replace(self.spec, hooks=hooks))
 
     def with_description(self, description: str) -> Agent:
         """Return a copy of this agent with a new description.

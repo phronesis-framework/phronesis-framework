@@ -35,6 +35,7 @@ from __future__ import annotations
 
 import asyncio
 import inspect
+import logging
 import time
 import uuid
 from collections.abc import AsyncIterator, Mapping
@@ -87,6 +88,8 @@ from phronesis.providers.types import Role as ProviderRole
 from phronesis.providers.types import ToolCall as ProviderToolCall
 from phronesis.tools.errors import ToolError, ToolNotFoundError
 from phronesis.tools.tool import Tool
+
+_logger = logging.getLogger(__name__)
 
 
 async def run_loop(
@@ -193,12 +196,14 @@ async def _run_loop_inner(
                     aggregated_usage = _merge_usage(aggregated_usage, response.usage)
                     _check_budget(spec, request, aggregated_usage)
 
+                    await _dispatch_hook(spec.hooks.on_iteration, iterations)
+
                     assistant_message, requested_calls = _assistant_message_from_response(response)
                     history = (*history, assistant_message)
                     aggregated_tool_calls.extend(requested_calls)
 
                     if not requested_calls:
-                        return Result(
+                        result = Result(
                             run_id=run_id,
                             output=response.text,
                             tokens=aggregated_usage,
@@ -206,10 +211,17 @@ async def _run_loop_inner(
                             tool_calls=tuple(aggregated_tool_calls),
                             messages=history,
                         )
+                        await _dispatch_hook(spec.hooks.on_run_complete, result)
+
+                        return result
 
                     result_blocks = await _execute_calls(
                         tool_by_name, requested_calls, context, run_attrs
                     )
+
+                    for call, block in zip(requested_calls, result_blocks, strict=True):
+                        await _dispatch_hook(spec.hooks.on_tool_call, call, block)
+
                     history = (*history, ToolMessage(content=tuple(result_blocks)))
 
             raise AgentMaxIterationsError(
@@ -593,6 +605,8 @@ async def run_loop_stream(
                             yield RunFailed(error=exc)
                             return
 
+                        await _dispatch_hook(spec.hooks.on_iteration, iterations)
+
                         if response.text:
                             yield TextDelta(text=response.text)
 
@@ -603,16 +617,17 @@ async def run_loop_stream(
                         aggregated_tool_calls.extend(requested_calls)
 
                         if not requested_calls:
-                            yield RunCompleted(
-                                result=Result(
-                                    run_id=run_id,
-                                    output=response.text,
-                                    tokens=aggregated_usage,
-                                    iterations=iterations,
-                                    tool_calls=tuple(aggregated_tool_calls),
-                                    messages=history,
-                                ),
+                            result = Result(
+                                run_id=run_id,
+                                output=response.text,
+                                tokens=aggregated_usage,
+                                iterations=iterations,
+                                tool_calls=tuple(aggregated_tool_calls),
+                                messages=history,
                             )
+                            await _dispatch_hook(spec.hooks.on_run_complete, result)
+                            yield RunCompleted(result=result)
+
                             return
 
                         for call in requested_calls:
@@ -628,7 +643,8 @@ async def run_loop_stream(
                             tool_by_name, requested_calls, context, run_attrs
                         )
 
-                        for block in result_blocks:
+                        for call, block in zip(requested_calls, result_blocks, strict=True):
+                            await _dispatch_hook(spec.hooks.on_tool_call, call, block)
                             yield ToolCallCompleted(
                                 tool_call_id=block.tool_call_id,
                                 result=block.output,
@@ -664,3 +680,21 @@ def _missing_tool_id() -> Any:
     from phronesis.tools.tool_id import ToolId
 
     return ToolId("phronesis.tools.unknown")
+
+
+async def _dispatch_hook(hook: Any, *args: Any) -> None:
+    """Invoke ``hook`` swallowing exceptions.
+
+    Hooks are observers; their failures must not abort a run. Any
+    raised exception is logged at WARNING and discarded.
+    """
+    if hook is None:
+        return
+
+    try:
+        outcome = hook(*args)
+
+        if inspect.isawaitable(outcome):
+            await outcome
+    except Exception:
+        _logger.warning("Agent hook raised; ignored.", exc_info=True)
