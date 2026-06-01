@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from enum import StrEnum
-from typing import Any
+from typing import Any, Literal
 
 from phronesis.providers.usage import TokenUsage
 from phronesis.tools import ToolSpec
@@ -51,6 +51,25 @@ class ToolCall:
 
 
 @dataclass(frozen=True, slots=True)
+class MediaRef:
+    """Reference to a non-textual attachment carried by a message.
+
+    Attributes:
+        kind: ``"image"`` or ``"document"``.
+        data: URL or base64-encoded payload, disambiguated by
+            :attr:`source_type`.
+        media_type: IANA media type (e.g. ``"image/png"``,
+            ``"application/pdf"``).
+        source_type: ``"url"`` or ``"base64"``.
+    """
+
+    kind: Literal["image", "document"]
+    data: str
+    media_type: str
+    source_type: Literal["url", "base64"] = "url"
+
+
+@dataclass(frozen=True, slots=True)
 class Message:
     """A single message in the conversation.
 
@@ -67,6 +86,9 @@ class Message:
         cache: Prompt caching hint. When ``True``, providers that
             support prompt caching mark this message as the end of a
             cacheable prefix; others ignore it.
+        media: Tuple of multimodal attachments alongside ``content``.
+            Translated by providers that advertise the matching
+            :class:`ProviderFeature`; silently dropped otherwise.
     """
 
     role: Role
@@ -75,6 +97,7 @@ class Message:
     tool_call_id: str | None = None
     tool_output: Any = None
     cache: bool = False
+    media: tuple[MediaRef, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)

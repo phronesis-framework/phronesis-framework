@@ -35,6 +35,7 @@ from phronesis.providers.retry_config import RetryConfig
 from phronesis.providers.types import (
     LLMRequest,
     LLMResponse,
+    MediaRef,
     Message,
     ResponseFormat,
     Role,
@@ -51,6 +52,7 @@ __all__ = [
     "LLMProvider",
     "LLMRequest",
     "LLMResponse",
+    "MediaRef",
     "Message",
     "ProviderError",
     "ProviderFeature",
