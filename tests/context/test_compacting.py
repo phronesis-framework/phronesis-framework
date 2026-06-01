@@ -121,11 +121,11 @@ class TestCompaction:
         assert block.original_message_count == 6
 
 
-class TestExistingSummary:
+class TestIncrementalCompaction:
     @pytest.mark.asyncio
-    async def test_prior_summary_is_preserved(self) -> None:
+    async def test_prior_summary_is_consolidated_into_single_summary(self) -> None:
         provider = FakeProvider(
-            response_text="new summary", context_window=1_000, token_estimate=900
+            response_text="rolled summary", context_window=1_000, token_estimate=900
         )
         builder = CompactingContextBuilder(preserve_recent=2)
         prior_summary = AssistantMessage(
@@ -141,10 +141,28 @@ class TestExistingSummary:
             if isinstance(m, AssistantMessage)
             and any(isinstance(b, CompactionSummaryBlock) for b in m.content)
         ]
-        assert len(summaries) == 2
-        # The prior summary is first.
-        first_block = next(b for b in summaries[0].content if isinstance(b, CompactionSummaryBlock))
-        assert first_block.text == "old summary"
+        assert len(summaries) == 1
+        block = next(b for b in summaries[0].content if isinstance(b, CompactionSummaryBlock))
+        assert block.text == "rolled summary"
+        # 5 (prior) + 6 (new compactable: 8 messages - 2 preserved) = 11
+        assert block.original_message_count == 11
+
+    @pytest.mark.asyncio
+    async def test_prior_summary_text_is_fed_to_compactor(self) -> None:
+        provider = FakeProvider(
+            response_text="rolled summary", context_window=1_000, token_estimate=900
+        )
+        builder = CompactingContextBuilder(preserve_recent=2)
+        prior_summary = AssistantMessage(
+            content=(CompactionSummaryBlock(text="OLD-CONTEXT", original_message_count=4),)
+        )
+        history = (prior_summary, *(_user(f"m-{i}") for i in range(6)))
+
+        await builder.build(_input(provider, history=history))
+
+        assert len(provider.requests) == 1
+        compactor_payload = provider.requests[0].messages
+        assert any("OLD-CONTEXT" in m.content for m in compactor_payload)
 
 
 class TestToolPairPreservation:
