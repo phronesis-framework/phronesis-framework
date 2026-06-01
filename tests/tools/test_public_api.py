@@ -8,6 +8,7 @@ import importlib
 import phronesis
 import phronesis.tools as tools_pkg
 from phronesis.context.context import Context as _CtxImpl
+from phronesis.tools.cache import CachePolicy as _CachePolicyImpl
 from phronesis.tools.decorator import tool as _tool_impl
 from phronesis.tools.discover import discover as _discover_impl
 from phronesis.tools.effects import ToolEffect as _ToolEffectImpl
@@ -59,6 +60,7 @@ from phronesis.tools.version import ToolVersion as _ToolVersionImpl
 from phronesis.tools.version import parse_version as _parse_version_impl
 
 _EXPECTED_TOOLS_NAMES = {
+    "CachePolicy": _CachePolicyImpl,
     "Context": _CtxImpl,
     "DuplicateToolError": _Duplicate,
     "InvalidVersionError": _InvalidVersion,
