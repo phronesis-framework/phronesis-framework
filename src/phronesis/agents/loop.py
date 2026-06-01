@@ -70,7 +70,6 @@ from phronesis.context.context import Context
 from phronesis.context.input import BuildInput
 from phronesis.core.messages import (
     AssistantMessage,
-    CompactionSummaryBlock,
     ContentBlock,
     Message,
     SystemMessage,
@@ -83,10 +82,8 @@ from phronesis.core.messages import (
 from phronesis.obs import attributes as obs_attrs
 from phronesis.obs import metrics as obs_metrics
 from phronesis.obs.spans import start_span_async
+from phronesis.providers.translation import translate_history as _translate_history
 from phronesis.providers.types import LLMRequest
-from phronesis.providers.types import Message as ProviderMessage
-from phronesis.providers.types import Role as ProviderRole
-from phronesis.providers.types import ToolCall as ProviderToolCall
 from phronesis.tools.errors import ToolError, ToolNotFoundError
 from phronesis.tools.tool import Tool
 
@@ -426,88 +423,6 @@ def _run_attributes(spec: AgentSpec, request: RunRequest, run_id: RunId) -> dict
         attrs[obs_attrs.SESSION_ID] = request.session_id.canonical
 
     return attrs
-
-
-def _translate_history(history: tuple[Message, ...]) -> tuple[ProviderMessage, ...]:
-    translated: list[ProviderMessage] = []
-
-    for message in history:
-        translated.extend(_translate_one(message))
-
-    return tuple(translated)
-
-
-def _translate_one(message: Message) -> list[ProviderMessage]:
-    cache_hint = _has_cache_hint(message.content)
-
-    if isinstance(message, SystemMessage):
-        return [
-            ProviderMessage(
-                role=ProviderRole.SYSTEM,
-                content=_concat_text(message.content),
-                cache=cache_hint,
-            ),
-        ]
-
-    if isinstance(message, UserMessage):
-        return [
-            ProviderMessage(
-                role=ProviderRole.USER,
-                content=_concat_text(message.content),
-                cache=cache_hint,
-            ),
-        ]
-
-    if isinstance(message, AssistantMessage):
-        tool_calls = tuple(
-            ProviderToolCall(
-                call_id=block.tool_call_id,
-                tool_name=block.tool_name,
-                arguments=dict(block.args),
-            )
-            for block in message.content
-            if isinstance(block, ToolUseBlock)
-        )
-
-        return [
-            ProviderMessage(
-                role=ProviderRole.ASSISTANT,
-                content=_concat_text(message.content),
-                tool_calls=tool_calls,
-                cache=cache_hint,
-            ),
-        ]
-
-    # ToolMessage: one provider message per ToolResultBlock.
-    return [
-        ProviderMessage(
-            role=ProviderRole.TOOL,
-            content="",
-            tool_call_id=block.tool_call_id,
-            tool_output=block.output,
-        )
-        for block in message.content
-        if isinstance(block, ToolResultBlock)
-    ]
-
-
-def _has_cache_hint(blocks: tuple[ContentBlock, ...]) -> bool:
-    """Return ``True`` if any :class:`TextBlock` in ``blocks`` is cached."""
-    return any(isinstance(block, TextBlock) and block.cache for block in blocks)
-
-
-def _concat_text(blocks: tuple[ContentBlock, ...]) -> str:
-    parts: list[str] = []
-
-    for block in blocks:
-        if isinstance(block, TextBlock):
-            parts.append(block.text)
-            continue
-
-        if isinstance(block, CompactionSummaryBlock):
-            parts.append(block.text)
-
-    return "".join(parts)
 
 
 def _merge_usage(left: TokenUsage, right: TokenUsage | None) -> TokenUsage:
