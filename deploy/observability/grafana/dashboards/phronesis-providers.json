@@ -1,0 +1,56 @@
+{
+  "uid": "phronesis-providers",
+  "title": "Phronesis - Providers (LLM)",
+  "tags": ["phronesis", "providers", "llm"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "time": {"from": "now-1h", "to": "now"},
+  "templating": {
+    "list": [
+      {"name": "provider", "type": "query", "datasource": {"type": "prometheus", "uid": "phronesis-prom"}, "query": "label_values(phronesis_provider_requests_total, provider_name)", "refresh": 2, "includeAll": true, "multi": true},
+      {"name": "model", "type": "query", "datasource": {"type": "prometheus", "uid": "phronesis-prom"}, "query": "label_values(phronesis_provider_requests_total{provider_name=~\"$provider\"}, provider_model)", "refresh": 2, "includeAll": true, "multi": true}
+    ]
+  },
+  "panels": [
+    {
+      "id": 1, "type": "table", "title": "Requests by provider/model",
+      "datasource": {"type": "prometheus", "uid": "phronesis-prom"},
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+      "targets": [{"expr": "sum by (provider_name, provider_model) (increase(phronesis_provider_requests_total{provider_name=~\"$provider\", provider_model=~\"$model\"}[1h]))", "refId": "A", "format": "table", "instant": true}]
+    },
+    {
+      "id": 2, "type": "timeseries", "title": "Tokens / sec (in/out, stacked)",
+      "datasource": {"type": "prometheus", "uid": "phronesis-prom"},
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+      "targets": [
+        {"expr": "sum by (provider_name) (rate(phronesis_provider_tokens_input_total{provider_name=~\"$provider\"}[1m]))", "refId": "IN", "legendFormat": "in/{{provider_name}}"},
+        {"expr": "sum by (provider_name) (rate(phronesis_provider_tokens_output_total{provider_name=~\"$provider\"}[1m]))", "refId": "OUT", "legendFormat": "out/{{provider_name}}"}
+      ],
+      "fieldConfig": {"defaults": {"custom": {"stacking": {"mode": "normal"}}}}
+    },
+    {
+      "id": 3, "type": "heatmap", "title": "Provider duration heatmap",
+      "datasource": {"type": "prometheus", "uid": "phronesis-prom"},
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+      "targets": [{"expr": "sum by (le) (rate(phronesis_provider_duration_bucket{provider_name=~\"$provider\"}[5m]))", "refId": "A", "format": "heatmap"}]
+    },
+    {
+      "id": 4, "type": "timeseries", "title": "Quantiles per provider",
+      "datasource": {"type": "prometheus", "uid": "phronesis-prom"},
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
+      "targets": [
+        {"expr": "histogram_quantile(0.50, sum by (provider_name, le) (rate(phronesis_provider_duration_bucket{provider_name=~\"$provider\"}[5m])))", "refId": "P50", "legendFormat": "P50/{{provider_name}}"},
+        {"expr": "histogram_quantile(0.95, sum by (provider_name, le) (rate(phronesis_provider_duration_bucket{provider_name=~\"$provider\"}[5m])))", "refId": "P95", "legendFormat": "P95/{{provider_name}}"}
+      ],
+      "fieldConfig": {"defaults": {"unit": "s"}}
+    },
+    {
+      "id": 5, "type": "traces", "title": "Stream first-chunk P50/P95",
+      "datasource": {"type": "tempo", "uid": "phronesis-tempo"},
+      "gridPos": {"h": 8, "w": 24, "x": 0, "y": 16},
+      "targets": [{"query": "{ name =~ \"provider.*\" && span.stream.first_chunk_ms > 0 }", "refId": "A", "queryType": "traceql"}]
+    }
+  ]
+}
