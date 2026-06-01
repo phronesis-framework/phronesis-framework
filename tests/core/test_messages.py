@@ -39,6 +39,19 @@ class TestTextBlock:
         assert TextBlock(text="a") == TextBlock(text="a")
         assert TextBlock(text="a") != TextBlock(text="b")
 
+    def test_cache_defaults_to_false(self) -> None:
+        block = TextBlock(text="hi")
+
+        assert block.cache is False
+
+    def test_cache_round_trips(self) -> None:
+        block = TextBlock(text="hi", cache=True)
+
+        assert block.cache is True
+
+    def test_cache_affects_equality(self) -> None:
+        assert TextBlock(text="a") != TextBlock(text="a", cache=True)
+
 
 class TestToolUseBlock:
     def test_default_args_is_empty(self) -> None:
