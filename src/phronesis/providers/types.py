@@ -78,6 +78,30 @@ class Message:
 
 
 @dataclass(frozen=True, slots=True)
+class ResponseFormat:
+    """Structured-output schema for a request.
+
+    Passed via :attr:`LLMRequest.response_format` to instruct the
+    provider to return a value matching ``schema``. Providers that
+    advertise :attr:`ProviderFeature.STRUCTURED_OUTPUT` translate the
+    object into their native shape; providers that do not advertise
+    the capability ignore it.
+
+    Attributes:
+        schema: A JSON Schema describing the desired response shape.
+        name: Optional name for the schema (e.g. OpenAI's
+            ``json_schema.name``). Defaults to ``"response"``.
+        strict: When ``True``, request strict schema adherence from
+            providers that distinguish it (OpenAI). Defaults to
+            ``True``.
+    """
+
+    schema: dict[str, Any]
+    name: str = "response"
+    strict: bool = True
+
+
+@dataclass(frozen=True, slots=True)
 class LLMRequest:
     """A request to a provider's ``complete``/``stream`` operation.
 
@@ -93,6 +117,9 @@ class LLMRequest:
         temperature: Sampling temperature, ``None`` to defer to the
             vendor default.
         max_tokens: Output token cap, ``None`` for the vendor default.
+        response_format: Optional :class:`ResponseFormat` requesting
+            structured output. Providers that do not advertise
+            :attr:`ProviderFeature.STRUCTURED_OUTPUT` ignore it.
         metadata: Free-form mapping forwarded for telemetry or
             vendor-specific knobs. Mutable for ergonomics; provider
             adapters do not modify it.
@@ -104,6 +131,7 @@ class LLMRequest:
     system: str | None = None
     temperature: float | None = None
     max_tokens: int | None = None
+    response_format: ResponseFormat | None = None
     metadata: dict[str, Any] = field(default_factory=dict)
 
 

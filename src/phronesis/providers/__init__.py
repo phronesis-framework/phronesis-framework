@@ -32,7 +32,14 @@ from phronesis.providers.errors import (
 from phronesis.providers.openai import openai
 from phronesis.providers.protocol import LLMProvider, ProviderFeature
 from phronesis.providers.retry_config import RetryConfig
-from phronesis.providers.types import LLMRequest, LLMResponse, Message, Role, ToolCall
+from phronesis.providers.types import (
+    LLMRequest,
+    LLMResponse,
+    Message,
+    ResponseFormat,
+    Role,
+    ToolCall,
+)
 from phronesis.providers.usage import TokenUsage
 
 __all__ = [
@@ -48,6 +55,7 @@ __all__ = [
     "ProviderError",
     "ProviderFeature",
     "RateLimitError",
+    "ResponseFormat",
     "RetryConfig",
     "Role",
     "ServerError",
