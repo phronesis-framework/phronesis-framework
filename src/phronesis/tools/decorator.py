@@ -26,6 +26,7 @@ from typing import Any, overload
 
 from phronesis._internal.ids.derivation import canonical_from_function
 from phronesis.tools.effects import ToolEffect
+from phronesis.tools.lifecycle import ToolLifecycle
 from phronesis.tools.registry import current_registry
 from phronesis.tools.retry import RetryPolicy
 from phronesis.tools.schema import build_canonical_schema
@@ -84,6 +85,7 @@ def tool(
     version: str | None = None,
     lazy: bool = False,
     retry: RetryPolicy | None = None,
+    lifecycle: ToolLifecycle | None = None,
 ) -> Callable[[Callable[..., Any]], Tool]: ...
 
 
@@ -98,6 +100,7 @@ def tool(
     version: str | None = None,
     lazy: bool = False,
     retry: RetryPolicy | None = None,
+    lifecycle: ToolLifecycle | None = None,
 ) -> Tool | Callable[[Callable[..., Any]], Tool]:
     """Decorate a function as a Phronesis tool.
 
@@ -126,6 +129,9 @@ def tool(
         retry: Optional :class:`RetryPolicy` consulted by the agent
             loop when this tool raises a retryable exception.
             Defaults to :data:`NO_RETRY` (single attempt).
+        lifecycle: Optional :class:`ToolLifecycle` carrying
+            ``setup`` / ``teardown`` callbacks the loop runs once
+            per agent run.
 
     Returns:
         The built :class:`Tool` (bare form) or a decorator producing
@@ -150,7 +156,7 @@ def tool(
             version=version,
             input_schema=canonical_schema,
         )
-        built = Tool(target, spec, lazy=lazy, retry=retry)
+        built = Tool(target, spec, lazy=lazy, retry=retry, lifecycle=lifecycle)
 
         if canonical_schema is not None:
             built._canonical_schema = canonical_schema

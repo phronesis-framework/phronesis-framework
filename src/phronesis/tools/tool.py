@@ -27,6 +27,7 @@ from typing import Any
 from phronesis.context.context import Context
 from phronesis.tools.errors import ToolError, ToolValidationError, auto_map_exception
 from phronesis.tools.injection import detect_context_param
+from phronesis.tools.lifecycle import NO_LIFECYCLE, ToolLifecycle
 from phronesis.tools.retry import NO_RETRY, RetryPolicy
 from phronesis.tools.schema import build_canonical_schema
 from phronesis.tools.single_model import get_single_model
@@ -59,6 +60,7 @@ class Tool:
         *,
         lazy: bool = False,
         retry: RetryPolicy | None = None,
+        lifecycle: ToolLifecycle | None = None,
     ) -> None:
         """Bind ``fn`` and ``spec`` into a callable tool.
 
@@ -75,10 +77,15 @@ class Tool:
             retry: Optional :class:`RetryPolicy` consulted by the
                 agent loop when this tool raises a retryable
                 exception. Defaults to :data:`NO_RETRY`.
+            lifecycle: Optional :class:`ToolLifecycle` whose
+                ``setup`` runs once before the first invocation and
+                whose ``teardown`` runs once at the end of the agent
+                run. Defaults to :data:`NO_LIFECYCLE`.
         """
         self._fn = fn
         self.spec = spec
         self.retry: RetryPolicy = retry if retry is not None else NO_RETRY
+        self.lifecycle: ToolLifecycle = lifecycle if lifecycle is not None else NO_LIFECYCLE
         self.is_async = inspect.iscoroutinefunction(fn)
         self._signature = inspect.signature(fn)
         self._validator = build_validator(fn)

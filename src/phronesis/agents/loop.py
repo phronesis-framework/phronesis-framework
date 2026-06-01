@@ -179,6 +179,8 @@ async def _run_loop_inner(
     started = time.monotonic()
     obs_metrics.agent_runs.add(1, attributes=run_attrs)
 
+    await _run_setup(spec.tools)
+
     try:
         async with start_span_async("phronesis.agents.run", attributes=run_attrs):
             while iterations < max_iterations:
@@ -240,6 +242,7 @@ async def _run_loop_inner(
         obs_metrics.agent_tool_calls_per_run.record(
             len(aggregated_tool_calls), attributes=run_attrs
         )
+        await _run_teardown(spec.tools)
 
 
 def _generate_run_id() -> RunId:
@@ -594,6 +597,8 @@ async def run_loop_stream(
 
     deadline = started + request.timeout_seconds if request.timeout_seconds is not None else None
 
+    await _run_setup(spec.tools)
+
     try:
         async with start_span_async("phronesis.agents.run", attributes=run_attrs):
             while iterations < max_iterations:
@@ -702,6 +707,7 @@ async def run_loop_stream(
         obs_metrics.agent_tool_calls_per_run.record(
             len(aggregated_tool_calls), attributes=run_attrs
         )
+        await _run_teardown(spec.tools)
 
 
 def _missing_tool_id() -> Any:
@@ -726,3 +732,42 @@ async def _dispatch_hook(hook: Any, *args: Any) -> None:
             await outcome
     except Exception:
         _logger.warning("Agent hook raised; ignored.", exc_info=True)
+
+
+async def _run_setup(tools: tuple[Tool, ...]) -> None:
+    """Invoke every tool's ``setup`` callback in declaration order."""
+    for tool in tools:
+        callback = tool.lifecycle.setup
+
+        if callback is None:
+            continue
+
+        outcome = callback()
+
+        if inspect.isawaitable(outcome):
+            await outcome
+
+
+async def _run_teardown(tools: tuple[Tool, ...]) -> None:
+    """Invoke every tool's ``teardown`` callback, swallowing exceptions.
+
+    Teardown runs in a ``finally`` clause; raising would mask the
+    run's outcome. Errors are logged at WARNING and discarded.
+    """
+    for tool in tools:
+        callback = tool.lifecycle.teardown
+
+        if callback is None:
+            continue
+
+        try:
+            outcome = callback()
+
+            if inspect.isawaitable(outcome):
+                await outcome
+        except Exception:
+            _logger.warning(
+                "Tool %s teardown raised; ignored.",
+                tool.spec.id.canonical,
+                exc_info=True,
+            )
