@@ -1,0 +1,81 @@
+{
+  "uid": "phronesis-overview",
+  "title": "Phronesis - Overview",
+  "tags": ["phronesis", "overview"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "time": {"from": "now-1h", "to": "now"},
+  "templating": {
+    "list": [
+      {"name": "service", "type": "query", "datasource": {"type": "prometheus", "uid": "phronesis-prom"}, "query": "label_values(phronesis_provider_requests_total, service_name)", "refresh": 2, "includeAll": true, "multi": true}
+    ]
+  },
+  "panels": [
+    {
+      "id": 1, "type": "stat", "title": "Agent runs / min",
+      "datasource": {"type": "prometheus", "uid": "phronesis-prom"},
+      "gridPos": {"h": 4, "w": 4, "x": 0, "y": 0},
+      "targets": [{"expr": "sum(rate(phronesis_agent_runs_total[1m])) * 60", "refId": "A"}],
+      "options": {"colorMode": "background", "graphMode": "area"}
+    },
+    {
+      "id": 2, "type": "stat", "title": "Provider requests / min",
+      "datasource": {"type": "prometheus", "uid": "phronesis-prom"},
+      "gridPos": {"h": 4, "w": 4, "x": 4, "y": 0},
+      "targets": [{"expr": "sum(rate(phronesis_provider_requests_total[1m])) * 60", "refId": "A"}],
+      "options": {"colorMode": "background", "graphMode": "area"}
+    },
+    {
+      "id": 3, "type": "stat", "title": "Tool invocations / min",
+      "datasource": {"type": "prometheus", "uid": "phronesis-prom"},
+      "gridPos": {"h": 4, "w": 4, "x": 8, "y": 0},
+      "targets": [{"expr": "sum(rate(phronesis_tool_invocations_total[1m])) * 60", "refId": "A"}],
+      "options": {"colorMode": "background", "graphMode": "area"}
+    },
+    {
+      "id": 4, "type": "stat", "title": "Tool error rate",
+      "datasource": {"type": "prometheus", "uid": "phronesis-prom"},
+      "gridPos": {"h": 4, "w": 4, "x": 12, "y": 0},
+      "targets": [{"expr": "sum(rate(phronesis_tool_errors_total[5m])) / clamp_min(sum(rate(phronesis_tool_invocations_total[5m])), 1)", "refId": "A"}],
+      "fieldConfig": {"defaults": {"unit": "percentunit", "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 0.01}, {"color": "red", "value": 0.05}]}}}
+    },
+    {
+      "id": 5, "type": "stat", "title": "Cost (USD, last 1h)",
+      "datasource": {"type": "prometheus", "uid": "phronesis-prom"},
+      "gridPos": {"h": 4, "w": 8, "x": 16, "y": 0},
+      "targets": [{"expr": "sum(increase(traces_spanmetrics_calls_total[1h]) * 0)", "refId": "A"}],
+      "fieldConfig": {"defaults": {"unit": "currencyUSD"}}
+    },
+    {
+      "id": 6, "type": "timeseries", "title": "Provider duration (P50/P95/P99)",
+      "datasource": {"type": "prometheus", "uid": "phronesis-prom"},
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 4},
+      "targets": [
+        {"expr": "histogram_quantile(0.50, sum(rate(phronesis_provider_duration_bucket[5m])) by (le))", "refId": "P50", "legendFormat": "P50"},
+        {"expr": "histogram_quantile(0.95, sum(rate(phronesis_provider_duration_bucket[5m])) by (le))", "refId": "P95", "legendFormat": "P95"},
+        {"expr": "histogram_quantile(0.99, sum(rate(phronesis_provider_duration_bucket[5m])) by (le))", "refId": "P99", "legendFormat": "P99"}
+      ],
+      "fieldConfig": {"defaults": {"unit": "s"}}
+    },
+    {
+      "id": 7, "type": "timeseries", "title": "Agent run duration (P50/P95/P99)",
+      "datasource": {"type": "prometheus", "uid": "phronesis-prom"},
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 4},
+      "targets": [
+        {"expr": "histogram_quantile(0.50, sum(rate(phronesis_agent_run_duration_bucket[5m])) by (le))", "refId": "P50", "legendFormat": "P50"},
+        {"expr": "histogram_quantile(0.95, sum(rate(phronesis_agent_run_duration_bucket[5m])) by (le))", "refId": "P95", "legendFormat": "P95"},
+        {"expr": "histogram_quantile(0.99, sum(rate(phronesis_agent_run_duration_bucket[5m])) by (le))", "refId": "P99", "legendFormat": "P99"}
+      ],
+      "fieldConfig": {"defaults": {"unit": "s"}}
+    },
+    {
+      "id": 8, "type": "logs", "title": "Recent errors",
+      "datasource": {"type": "loki", "uid": "phronesis-loki"},
+      "gridPos": {"h": 8, "w": 24, "x": 0, "y": 12},
+      "targets": [{"expr": "{service_name=~\"phronesis.*\"} |= \"ERROR\"", "refId": "A"}],
+      "options": {"showTime": true, "wrapLogMessage": true, "enableLogDetails": true}
+    }
+  ]
+}
