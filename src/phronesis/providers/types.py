@@ -9,6 +9,7 @@ every transformation, so the dataclasses stay cheap to construct.
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from enum import StrEnum
 from typing import Any, Literal
@@ -146,6 +147,12 @@ class LLMRequest:
         metadata: Free-form mapping forwarded for telemetry or
             vendor-specific knobs. Mutable for ergonomics; provider
             adapters do not modify it.
+        extra_body: Optional mapping merged into the provider's
+            outgoing JSON body. Escape hatch for runtime-specific
+            knobs (Ollama ``keep_alive``/``options``, vLLM
+            ``guided_json``/``min_p``, etc.). Overrides any field
+            the adapter would otherwise set. The caller is
+            responsible for keys that may break the payload.
     """
 
     model: str
@@ -156,6 +163,7 @@ class LLMRequest:
     max_tokens: int | None = None
     response_format: ResponseFormat | None = None
     metadata: dict[str, Any] = field(default_factory=dict)
+    extra_body: Mapping[str, Any] | None = None
 
 
 @dataclass(frozen=True, slots=True)
