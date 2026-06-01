@@ -1,0 +1,42 @@
+{
+  "uid": "phronesis-tools",
+  "title": "Phronesis - Tools",
+  "tags": ["phronesis", "tools"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "time": {"from": "now-1h", "to": "now"},
+  "templating": {
+    "list": [
+      {"name": "tool", "type": "query", "datasource": {"type": "prometheus", "uid": "phronesis-prom"}, "query": "label_values(phronesis_tool_invocations_total, tool_id)", "refresh": 2, "includeAll": true, "multi": true}
+    ]
+  },
+  "panels": [
+    {
+      "id": 1, "type": "barchart", "title": "Top tools by invocations (1h)",
+      "datasource": {"type": "prometheus", "uid": "phronesis-prom"},
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+      "targets": [{"expr": "topk(10, sum by (tool_id) (increase(phronesis_tool_invocations_total[1h])))", "refId": "A", "legendFormat": "{{tool_id}}"}]
+    },
+    {
+      "id": 2, "type": "gauge", "title": "Error rate by tool",
+      "datasource": {"type": "prometheus", "uid": "phronesis-prom"},
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+      "targets": [{"expr": "sum by (tool_id) (rate(phronesis_tool_errors_total{tool_id=~\"$tool\"}[5m])) / clamp_min(sum by (tool_id) (rate(phronesis_tool_invocations_total{tool_id=~\"$tool\"}[5m])), 1)", "refId": "A", "legendFormat": "{{tool_id}}"}],
+      "fieldConfig": {"defaults": {"unit": "percentunit", "max": 1}}
+    },
+    {
+      "id": 3, "type": "heatmap", "title": "Tool duration heatmap",
+      "datasource": {"type": "prometheus", "uid": "phronesis-prom"},
+      "gridPos": {"h": 8, "w": 24, "x": 0, "y": 8},
+      "targets": [{"expr": "sum by (le) (rate(phronesis_tool_duration_bucket{tool_id=~\"$tool\"}[5m]))", "refId": "A", "format": "heatmap"}]
+    },
+    {
+      "id": 4, "type": "traces", "title": "Recent failed tool calls",
+      "datasource": {"type": "tempo", "uid": "phronesis-tempo"},
+      "gridPos": {"h": 10, "w": 24, "x": 0, "y": 16},
+      "targets": [{"query": "{ span.operation.success = false && span.tool.id != \"\" }", "refId": "A", "queryType": "traceql"}]
+    }
+  ]
+}
