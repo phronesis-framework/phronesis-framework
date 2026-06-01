@@ -73,3 +73,10 @@ class AgentSpec:
     max_iterations: int = 20
     version: str = "0.1.0"
     context_builder: ContextBuilder = field(default=_DEFAULT_CONTEXT_BUILDER)
+
+    def __repr__(self) -> str:
+        return (
+            f"AgentSpec(id={self.id.canonical!r}, name={self.name!r}, "
+            f"model={type(self.model).__name__}, tools={len(self.tools)}, "
+            f"max_iterations={self.max_iterations}, version={self.version!r})"
+        )

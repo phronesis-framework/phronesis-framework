@@ -118,3 +118,12 @@ class Result:
     success: bool = True
     cost_usd: float | None = None
     error: AgentError | None = None
+
+    def __repr__(self) -> str:
+        total = (self.tokens.input_tokens or 0) + (self.tokens.output_tokens or 0)
+
+        return (
+            f"Result(run_id={self.run_id.canonical!r}, success={self.success}, "
+            f"iterations={self.iterations}, tool_calls={len(self.tool_calls)}, "
+            f"messages={len(self.messages)}, tokens={total})"
+        )

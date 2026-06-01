@@ -213,3 +213,49 @@ class TestResultFrozen:
 
         with pytest.raises(AttributeError):
             result.success = False  # type: ignore[misc]
+
+
+class TestResultRepr:
+    def test_includes_run_id_and_success(self) -> None:
+        result = Result(
+            run_id=RunId("phronesis.runtime.run.x"),
+            output="ok",
+            tokens=TokenUsage(input_tokens=5, output_tokens=7),
+            iterations=3,
+            tool_calls=(),
+            messages=(),
+        )
+
+        text = repr(result)
+
+        assert "phronesis.runtime.run.x" in text
+        assert "success=True" in text
+
+    def test_includes_counts(self) -> None:
+        result = Result(
+            run_id=RunId("phronesis.runtime.run.x"),
+            output="ok",
+            tokens=TokenUsage(input_tokens=10, output_tokens=20),
+            iterations=4,
+            tool_calls=(),
+            messages=(),
+        )
+
+        text = repr(result)
+
+        assert "iterations=4" in text
+        assert "tokens=30" in text
+
+    def test_does_not_include_output_body(self) -> None:
+        result = Result(
+            run_id=RunId("phronesis.runtime.run.x"),
+            output="secret payload",
+            tokens=TokenUsage(),
+            iterations=1,
+            tool_calls=(),
+            messages=(),
+        )
+
+        text = repr(result)
+
+        assert "secret payload" not in text

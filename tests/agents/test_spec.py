@@ -105,3 +105,54 @@ class TestFrozen:
 
         with pytest.raises(AttributeError):
             spec.name = "other"  # type: ignore[misc]
+
+
+class TestRepr:
+    def test_includes_id_and_name(self, provider: LLMProvider) -> None:
+        spec = AgentSpec(
+            id=AgentId("phronesis.agents.x"),
+            name="x",
+            model=provider,
+            system_prompt="hi",
+        )
+
+        text = repr(spec)
+
+        assert "phronesis.agents.x" in text
+        assert "'x'" in text
+
+    def test_includes_model_class_name(self, provider: LLMProvider) -> None:
+        spec = AgentSpec(
+            id=AgentId("phronesis.agents.x"),
+            name="x",
+            model=provider,
+            system_prompt="hi",
+        )
+
+        text = repr(spec)
+
+        assert type(provider).__name__ in text
+
+    def test_shows_tool_count_not_tool_reprs(self, provider: LLMProvider) -> None:
+        spec = AgentSpec(
+            id=AgentId("phronesis.agents.x"),
+            name="x",
+            model=provider,
+            system_prompt="hi",
+        )
+
+        text = repr(spec)
+
+        assert "tools=0" in text
+
+    def test_does_not_include_system_prompt(self, provider: LLMProvider) -> None:
+        spec = AgentSpec(
+            id=AgentId("phronesis.agents.x"),
+            name="x",
+            model=provider,
+            system_prompt="a very long system prompt with secrets",
+        )
+
+        text = repr(spec)
+
+        assert "secrets" not in text
