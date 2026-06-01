@@ -47,7 +47,8 @@ async def stream_openai_chat(
             caller's responsibility; this function does not close
             the client.
         api_key: OpenAI API key sent as a Bearer token in the
-            ``Authorization`` header.
+            ``Authorization`` header. Empty string disables the
+            header (anonymous local backends).
         body: JSON body. ``stream`` is forced to ``True`` and
             ``stream_options.include_usage`` is enabled before
             sending so the terminal chunk carries usage information.
@@ -62,11 +63,13 @@ async def stream_openai_chat(
             that cannot be decoded.
     """
     request_body = _enable_streaming(body)
-    headers = {
-        "authorization": f"Bearer {api_key}",
+    headers: dict[str, str] = {
         "content-type": "application/json",
         "accept": "text/event-stream",
     }
+
+    if api_key:
+        headers["authorization"] = f"Bearer {api_key}"
 
     async with http.stream(
         "POST", "/v1/chat/completions", json=request_body, headers=headers

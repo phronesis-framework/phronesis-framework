@@ -293,3 +293,59 @@ class TestStreamOpenaiChatRequestShape:
         chunks = await _collect(_stream(client))
 
         assert chunks[0] == TextChunk(text="ok")
+
+
+class TestStreamAuthorizationHeader:
+    @pytest.mark.asyncio
+    async def test_authorization_header_present_with_key(self) -> None:
+        captured: list[httpx.Request] = []
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            captured.append(request)
+
+            return httpx.Response(
+                200,
+                content=_sse([{"choices": [{"index": 0, "delta": {}, "finish_reason": "stop"}]}]),
+                headers={"content-type": "text/event-stream"},
+            )
+
+        client = httpx.AsyncClient(
+            transport=httpx.MockTransport(handler),
+            base_url="https://api.openai.com",
+        )
+        await _collect(
+            stream_openai_chat(
+                client,
+                api_key="sk-test",
+                body={"model": "gpt-test", "messages": []},
+            )
+        )
+
+        assert captured[0].headers["authorization"] == "Bearer sk-test"
+
+    @pytest.mark.asyncio
+    async def test_authorization_header_absent_with_empty_key(self) -> None:
+        captured: list[httpx.Request] = []
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            captured.append(request)
+
+            return httpx.Response(
+                200,
+                content=_sse([{"choices": [{"index": 0, "delta": {}, "finish_reason": "stop"}]}]),
+                headers={"content-type": "text/event-stream"},
+            )
+
+        client = httpx.AsyncClient(
+            transport=httpx.MockTransport(handler),
+            base_url="http://localhost:11434",
+        )
+        await _collect(
+            stream_openai_chat(
+                client,
+                api_key="",
+                body={"model": "qwen2.5", "messages": []},
+            )
+        )
+
+        assert "authorization" not in captured[0].headers
