@@ -53,7 +53,7 @@ class TestOllamaFactory:
             http_client=_mock_client("http://localhost:11434/v1"),
         )
 
-        assert provider.context_window_size() == 32_768
+        assert provider.context_window_size() == 128_000
 
     def test_features_override(self) -> None:
         provider = ollama(
