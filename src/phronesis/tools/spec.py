@@ -20,6 +20,7 @@ from typing import Any, Final
 
 from phronesis.tools.effects import ToolEffect
 from phronesis.tools.tool_id import ToolId, ToolName
+from phronesis.tools.version import ToolVersion, parse_version
 
 _EMPTY_SCHEMA: Final[Mapping[str, Any]] = MappingProxyType({})
 
@@ -70,6 +71,18 @@ class ToolSpec:
                 "output_schema",
                 MappingProxyType(dict(self.output_schema)),
             )
+
+        parse_version(self.version)
+
+    @property
+    def parsed_version(self) -> ToolVersion:
+        """Return :attr:`version` as a strict :class:`ToolVersion`.
+
+        Re-parses on access; cheap and avoids stashing extra state on
+        the frozen dataclass. Raises :class:`InvalidVersionError` if
+        the version was constructed by bypassing ``__post_init__``.
+        """
+        return parse_version(self.version)
 
     def to_dict(self) -> dict[str, Any]:
         """Return a JSON-serialisable representation of the spec.

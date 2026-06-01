@@ -44,10 +44,12 @@ from phronesis.tools.registry import current_registry, tool_scope
 from phronesis.tools.spec import ToolSpec
 from phronesis.tools.tool import Tool
 from phronesis.tools.tool_id import ToolId, ToolName
+from phronesis.tools.version import InvalidVersionError, ToolVersion, parse_version
 
 __all__ = [
     "Context",
     "DuplicateToolError",
+    "InvalidVersionError",
     "SchemaDegradationWarning",
     "Tool",
     "ToolDefinitionError",
@@ -61,10 +63,12 @@ __all__ = [
     "ToolSpec",
     "ToolTimeoutError",
     "ToolValidationError",
+    "ToolVersion",
     "UnsupportedProviderError",
     "auto_map_exception",
     "current_registry",
     "discover",
+    "parse_version",
     "tool",
     "tool_scope",
 ]
