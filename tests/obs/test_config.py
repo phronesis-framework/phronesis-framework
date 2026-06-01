@@ -272,6 +272,19 @@ class TestExporterSelection:
 
         assert any(isinstance(e, OTLPSpanExporter) for e in exporters)
 
+    def test_console_metric_reader_is_used_by_default(self) -> None:
+        from opentelemetry.sdk.metrics.export import (
+            ConsoleMetricExporter,
+            PeriodicExportingMetricReader,
+        )
+
+        configure_obs()
+
+        readers = list(_state.meter_provider._sdk_config.metric_readers)
+
+        assert any(isinstance(r, PeriodicExportingMetricReader) for r in readers)
+        assert any(isinstance(r._exporter, ConsoleMetricExporter) for r in readers)
+
     def test_otlp_metric_reader_is_used_when_selected(self) -> None:
         from opentelemetry.exporter.otlp.proto.http.metric_exporter import (
             OTLPMetricExporter,
