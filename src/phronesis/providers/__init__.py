@@ -29,6 +29,7 @@ from phronesis.providers.errors import (
     StreamError,
     TransportError,
 )
+from phronesis.providers.fallback import FallbackExhaustedError, FallbackProvider
 from phronesis.providers.openai import openai
 from phronesis.providers.protocol import LLMProvider, ProviderFeature
 from phronesis.providers.retry_config import RetryConfig
@@ -47,6 +48,8 @@ __all__ = [
     "AuthenticationError",
     "BadRequestError",
     "ContextWindowExceededError",
+    "FallbackExhaustedError",
+    "FallbackProvider",
     "Finish",
     "LLMChunk",
     "LLMProvider",
