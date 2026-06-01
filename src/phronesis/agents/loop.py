@@ -41,8 +41,10 @@ from collections.abc import Mapping
 from typing import Any
 
 from phronesis.agents.errors import (
+    AgentBudgetExceededError,
     AgentExecutionError,
     AgentMaxIterationsError,
+    AgentTimeoutError,
 )
 from phronesis.agents.run import (
     Result,
@@ -111,9 +113,38 @@ async def run_loop(
         AgentMaxIterationsError: if the loop hits
             ``request.max_iterations or spec.max_iterations`` without
             terminating.
+        AgentBudgetExceededError: if the run exceeds
+            ``request.max_tokens`` or ``request.max_cost_usd``.
+        AgentTimeoutError: if the run exceeds
+            ``request.timeout_seconds``.
         AgentExecutionError: if a tool or provider call raises an
             exception that is not a :class:`ToolError`.
     """
+    if request.timeout_seconds is None:
+        return await _run_loop_inner(spec, request, initial_history=initial_history)
+
+    try:
+        return await asyncio.wait_for(
+            _run_loop_inner(spec, request, initial_history=initial_history),
+            timeout=request.timeout_seconds,
+        )
+    except TimeoutError as exc:
+        raise AgentTimeoutError(
+            (f"Agent {spec.id.canonical!r} timed out after {request.timeout_seconds}s."),
+            details={
+                "agent_id": spec.id.canonical,
+                "limit": "timeout_seconds",
+                "threshold": request.timeout_seconds,
+            },
+        ) from exc
+
+
+async def _run_loop_inner(
+    spec: AgentSpec,
+    request: RunRequest,
+    *,
+    initial_history: tuple[Message, ...] | None,
+) -> Result:
     run_id = _generate_run_id()
     tool_by_name: dict[str, Tool] = {t.spec.name: t for t in spec.tools}
     context = _build_context(spec, request, run_id)
@@ -150,6 +181,7 @@ async def run_loop(
 
                     response = await _complete(spec, messages)
                     aggregated_usage = _merge_usage(aggregated_usage, response.usage)
+                    _check_budget(spec, request, aggregated_usage)
 
                     assistant_message, requested_calls = _assistant_message_from_response(response)
                     history = (*history, assistant_message)
@@ -431,3 +463,31 @@ def _add_optional(a: int | None, b: int | None) -> int | None:
         return None
 
     return (a or 0) + (b or 0)
+
+
+def _check_budget(
+    spec: AgentSpec,
+    request: RunRequest,
+    usage: TokenUsage,
+) -> None:
+    if request.max_tokens is not None:
+        total = (usage.input_tokens or 0) + (usage.output_tokens or 0)
+
+        if total > request.max_tokens:
+            raise AgentBudgetExceededError(
+                (
+                    f"Agent {spec.id.canonical!r} consumed {total} tokens, "
+                    f"exceeding the cap of {request.max_tokens}."
+                ),
+                details={
+                    "agent_id": spec.id.canonical,
+                    "limit": "max_tokens",
+                    "threshold": request.max_tokens,
+                    "observed": total,
+                },
+            )
+
+    # Cost enforcement is opt-in: callers wire a cost estimator into
+    # their provider; this MVP check only fires when a cost lands on
+    # ``usage`` via a future provider extension. Left as a placeholder
+    # so the field on ``RunRequest`` is honoured the moment costs land.

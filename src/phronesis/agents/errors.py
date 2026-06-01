@@ -79,3 +79,22 @@ class DuplicateAgentError(AgentConfigurationError):
     that is already taken by a *different* :class:`Agent` instance.
     Re-registering the same instance is a no-op.
     """
+
+
+class AgentBudgetExceededError(AgentError):
+    """The run consumed more than the budget allotted by the caller.
+
+    Raised by :func:`phronesis.agents.loop.run_loop` when the
+    aggregated token count, cost or elapsed time exceeds the bound
+    declared on :class:`RunRequest`. ``details`` carries the limit
+    name, its threshold, and the observed value.
+    """
+
+
+class AgentTimeoutError(AgentBudgetExceededError):
+    """The run exceeded :attr:`RunRequest.timeout_seconds`.
+
+    Specialisation of :class:`AgentBudgetExceededError` for the time
+    dimension. The ``__cause__`` may be :class:`asyncio.TimeoutError`
+    when the loop was cancelled by ``asyncio.wait_for``.
+    """

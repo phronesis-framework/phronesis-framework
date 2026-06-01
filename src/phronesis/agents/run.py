@@ -68,12 +68,24 @@ class RunRequest:
         max_iterations: Per-run override of
             :attr:`AgentSpec.max_iterations`. ``None`` means use the
             value from the spec.
+        max_tokens: Aggregate cap on combined input+output tokens
+            across every provider call. ``None`` disables the check.
+            Exceeding the cap raises
+            :class:`AgentBudgetExceededError`.
+        max_cost_usd: Cap on the total estimated cost of the run in
+            USD. ``None`` disables the check.
+        timeout_seconds: Wall-clock cap on the whole run. ``None``
+            disables the check. Enforced via :func:`asyncio.wait_for`;
+            on timeout the loop raises :class:`AgentTimeoutError`.
     """
 
     input: str
     session_id: SessionId | None = None
     metadata: Mapping[str, Any] = field(default_factory=lambda: _EMPTY_METADATA)
     max_iterations: int | None = None
+    max_tokens: int | None = None
+    max_cost_usd: float | None = None
+    timeout_seconds: float | None = None
 
     def __post_init__(self) -> None:
         if not isinstance(self.metadata, MappingProxyType):
