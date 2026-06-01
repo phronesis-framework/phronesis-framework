@@ -18,6 +18,8 @@ from phronesis.core.messages import (
     AssistantMessage,
     CompactionSummaryBlock,
     ContentBlock,
+    DocumentBlock,
+    ImageBlock,
     Message,
     SystemMessage,
     TextBlock,
@@ -25,6 +27,7 @@ from phronesis.core.messages import (
     ToolUseBlock,
     UserMessage,
 )
+from phronesis.providers.types import MediaRef
 from phronesis.providers.types import Message as ProviderMessage
 from phronesis.providers.types import Role as ProviderRole
 from phronesis.providers.types import ToolCall as ProviderToolCall
@@ -62,6 +65,7 @@ def translate_history(history: Sequence[Message]) -> tuple[ProviderMessage, ...]
 
 def _translate_one(message: Message) -> list[ProviderMessage]:
     cache_hint = _has_cache_hint(message.content)
+    media = _collect_media(message.content)
 
     if isinstance(message, SystemMessage):
         return [
@@ -69,6 +73,7 @@ def _translate_one(message: Message) -> list[ProviderMessage]:
                 role=ProviderRole.SYSTEM,
                 content=_concat_text(message.content),
                 cache=cache_hint,
+                media=media,
             ),
         ]
 
@@ -78,6 +83,7 @@ def _translate_one(message: Message) -> list[ProviderMessage]:
                 role=ProviderRole.USER,
                 content=_concat_text(message.content),
                 cache=cache_hint,
+                media=media,
             ),
         ]
 
@@ -98,6 +104,7 @@ def _translate_one(message: Message) -> list[ProviderMessage]:
                 content=_concat_text(message.content),
                 tool_calls=tool_calls,
                 cache=cache_hint,
+                media=media,
             ),
         ]
 
@@ -130,3 +137,31 @@ def _concat_text(blocks: tuple[ContentBlock, ...]) -> str:
 
 def _has_cache_hint(blocks: tuple[ContentBlock, ...]) -> bool:
     return any(isinstance(block, TextBlock) and block.cache for block in blocks)
+
+
+def _collect_media(blocks: tuple[ContentBlock, ...]) -> tuple[MediaRef, ...]:
+    refs: list[MediaRef] = []
+
+    for block in blocks:
+        if isinstance(block, ImageBlock):
+            refs.append(
+                MediaRef(
+                    kind="image",
+                    data=block.data,
+                    media_type=block.media_type,
+                    source_type=block.source_type,
+                ),
+            )
+            continue
+
+        if isinstance(block, DocumentBlock):
+            refs.append(
+                MediaRef(
+                    kind="document",
+                    data=block.data,
+                    media_type=block.media_type,
+                    source_type=block.source_type,
+                ),
+            )
+
+    return tuple(refs)
