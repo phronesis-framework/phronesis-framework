@@ -192,7 +192,7 @@ async def _run_loop_inner(
                         history = (*history, user_input)
                         user_input = None
 
-                    response = await _complete(spec, messages)
+                    response = await _complete(spec, messages, run_attrs)
                     aggregated_usage = _merge_usage(aggregated_usage, response.usage)
                     _check_budget(spec, request, aggregated_usage)
 
@@ -271,23 +271,68 @@ async def _build_messages(
     return messages
 
 
-async def _complete(spec: AgentSpec, messages: list[Message]) -> Any:
+async def _complete(
+    spec: AgentSpec,
+    messages: list[Message],
+    run_attrs: dict[str, Any],
+) -> Any:
     request = LLMRequest(
         model=spec.name,
         messages=_translate_history(tuple(messages)),
         tools=tuple(t.spec for t in spec.tools),
         system=spec.system_prompt or None,
     )
+    provider_attrs = {
+        **run_attrs,
+        obs_attrs.PROVIDER_NAME: type(spec.model).__name__,
+    }
+    started = time.perf_counter()
 
     try:
-        return await spec.model.complete(request)
+        response = await spec.model.complete(request)
     except ToolError:
+        obs_metrics.provider_requests.add(
+            1,
+            attributes={**provider_attrs, obs_attrs.OPERATION_SUCCESS: False},
+        )
+        obs_metrics.provider_duration.record(
+            time.perf_counter() - started,
+            attributes=provider_attrs,
+        )
         raise
     except Exception as exc:
+        obs_metrics.provider_requests.add(
+            1,
+            attributes={**provider_attrs, obs_attrs.OPERATION_SUCCESS: False},
+        )
+        obs_metrics.provider_duration.record(
+            time.perf_counter() - started,
+            attributes=provider_attrs,
+        )
         raise AgentExecutionError(
             f"Provider call failed for agent {spec.id.canonical!r}.",
             details={"agent_id": spec.id.canonical},
         ) from exc
+
+    obs_metrics.provider_requests.add(
+        1,
+        attributes={**provider_attrs, obs_attrs.OPERATION_SUCCESS: True},
+    )
+    obs_metrics.provider_duration.record(
+        time.perf_counter() - started,
+        attributes=provider_attrs,
+    )
+
+    usage = getattr(response, "usage", None)
+
+    if usage is not None:
+        if usage.input_tokens:
+            obs_metrics.provider_tokens_input.add(usage.input_tokens, attributes=provider_attrs)
+
+        if usage.output_tokens:
+            obs_metrics.provider_tokens_output.add(usage.output_tokens, attributes=provider_attrs)
+
+    return response
 
 
 def _assistant_message_from_response(response: Any) -> tuple[AssistantMessage, list[ToolUseBlock]]:
@@ -365,22 +410,56 @@ async def _invoke_tool(
         obs_attrs.TOOL_NAME: str(tool.spec.name),
         obs_attrs.TOOL_CALL_ID: call.tool_call_id,
     }
+    metric_attrs = {
+        obs_attrs.TOOL_ID: tool.spec.id.canonical,
+        obs_attrs.TOOL_NAME: str(tool.spec.name),
+        obs_attrs.AGENT_ID: run_attrs.get(obs_attrs.AGENT_ID),
+    }
+    started = time.perf_counter()
 
     async with start_span_async("phronesis.agents.tool_call", attributes=call_attrs):
-        return await _invoke_with_retry(tool, call, context)
+        try:
+            result = await _invoke_with_retry(tool, call, context, metric_attrs)
+        except Exception as exc:
+            obs_metrics.tool_invocations.add(
+                1,
+                attributes={**metric_attrs, obs_attrs.OPERATION_SUCCESS: False},
+            )
+            obs_metrics.tool_duration.record(
+                time.perf_counter() - started,
+                attributes=metric_attrs,
+            )
+            obs_metrics.tool_errors.add(
+                1,
+                attributes={**metric_attrs, obs_attrs.ERROR_TYPE: type(exc).__name__},
+            )
+            raise
+
+    obs_metrics.tool_invocations.add(
+        1,
+        attributes={**metric_attrs, obs_attrs.OPERATION_SUCCESS: True},
+    )
+    obs_metrics.tool_duration.record(
+        time.perf_counter() - started,
+        attributes=metric_attrs,
+    )
+
+    return result
 
 
 async def _invoke_with_retry(
     tool: Tool,
     call: ToolUseBlock,
     context: Context,
+    metric_attrs: dict[str, Any],
 ) -> Any:
     """Invoke ``tool`` honouring its :class:`RetryPolicy`.
 
     Retries up to ``tool.retry.max_attempts`` times when the raised
     exception matches the policy. Sleeps ``tool.retry.backoff_seconds``
     between attempts. The exception raised on the **final** failed
-    attempt propagates unchanged.
+    attempt propagates unchanged. Emits ``retry_attempts`` once per
+    retry actually taken (i.e. not on the final failure).
     """
     policy = tool.retry
     attempt = 0
@@ -398,6 +477,11 @@ async def _invoke_with_retry(
         except Exception as exc:
             if attempt >= policy.max_attempts or not policy.should_retry(exc):
                 raise
+
+            obs_metrics.retry_attempts.add(
+                1,
+                attributes={**metric_attrs, obs_attrs.ERROR_TYPE: type(exc).__name__},
+            )
 
             if policy.backoff_seconds > 0:
                 await asyncio.sleep(policy.backoff_seconds)
@@ -558,7 +642,7 @@ async def run_loop_stream(
                             history = (*history, user_input)
                             user_input = None
 
-                        response = await _complete(spec, messages)
+                        response = await _complete(spec, messages, run_attrs)
                         aggregated_usage = _merge_usage(aggregated_usage, response.usage)
 
                         try:
