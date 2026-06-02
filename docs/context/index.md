@@ -24,6 +24,7 @@
 
 [![Status](https://img.shields.io/badge/status-stable-green)]()
 [![Coverage](https://img.shields.io/badge/coverage-100%25-brightgreen)]()
+[![Tests](https://img.shields.io/badge/tests-58-blue)]()
 [![Python](https://img.shields.io/badge/python-3.11+-blue?logo=python&logoColor=white)]()
 
 </div>
@@ -83,6 +84,8 @@ src/phronesis/context/
 ├── input.py             BuildInput (frozen dataclass)
 ├── default.py           DefaultContextBuilder
 ├── compacting.py        CompactingContextBuilder + helpers
+├── chain.py             ChainedContextBuilder + chain() factory
+├── dry_run.py           dry_run() helper + DryRunReport
 ├── errors.py            ContextError -> ContextBuilderError -> CompactionError
 ├── budget.py            Budget (tool-side, predates this module)
 └── context.py           Context (tool-side, predates this module)
@@ -99,12 +102,16 @@ The two pre-existing files (`budget.py`, `context.py`) belong to a separate conc
 ```python
 from phronesis.context import (
     BuildInput,
+    ChainedContextBuilder,
     CompactingContextBuilder,
     CompactionError,
     ContextBuilder,
     ContextBuilderError,
     ContextError,
     DefaultContextBuilder,
+    DryRunReport,
+    chain,
+    dry_run,
 )
 ```
 
@@ -131,6 +138,43 @@ class BuildInput:
 | `preserve_recent`    | `6`     | Trailing messages always kept verbatim.                                  |
 | `compactor_provider` | `None`  | Optional override; defaults to the run's provider.                       |
 | `compaction_prompt`  | `None`  | Override for the internal summarisation system prompt.                  |
+
+Composition helper:
+
+```python
+class ChainedContextBuilder:
+    builders: tuple[ContextBuilder, ...]
+
+    def __init__(self, builders: Sequence[ContextBuilder]) -> None: ...
+    async def build(self, input: BuildInput) -> list[Message]: ...
+
+def chain(*builders: ContextBuilder) -> ChainedContextBuilder: ...
+```
+
+`ChainedContextBuilder` runs each child in order. Only the **first** builder sees `input.new_input`; the rest receive `new_input=None` because the input has already been folded into the running history. Any `SystemMessage` produced by an intermediate builder is stripped before the next child runs - only the last builder in the chain can contribute system messages to the final output. `input.provider` is forwarded verbatim. An empty `builders` raises `ValueError`.
+
+Inspect-only helper:
+
+```python
+@dataclass(frozen=True, slots=True)
+class DryRunReport:
+    messages: tuple[Message, ...]
+    message_count: int
+    token_estimate: int
+    window_size: int
+    within_window: bool
+
+async def dry_run(
+    builder: ContextBuilder,
+    *,
+    provider: LLMProvider,
+    system_prompt: str = "",
+    history: Sequence[Message] = (),
+    new_input: Message | None = None,
+) -> DryRunReport: ...
+```
+
+`dry_run` invokes `builder.build(...)` with a synthetic `BuildInput`, then computes `provider.count_tokens(messages)` and `provider.context_window_size()`. It has no other side effects: no completions are issued, no run state is mutated. Use it to snapshot what a builder would emit at a given history depth.
 
 <div align="center">
 
@@ -175,6 +219,25 @@ sequenceDiagram
         Compactor-->>Builder: summary text
         Builder-->>Loop: [system, *prior_summaries, new_summary, *preserved, new_input?]
     end
+```
+
+Composition through `ChainedContextBuilder`:
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant Caller as agents/loop.py
+    participant Chained as ChainedContextBuilder
+    participant B1 as builder[0]
+    participant B2 as builder[1]
+
+    Caller->>Chained: build(input)
+    Chained->>B1: build(input)  (new_input forwarded)
+    B1-->>Chained: msgs1
+    Note over Chained: strip SystemMessages from msgs1
+    Chained->>B2: build(BuildInput(history=msgs1, new_input=None))
+    B2-->>Chained: msgs2
+    Chained-->>Caller: msgs2
 ```
 
 State of a message inside the history across iterations:
@@ -276,6 +339,45 @@ class PrependFactsBuilder:
         return [intro, *input.history] + ([input.new_input] if input.new_input else [])
 ```
 
+Composing builders with `chain`:
+
+```python
+from phronesis import agent
+from phronesis.context import CompactingContextBuilder, chain
+
+facts_builder = PrependFactsBuilder(facts=("user_tier=enterprise", "tz=UTC"))
+compactor = CompactingContextBuilder(threshold_ratio=0.7, preserve_recent=4)
+
+@agent(model=provider, context_builder=chain(facts_builder, compactor))
+def composed_assistant() -> None:
+    """Inject orienting facts, then compact when the window fills."""
+```
+
+Debugging with `dry_run`:
+
+```python
+import asyncio
+
+from phronesis.context import CompactingContextBuilder, dry_run
+from phronesis.core.messages import UserMessage, TextBlock
+
+builder = CompactingContextBuilder(threshold_ratio=0.5)
+pending = UserMessage(content=(TextBlock(text="What did we agree on?"),))
+
+report = asyncio.run(
+    dry_run(
+        builder,
+        provider=provider,
+        system_prompt="You are a helpful assistant.",
+        history=long_history,
+        new_input=pending,
+    )
+)
+
+assert report.within_window
+print(report.message_count, report.token_estimate, report.window_size)
+```
+
 <div align="center">
 
 ## ⚠️ Pitfalls
@@ -287,6 +389,34 @@ class PrependFactsBuilder:
 - **The summary is plain text on the wire.** Providers translate `CompactionSummaryBlock` as a regular text block. Tool-call structure inside the compacted slice is flattened.
 - **Custom builders must remain stateless.** Mutable state on the instance breaks concurrent runs.
 - **Leading `SystemMessage` in history wins.** The loop seeds the system prompt into `BuildInput.history`; builders that re-emit it must detect the duplicate.
+- **`ChainedContextBuilder` only feeds `new_input` to the first child.** Subsequent builders see `new_input=None`; design downstream builders to operate on `history` alone.
+- **`ChainedContextBuilder` discards intermediate `SystemMessage`s.** Only the last builder in the chain can contribute system messages to the final output.
+- **`dry_run` still hits the provider.** It calls `provider.count_tokens` and `provider.context_window_size`. With paid providers these may count against rate limits even though no completion is issued.
+
+<div align="center">
+
+## 🚦 Quality gates
+
+</div>
+
+```
+uv run ruff format src/phronesis/context tests/context
+uv run ruff check src/phronesis/context tests/context
+uv run mypy src/phronesis/context
+uv run pytest tests/context -q
+```
+
+<div align="center">
+
+## 🛠️ Tech stack
+
+</div>
+
+| Library | Version | Used for |
+|---|---|---|
+| Python | `>= 3.11` | `Protocol`, frozen dataclasses con `slots=True`, `MappingProxyType`. |
+| stdlib | - | `asyncio`, `dataclasses`, `types.MappingProxyType`. |
+| OpenTelemetry | optional (`obs` extra) | Spans `phronesis.context.build` emitidos por el loop de agents (no por este modulo). |
 
 <div align="center">
 
@@ -294,8 +424,7 @@ class PrependFactsBuilder:
 
 </div>
 
-- Truncating / summarising / RAG builders.
+- Built-in RAG / truncation builders (today composable through `chain()`; a first-party implementation is deferred).
 - `MemoryStore` and `Policy` slots in `BuildInput`.
 - Warnings in `DefaultContextBuilder` when approaching the context window.
-- Incremental compaction (compact a sliding tail rather than the full older slice).
 - Exact tokenization through provider-native endpoints.
