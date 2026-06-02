@@ -13,10 +13,9 @@ with the traces exported by the same process.
 
 Implementation note: the helpers install a wrapper around
 ``logging.setLogRecordFactory`` so the enrichment covers every logger
-in the process, not just loggers below ``phronesis``. This matches the
-docs' promise that "when obs is active, logs carry ``trace_id``
-automatically". When the ``obs`` extra is not installed, the wrapper
-short-circuits and never imports OpenTelemetry.
+in the process, not just loggers below ``phronesis``. When the
+``obs`` extra is not installed, the wrapper short-circuits and never
+imports OpenTelemetry.
 """
 
 from __future__ import annotations

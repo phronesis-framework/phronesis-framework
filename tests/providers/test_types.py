@@ -72,6 +72,19 @@ class TestLLMRequest:
         assert request.temperature is None
         assert request.max_tokens is None
         assert request.metadata == {}
+        assert request.extra_body is None
+
+    def test_extra_body_construction_and_immutability(self) -> None:
+        request = LLMRequest(
+            model="x",
+            messages=(),
+            extra_body={"guided_json": {"type": "object"}, "min_p": 0.05},
+        )
+
+        assert request.extra_body == {"guided_json": {"type": "object"}, "min_p": 0.05}
+
+        with pytest.raises(dataclasses.FrozenInstanceError):
+            request.extra_body = None  # type: ignore[misc]
 
     def test_metadata_default_is_independent_per_instance(self) -> None:
         a = LLMRequest(model="x", messages=())

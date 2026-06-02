@@ -1,8 +1,14 @@
 """Tool registry and ``tool_scope`` context manager.
 
-See ``docs/TOOLS-DECISIONS.md`` (D-07, D-08): a process-wide registry holds
-declared tools; ``tool_scope()`` swaps the active registry via a
-``ContextVar`` so concurrent async scopes do not bleed into each other.
+A process-wide :class:`_ToolRegistry` holds every declared tool keyed
+by canonical id. The :func:`tool` decorator registers into the
+*active* registry — by default the global one, but tests and isolated
+workloads can swap it with :func:`tool_scope` so declarations do not
+leak into the rest of the process.
+
+The active registry is stored in a :class:`contextvars.ContextVar`
+so concurrent async scopes (e.g. multiple ``asyncio.Task`` instances)
+each see their own value.
 """
 
 from __future__ import annotations
@@ -18,18 +24,33 @@ from phronesis.tools.tool_id import ToolId
 
 
 class _ToolRegistry:
-    """Thread-safe mapping of canonical tool id to :class:`Tool`."""
+    """Thread-safe mapping of canonical tool id to :class:`Tool`.
+
+    Internal. Callers reach into the registry through
+    :func:`current_registry` and :func:`tool_scope`. All mutations
+    are guarded by an :class:`RLock` so the registry can be populated
+    from import-time code on multiple threads safely.
+    """
 
     def __init__(self) -> None:
+        """Create an empty registry."""
         self._tools: dict[str, Tool] = {}
         self._lock = threading.RLock()
 
     def register(self, tool: Tool) -> None:
         """Register ``tool`` under its canonical id.
 
-        Re-registering the **same** :class:`Tool` instance is a no-op
-        (idempotent on module re-import). Registering a different tool
-        under an already-taken id raises :class:`DuplicateToolError`.
+        Re-registering the **same** :class:`Tool` instance is a
+        no-op so module re-imports remain idempotent. Registering a
+        *different* tool under an already-taken id raises.
+
+        Args:
+            tool: The tool to register. The id is read from
+                ``tool.spec.id.canonical``.
+
+        Raises:
+            DuplicateToolError: if another distinct tool is already
+                registered under the same id.
         """
         key = tool.spec.id.canonical
 
@@ -54,8 +75,16 @@ class _ToolRegistry:
     def lookup(self, tool_id: ToolId | str) -> Tool:
         """Return the tool registered under ``tool_id``.
 
+        Args:
+            tool_id: Either a :class:`ToolId` instance or its
+                canonical string form.
+
+        Returns:
+            The :class:`Tool` previously registered under that id.
+
         Raises:
-            ToolNotFoundError: if no tool is registered under that id.
+            ToolNotFoundError: if no tool is registered under
+                ``tool_id``.
         """
         key = tool_id.canonical if isinstance(tool_id, ToolId) else tool_id
 
@@ -71,12 +100,20 @@ class _ToolRegistry:
         return tool
 
     def all(self) -> tuple[Tool, ...]:
-        """Return a snapshot tuple of all registered tools."""
+        """Return an immutable snapshot of every registered tool.
+
+        The snapshot is captured under the lock so it cannot change
+        while the caller iterates over it.
+
+        Returns:
+            Tuple of registered :class:`Tool` instances in insertion
+            order.
+        """
         with self._lock:
             return tuple(self._tools.values())
 
     def clear(self) -> None:
-        """Remove every registered tool."""
+        """Remove every registered tool from this registry."""
         with self._lock:
             self._tools.clear()
 

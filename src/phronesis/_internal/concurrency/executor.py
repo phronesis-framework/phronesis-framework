@@ -22,8 +22,20 @@ async def run_sync(
 ) -> T:
     """Run a synchronous callable in a worker thread.
 
-    Wraps :func:`asyncio.to_thread` with structured logging. The callable
-    runs in the default executor and exceptions propagate unchanged.
+    Wraps :func:`asyncio.to_thread` with structured logging. The
+    callable runs in the default executor.
+
+    Args:
+        fn: The synchronous callable to invoke off the event loop.
+        *args: Positional arguments forwarded to ``fn``.
+        **kwargs: Keyword arguments forwarded to ``fn``.
+
+    Returns:
+        Whatever ``fn`` returns.
+
+    Raises:
+        Exception: Any exception raised by ``fn`` propagates
+            unchanged after a warning log entry.
     """
     log = get_logger(_LOGGER_NAME)
     label = getattr(fn, "__qualname__", repr(fn))

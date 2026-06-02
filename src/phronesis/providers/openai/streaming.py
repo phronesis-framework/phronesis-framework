@@ -1,11 +1,15 @@
 """OpenAI Server-Sent Events streaming.
 
-OpenAI's chat completions stream emits ``data: {json}`` SSE frames and
-a terminal ``data: [DONE]`` sentinel. Tool calls are streamed across
-many delta chunks indexed by ``index``; arguments arrive as partial
-JSON strings that must be concatenated and parsed once the call closes.
+The chat completions stream emits ``data: {json}`` SSE frames and a
+terminal ``data: [DONE]`` sentinel. Tool calls are streamed across
+many delta chunks indexed by ``index``; argument fragments arrive as
+partial JSON strings that must be concatenated and parsed once the
+call closes. This module hides those rules behind an async iterator
+yielding the framework-level :data:`LLMChunk` union.
 
-Retry is intentionally *not* applied to streaming.
+Retry is intentionally **not** applied to streaming: once the first
+byte has been delivered, recovery would require re-issuing the
+request from scratch and is out of scope.
 """
 
 from __future__ import annotations
@@ -40,22 +44,32 @@ async def stream_openai_chat(
 
     Args:
         http: Pre-built :class:`httpx.AsyncClient`. Lifetime is the
-            caller's responsibility.
-        api_key: OpenAI API key for the ``Authorization`` header.
+            caller's responsibility; this function does not close
+            the client.
+        api_key: OpenAI API key sent as a Bearer token in the
+            ``Authorization`` header. Empty string disables the
+            header (anonymous local backends).
         body: JSON body. ``stream`` is forced to ``True`` and
-            ``stream_options.include_usage`` is enabled so the terminal
-            chunk carries usage information.
+            ``stream_options.include_usage`` is enabled before
+            sending so the terminal chunk carries usage information.
+
+    Yields:
+        :data:`LLMChunk` values translated from the SSE stream.
 
     Raises:
-        ProviderError: For any HTTP 4xx/5xx response.
-        StreamError: For malformed SSE frames or tool argument JSON.
+        ProviderError: For any HTTP 4xx/5xx response received before
+            the stream starts.
+        StreamError: For malformed SSE frames or tool-argument JSON
+            that cannot be decoded.
     """
     request_body = _enable_streaming(body)
-    headers = {
-        "authorization": f"Bearer {api_key}",
+    headers: dict[str, str] = {
         "content-type": "application/json",
         "accept": "text/event-stream",
     }
+
+    if api_key:
+        headers["authorization"] = f"Bearer {api_key}"
 
     async with http.stream(
         "POST", "/v1/chat/completions", json=request_body, headers=headers

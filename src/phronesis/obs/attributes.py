@@ -65,3 +65,9 @@ COST_USD: Final[str] = "cost.usd"
 
 STREAM_CHUNKS_COUNT: Final[str] = "stream.chunks_count"
 STREAM_FIRST_CHUNK_MS: Final[str] = "stream.first_chunk_ms"
+
+# Context -------------------------------------------------------------
+
+CONTEXT_BUILDER: Final[str] = "context.builder"
+CONTEXT_HISTORY_SIZE: Final[str] = "context.history_size"
+CONTEXT_COMPACTED: Final[str] = "context.compacted"

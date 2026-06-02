@@ -1,12 +1,17 @@
 """Convert phronesis messages to/from the Anthropic message format.
 
-Anthropic's API (v1/messages) takes:
-- ``system`` as a top-level string (not a message),
-- ``messages`` as an alternating sequence of ``user``/``assistant`` turns,
-- content as either a plain string or a list of typed blocks:
-  ``text``, ``tool_use``, ``tool_result``.
+The Anthropic ``/v1/messages`` endpoint takes:
 
-Reference: https://docs.anthropic.com/en/api/messages
+* ``system`` as a top-level string (not a message in the list);
+* ``messages`` as an alternating sequence of ``user``/``assistant``
+  turns;
+* content as either a plain string or a list of typed blocks
+  (``text``, ``tool_use``, ``tool_result``).
+
+This module hides those shape rules behind two helpers,
+:func:`to_anthropic_messages` (outbound) and
+:func:`from_anthropic_content` (inbound), so the rest of the
+framework can stay in :class:`Message`/:class:`ToolCall` land.
 """
 
 from __future__ import annotations
@@ -15,11 +20,32 @@ import json
 from collections.abc import Sequence
 from typing import Any
 
-from phronesis.providers.types import Message, Role, ToolCall
+from phronesis.providers.types import MediaRef, Message, Role, ToolCall
 
 
 def _text_block(text: str) -> dict[str, Any]:
     return {"type": "text", "text": text}
+
+
+def _ephemeral_cache_control() -> dict[str, str]:
+    return {"type": "ephemeral"}
+
+
+def _mark_cached(block: dict[str, Any]) -> dict[str, Any]:
+    return {**block, "cache_control": _ephemeral_cache_control()}
+
+
+def _media_block(ref: MediaRef) -> dict[str, Any]:
+    source: dict[str, Any] = (
+        {"type": "url", "url": ref.data}
+        if ref.source_type == "url"
+        else {"type": "base64", "media_type": ref.media_type, "data": ref.data}
+    )
+
+    return {
+        "type": "image" if ref.kind == "image" else "document",
+        "source": source,
+    }
 
 
 def _tool_use_block(call: ToolCall) -> dict[str, Any]:
@@ -56,45 +82,143 @@ def _assistant_blocks(message: Message) -> list[dict[str, Any]]:
 
 def to_anthropic_messages(
     messages: Sequence[Message],
-) -> tuple[list[dict[str, Any]], str | None]:
+) -> tuple[list[dict[str, Any]], str | list[dict[str, Any]] | None]:
     """Translate ``messages`` into the Anthropic request shape.
 
-    Returns a pair ``(messages, system)`` where ``messages`` is the value
-    of the ``messages`` field and ``system`` is the value of the
-    ``system`` field (``None`` if there are no system messages).
-    Consecutive system messages are joined with two newlines.
+    System messages are extracted from the sequence and joined into
+    the top-level ``system`` field. When no system chunk is cached
+    the field is a plain string (two-newline join); when at least
+    one chunk carries a cache hint the field is a list of typed
+    text blocks so the per-chunk ``cache_control`` marker survives
+    serialisation. Tool result messages are folded into ``user``
+    turns whose only block is a ``tool_result`` block.
+
+    Messages whose ``cache`` flag is ``True`` get a
+    ``cache_control: {"type": "ephemeral"}`` marker on the **last**
+    block of their translated content, opting the prefix up to and
+    including the message into Anthropic's prompt cache.
+
+    Args:
+        messages: Conversation history in framework form.
+
+    Returns:
+        A ``(messages, system)`` pair: ``messages`` is the value of
+        the ``messages`` field in the request body and ``system`` is
+        the value of the ``system`` field (``None`` when there are
+        no system messages, plain string when no caching is
+        requested, list of blocks otherwise).
     """
-    system_chunks: list[str] = []
+    system_chunks: list[tuple[str, bool]] = []
     out: list[dict[str, Any]] = []
 
     for message in messages:
         if message.role is Role.SYSTEM:
             if message.content:
-                system_chunks.append(message.content)
+                system_chunks.append((message.content, message.cache))
             continue
 
-        if message.role is Role.USER:
-            out.append({"role": "user", "content": [_text_block(message.content)]})
-            continue
+        translated = _translate_non_system(message)
 
-        if message.role is Role.ASSISTANT:
-            blocks = _assistant_blocks(message)
-            out.append({"role": "assistant", "content": blocks})
-            continue
+        if translated is not None:
+            out.append(translated)
 
-        if message.role is Role.TOOL:
-            out.append({"role": "user", "content": [_tool_result_block(message)]})
+    return out, _build_system(system_chunks)
 
-    system = "\n\n".join(system_chunks) if system_chunks else None
 
-    return out, system
+def _translate_non_system(message: Message) -> dict[str, Any] | None:
+    """Translate a non-system message into the Anthropic envelope.
+
+    Returns ``None`` for roles outside the user/assistant/tool set so
+    the caller can drop unrecognised entries silently.
+    """
+    if message.role is Role.USER:
+        return _user_envelope(message)
+
+    if message.role is Role.ASSISTANT:
+        return _assistant_envelope(message)
+
+    if message.role is Role.TOOL:
+        return _tool_envelope(message)
+
+    return None
+
+
+def _user_envelope(message: Message) -> dict[str, Any]:
+    blocks: list[dict[str, Any]] = []
+
+    if message.content:
+        blocks.append(_text_block(message.content))
+
+    blocks.extend(_media_block(ref) for ref in message.media)
+
+    if not blocks:
+        blocks.append(_text_block(""))
+
+    if message.cache:
+        blocks[-1] = _mark_cached(blocks[-1])
+
+    return {"role": "user", "content": blocks}
+
+
+def _assistant_envelope(message: Message) -> dict[str, Any]:
+    blocks = _assistant_blocks(message)
+
+    if message.cache and blocks:
+        blocks[-1] = _mark_cached(blocks[-1])
+
+    return {"role": "assistant", "content": blocks}
+
+
+def _tool_envelope(message: Message) -> dict[str, Any]:
+    blocks: list[dict[str, Any]] = [_tool_result_block(message)]
+
+    if message.cache:
+        blocks[-1] = _mark_cached(blocks[-1])
+
+    return {"role": "user", "content": blocks}
+
+
+def _build_system(
+    chunks: list[tuple[str, bool]],
+) -> str | list[dict[str, Any]] | None:
+    """Build the Anthropic ``system`` field from ``chunks``.
+
+    Returns a plain string when no chunk is cached (back-compat
+    fast path), or a list of typed text blocks when at least one
+    chunk carries a cache hint. Returns ``None`` when there are
+    no system chunks.
+    """
+    if not chunks:
+        return None
+
+    if not any(cache for _, cache in chunks):
+        return "\n\n".join(text for text, _ in chunks)
+
+    blocks: list[dict[str, Any]] = []
+
+    for text, cache in chunks:
+        block = _text_block(text)
+
+        if cache:
+            block = _mark_cached(block)
+
+        blocks.append(block)
+
+    return blocks
 
 
 def from_anthropic_content(blocks: Sequence[dict[str, Any]]) -> tuple[str, tuple[ToolCall, ...]]:
-    """Parse the ``content`` of an Anthropic ``message`` response.
+    """Parse the ``content`` of an Anthropic message response.
 
-    Returns the concatenated text and the tuple of tool calls extracted
-    from ``tool_use`` blocks.
+    Args:
+        blocks: List of typed content blocks as returned by the
+            Anthropic API.
+
+    Returns:
+        A ``(text, tool_calls)`` pair where ``text`` is the
+        concatenated content of every ``text`` block and
+        ``tool_calls`` is the tuple of :class:`ToolCall` instances
+        derived from every ``tool_use`` block.
     """
     text_parts: list[str] = []
     calls: list[ToolCall] = []

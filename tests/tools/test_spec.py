@@ -233,3 +233,43 @@ class TestToolSpecHasNoCallable:
             value = getattr(spec, field_name)
 
             assert not callable(value)
+
+
+class TestToolSpecVersionValidation:
+    def test_accepts_valid_semver_string(self) -> None:
+        spec = ToolSpec(
+            id=_make_id(),
+            name=_make_name(),
+            description="d",
+            version="2.0.1",
+        )
+
+        assert spec.version == "2.0.1"
+
+    def test_default_version_is_valid(self) -> None:
+        spec = ToolSpec(id=_make_id(), name=_make_name(), description="d")
+
+        assert spec.version == "0.1.0"
+
+    def test_rejects_malformed_version(self) -> None:
+        from phronesis.tools.version import InvalidVersionError
+
+        with pytest.raises(InvalidVersionError):
+            ToolSpec(
+                id=_make_id(),
+                name=_make_name(),
+                description="d",
+                version="not-a-version",
+            )
+
+    def test_parsed_version_returns_tool_version(self) -> None:
+        from phronesis.tools.version import ToolVersion
+
+        spec = ToolSpec(
+            id=_make_id(),
+            name=_make_name(),
+            description="d",
+            version="3.4.5",
+        )
+
+        assert spec.parsed_version == ToolVersion(major=3, minor=4, patch=5)

@@ -1,11 +1,11 @@
 """Map Anthropic HTTP responses to the provider error hierarchy.
 
-The Anthropic API returns JSON of the form
-``{"type": "error", "error": {"type": ..., "message": ...}}`` along with
-an HTTP status. This module translates both into the appropriate
-:class:`ProviderError` subclass and keeps the original message.
-
-Reference: https://docs.anthropic.com/en/api/errors
+Anthropic error responses come as JSON of the form
+``{"type": "error", "error": {"type": ..., "message": ...}}`` along
+with an HTTP status. This module inspects both and builds the
+appropriate :class:`ProviderError` subclass, preserving the original
+human-readable message and extracting the ``Retry-After`` header
+when the failure is a rate-limit.
 """
 
 from __future__ import annotations
@@ -87,7 +87,22 @@ def _classify(status: int, error_type: str, message: str) -> type[ProviderError]
 
 
 def translate_response_error(response: httpx.Response) -> ProviderError:
-    """Build the appropriate :class:`ProviderError` for an HTTP error response."""
+    """Build the appropriate :class:`ProviderError` for an HTTP error response.
+
+    The classification looks at the HTTP status first, then at the
+    vendor-specific ``error.type`` and message for the few cases the
+    status alone cannot disambiguate (most notably 400s caused by
+    context-window overflow).
+
+    Args:
+        response: The :class:`httpx.Response` whose status indicates
+            a failure (``>= 400``).
+
+    Returns:
+        A concrete :class:`ProviderError` subclass instance carrying
+        the failure message and, for rate-limit errors, the parsed
+        ``Retry-After`` value.
+    """
     error_type, message = _extract_error_details(response)
     text = message or response.reason_phrase or f"HTTP {response.status_code}"
     error_cls = _classify(response.status_code, error_type, message)

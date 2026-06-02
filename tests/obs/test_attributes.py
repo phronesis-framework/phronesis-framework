@@ -91,4 +91,5 @@ class TestCatalogIntegrity:
             "tokens",
             "cost",
             "stream",
+            "context",
         }

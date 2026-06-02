@@ -17,7 +17,7 @@ Each attribute starts as a :class:`_NoopInstrument` and is rebound to a
 real OpenTelemetry instrument by :func:`_build_registry` during
 ``configure_obs``.
 
-Catalog (see the obs design notes for full attribute lists):
+Catalog:
 
 Tools
     ``tool_invocations``, ``tool_duration``, ``tool_errors``

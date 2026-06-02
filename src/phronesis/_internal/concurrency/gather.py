@@ -19,11 +19,23 @@ async def gather_all(
     *awaitables: Awaitable[T],
     policy: GatherPolicy | None = None,
 ) -> list[T]:
-    """Run ``awaitables`` concurrently and reconcile results via ``policy``.
+    """Run ``awaitables`` concurrently and reconcile via ``policy``.
 
-    Defaults to :class:`FailFastPolicy`. Use :class:`BestEffortPolicy` to
-    wait for every task and surface partial failures via
-    :class:`PartialFailureError`.
+    Args:
+        *awaitables: Awaitables scheduled on the running event loop.
+        policy: Error-handling strategy. Defaults to
+            :class:`FailFastPolicy`. Use :class:`BestEffortPolicy` to
+            wait for every task and surface partial failures.
+
+    Returns:
+        Results in input order. For :class:`BestEffortPolicy`, failed
+        slots are replaced with ``None`` before the policy raises.
+
+    Raises:
+        Exception: The first exception raised by any awaitable under
+            :class:`FailFastPolicy`.
+        PartialFailureError: When :class:`BestEffortPolicy` finds at
+            least one failed awaitable.
     """
     effective_policy = policy or FailFastPolicy()
     log = get_logger(_LOGGER_NAME)

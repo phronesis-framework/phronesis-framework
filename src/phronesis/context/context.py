@@ -13,12 +13,14 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from logging import Logger, LoggerAdapter
 from types import MappingProxyType
-from typing import Any, Final
+from typing import TYPE_CHECKING, Any, Final
 
-from phronesis.communication.session_id import SessionId
 from phronesis.context.budget import Budget
-from phronesis.core.agent_id import AgentId
-from phronesis.runtime.run_id import RunId
+
+if TYPE_CHECKING:
+    from phronesis.agents.id import AgentId
+    from phronesis.agents.run import RunId
+    from phronesis.communication.session_id import SessionId
 
 _EMPTY_METADATA: Final[Mapping[str, Any]] = MappingProxyType({})
 

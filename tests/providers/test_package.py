@@ -25,5 +25,8 @@ class TestProvidersScaffold:
     def test_openai_subpackage_exposes_factory(self) -> None:
         module = importlib.import_module("phronesis.providers.openai")
 
-        assert module.__all__ == ["openai"]
+        assert module.__all__ == ["ollama", "openai", "openwebui", "vllm"]
         assert callable(module.openai)
+        assert callable(module.ollama)
+        assert callable(module.vllm)
+        assert callable(module.openwebui)
