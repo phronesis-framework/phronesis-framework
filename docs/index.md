@@ -43,7 +43,8 @@
 | `providers` - adaptadores por proveedor LLM | estable | [providers/](./providers/index.md) |
 | `obs` - observabilidad (spans, metrics, log correlation) | estable | [obs/](./obs/index.md) |
 | `context` - contexto compartido entre tools | pendiente | _no docs yet_ |
-| `communication`, `core`, `mcp`, `memory`, `pipelines` | pendiente | _no docs yet_ |
+| `memory` - working/kv/vector/episodic stores + checkpoints | estable | [memory/](./memory/index.md) |
+| `communication`, `core`, `mcp`, `pipelines` | pendiente | _no docs yet_ |
 
 <div align="center">
 
