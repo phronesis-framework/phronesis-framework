@@ -13,6 +13,8 @@ exposes a module-level singleton through
 
 from __future__ import annotations
 
+import asyncio
+
 from phronesis.context.input import BuildInput
 from phronesis.core.messages import Message, SystemMessage, TextBlock
 
@@ -47,5 +49,7 @@ class DefaultContextBuilder:
 
         if input.new_input is not None:
             messages.append(input.new_input)
+
+        await asyncio.sleep(0)
 
         return messages
