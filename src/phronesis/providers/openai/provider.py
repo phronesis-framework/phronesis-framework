@@ -10,6 +10,7 @@ responsibility.
 
 from __future__ import annotations
 
+import asyncio
 from collections.abc import AsyncIterator, Sequence
 from typing import Any, ClassVar
 
@@ -218,7 +219,7 @@ class OpenAIProvider:
 
         return total_chars // _CHARS_PER_TOKEN
 
-    async def count_tokens_exact(self, messages: Sequence[DomainMessage]) -> int | None:
+    async def count_tokens_exact(self, _messages: Sequence[DomainMessage]) -> int | None:
         """Return ``None``: OpenAI exposes no public counting endpoint.
 
         Exact counting would require the optional ``tiktoken`` package
@@ -226,6 +227,8 @@ class OpenAIProvider:
         of scope for the MVP. Callers should fall back to
         :meth:`count_tokens` when ``None`` is returned.
         """
+        await asyncio.sleep(0)
+
         return None
 
     async def complete(self, request: LLMRequest) -> LLMResponse:
