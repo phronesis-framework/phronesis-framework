@@ -337,3 +337,101 @@ class TestAnthropicProviderStream:
         )
 
         assert hasattr(iterator, "__aiter__")
+
+
+class TestAnthropicContextWindowSize:
+    def test_known_model_returns_table_value(self) -> None:
+        provider = AnthropicProvider(
+            model="claude-3-5-sonnet-20241022",
+            api_key="sk-test",
+            http_client=_client(lambda r: httpx.Response(200, json=_ok_payload())),
+        )
+
+        assert provider.context_window_size() == 200_000
+
+    def test_unknown_model_returns_default(self) -> None:
+        provider = AnthropicProvider(
+            model="claude-future-unknown",
+            api_key="sk-test",
+            http_client=_client(lambda r: httpx.Response(200, json=_ok_payload())),
+        )
+
+        assert provider.context_window_size() == 200_000
+
+
+class TestAnthropicCountTokens:
+    def test_empty_history_returns_zero(self) -> None:
+        provider = _make_provider(handler=lambda r: httpx.Response(200, json=_ok_payload()))
+
+        assert provider.count_tokens([]) == 0
+
+    def test_text_messages_estimated_via_char_heuristic(self) -> None:
+        from phronesis.core.messages import TextBlock, UserMessage
+
+        provider = _make_provider(handler=lambda r: httpx.Response(200, json=_ok_payload()))
+        messages = [UserMessage(content=(TextBlock(text="abcdefgh"),))]  # 8 chars
+
+        # 8 chars / 4 chars-per-token = 2
+        assert provider.count_tokens(messages) == 2
+
+    def test_tool_use_blocks_included_in_estimate(self) -> None:
+        from phronesis.core.messages import AssistantMessage, ToolUseBlock
+
+        provider = _make_provider(handler=lambda r: httpx.Response(200, json=_ok_payload()))
+        messages = [
+            AssistantMessage(
+                content=(
+                    ToolUseBlock(
+                        tool_call_id="t1",
+                        tool_name="search",
+                        args=(("q", "x"),),
+                    ),
+                )
+            )
+        ]
+
+        assert provider.count_tokens(messages) > 0
+
+    def test_compaction_summary_block_included(self) -> None:
+        from phronesis.core.messages import AssistantMessage, CompactionSummaryBlock
+
+        provider = _make_provider(handler=lambda r: httpx.Response(200, json=_ok_payload()))
+        messages = [
+            AssistantMessage(
+                content=(
+                    CompactionSummaryBlock(
+                        text="aaaaaaaa",  # 8 chars
+                        original_message_count=10,
+                    ),
+                )
+            )
+        ]
+
+        assert provider.count_tokens(messages) == 2
+
+
+class TestAnthropicExtraBody:
+    @pytest.mark.asyncio
+    async def test_extra_body_merged_into_payload(self) -> None:
+        import json
+
+        captured: list[dict[str, Any]] = []
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            captured.append(json.loads(request.content))
+
+            return httpx.Response(200, json=_ok_payload())
+
+        provider = _make_provider(handler=handler)
+        await provider.complete(
+            LLMRequest(
+                model="",
+                messages=(Message(role=Role.USER, content="hi"),),
+                max_tokens=10,
+                extra_body={"top_k": 5, "metadata": {"user_id": "abc"}},
+            ),
+        )
+
+        body = captured[0]
+        assert body["top_k"] == 5
+        assert body["metadata"] == {"user_id": "abc"}

@@ -72,3 +72,20 @@ class TestOpenAIFactory:
 
         assert isinstance(provider._http, httpx.AsyncClient)
         assert str(provider._http.base_url) == "https://example.test"
+
+    def test_custom_base_url_without_key_does_not_raise(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+
+        transport = httpx.MockTransport(lambda r: httpx.Response(200, json={}))
+        client = httpx.AsyncClient(transport=transport, base_url="http://localhost:11434/v1")
+
+        provider = openai(
+            "qwen2.5",
+            base_url="http://localhost:11434/v1",
+            http_client=client,
+        )
+
+        assert provider._api_key == ""

@@ -1,11 +1,14 @@
 """Anthropic Server-Sent Events streaming.
 
-Anthropic's ``/v1/messages?stream=true`` returns an SSE stream of typed
-events. This module parses that stream and translates it into the
-framework-level :data:`phronesis.providers.chunks.LLMChunk` union.
+The streaming endpoint returns an SSE stream of typed events
+(``message_start``, ``content_block_start``, ``content_block_delta``,
+...). This module parses those frames and translates them into the
+framework-level :data:`LLMChunk` union so callers can iterate
+chunks without knowing the vendor's wire format.
 
-Retry is intentionally *not* applied here: ``complete`` retries the
-whole request, but mid-stream recovery is out of scope.
+Retry is intentionally **not** applied here: :meth:`complete`
+retries the whole request, but mid-stream recovery would require
+re-issuing the request from scratch and is out of scope.
 """
 
 from __future__ import annotations
@@ -39,14 +42,21 @@ async def stream_anthropic_messages(
 
     Args:
         http: Pre-built :class:`httpx.AsyncClient`. Lifetime is the
-            caller's responsibility.
+            caller's responsibility; this function does not close
+            the client.
         api_key: Anthropic API key for the ``x-api-key`` header.
-        api_version: Value for ``anthropic-version``.
-        body: JSON body for the request. ``stream`` is forced to ``True``.
+        api_version: Value for the ``anthropic-version`` header.
+        body: JSON body for the request. ``stream`` is forced to
+            ``True`` before sending.
+
+    Yields:
+        :data:`LLMChunk` values translated from the SSE stream.
 
     Raises:
-        ProviderError: For any HTTP 4xx/5xx response.
-        StreamError: For malformed SSE frames or ``error`` events.
+        ProviderError: For any HTTP 4xx/5xx response received before
+            the stream starts.
+        StreamError: For malformed SSE frames or ``error`` events
+            mid-stream.
     """
     request_body = {**body, "stream": True}
     headers = {
@@ -68,14 +78,14 @@ async def stream_anthropic_messages(
 async def _parse_sse(response: httpx.Response) -> AsyncIterator[dict[str, Any]]:
     """Yield decoded JSON payloads from an SSE response.
 
-    Anthropic's SSE frames look like::
+    SSE frames look like::
 
         event: message_start
         data: {"type": "message_start", ...}
 
-    Frames are terminated by a blank line. Only the ``data:`` payload is
-    meaningful here; the ``event:`` line is informational and the
-    embedded ``type`` field is authoritative.
+    Frames are terminated by a blank line. Only the ``data:``
+    payload is meaningful here; the ``event:`` line is informational
+    and the embedded ``type`` field inside the JSON is authoritative.
     """
     data_lines: list[str] = []
 

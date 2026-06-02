@@ -1,13 +1,14 @@
 """Detection of :class:`Context`-typed parameters for runtime injection.
 
-See ``docs/TOOLS-DECISIONS.md`` (D-15, D-16, D-17, D-18): a tool that
-declares a parameter typed as :class:`Context` receives it from the
-runtime via :meth:`Tool.invoke`, and the parameter is filtered out of
-the schema and the argument validator.
+A tool that declares a parameter typed as :class:`Context` receives
+it from the runtime via :meth:`Tool.invoke`. That parameter is
+filtered out of the canonical schema and the argument validator so
+the LLM never sees it and never gets to control it.
 
 Detection is by **type**, not by name: any parameter whose resolved
-annotation is :class:`Context` (or a subclass) qualifies, regardless of
-its identifier (``ctx``, ``context``, ``c``, ...).
+annotation is :class:`Context` (or a subclass) qualifies, regardless
+of its identifier (``ctx``, ``context``, ``c``, ...). Declaring more
+than one such parameter is rejected at decoration time.
 """
 
 from __future__ import annotations
@@ -39,9 +40,19 @@ def _is_context_type(annotation: Any) -> bool:
 def detect_context_param(fn: Callable[..., Any]) -> str | None:
     """Return the name of the parameter typed as :class:`Context`, if any.
 
-    Returns ``None`` when the function takes no such parameter. Raises
-    :class:`ToolDefinitionError` when more than one parameter is typed as
-    :class:`Context`: a tool can only receive one runtime context.
+    Args:
+        fn: The function whose signature to inspect. Type hints are
+            resolved with ``include_extras=True`` so :class:`Annotated`
+            wrappers are unwrapped before the check.
+
+    Returns:
+        The parameter name when exactly one :class:`Context`-typed
+        parameter is found, otherwise ``None``.
+
+    Raises:
+        ToolDefinitionError: when more than one parameter is typed as
+            :class:`Context`: a tool can only receive one runtime
+            context.
     """
     signature = inspect.signature(fn)
     hints = get_type_hints(fn, include_extras=True)

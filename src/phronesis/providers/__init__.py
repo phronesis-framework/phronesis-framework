@@ -29,25 +29,38 @@ from phronesis.providers.errors import (
     StreamError,
     TransportError,
 )
-from phronesis.providers.openai import openai
+from phronesis.providers.fallback import FallbackExhaustedError, FallbackProvider
+from phronesis.providers.openai import ollama, openai, openwebui, vllm
 from phronesis.providers.protocol import LLMProvider, ProviderFeature
 from phronesis.providers.retry_config import RetryConfig
-from phronesis.providers.types import LLMRequest, LLMResponse, Message, Role, ToolCall
+from phronesis.providers.types import (
+    LLMRequest,
+    LLMResponse,
+    MediaRef,
+    Message,
+    ResponseFormat,
+    Role,
+    ToolCall,
+)
 from phronesis.providers.usage import TokenUsage
 
 __all__ = [
     "AuthenticationError",
     "BadRequestError",
     "ContextWindowExceededError",
+    "FallbackExhaustedError",
+    "FallbackProvider",
     "Finish",
     "LLMChunk",
     "LLMProvider",
     "LLMRequest",
     "LLMResponse",
+    "MediaRef",
     "Message",
     "ProviderError",
     "ProviderFeature",
     "RateLimitError",
+    "ResponseFormat",
     "RetryConfig",
     "Role",
     "ServerError",
@@ -60,5 +73,8 @@ __all__ = [
     "ToolResult",
     "TransportError",
     "anthropic",
+    "ollama",
     "openai",
+    "openwebui",
+    "vllm",
 ]

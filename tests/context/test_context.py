@@ -9,10 +9,10 @@ from types import MappingProxyType
 
 import pytest
 
+from phronesis.agents.id import AgentId
+from phronesis.agents.run import RunId
 from phronesis.communication.session_id import SessionId
 from phronesis.context import Budget, Context
-from phronesis.core.agent_id import AgentId
-from phronesis.runtime.run_id import RunId
 
 
 class TestContextDefaults:

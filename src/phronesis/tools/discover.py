@@ -1,8 +1,8 @@
 """Recursive package import helper that triggers ``@tool`` registrations.
 
-See ``docs/TOOLS-DECISIONS.md`` (D-09): explicit imports remain the
-primary path. ``discover`` is an opt-in convenience that walks a package
-tree, importing every submodule so its ``@tool`` decorations execute and
+Explicit imports remain the primary path for registering tools.
+:func:`discover` is an opt-in convenience that walks a package tree,
+importing every submodule so its ``@tool`` decorations execute and
 register into the active registry.
 
 Broken submodules emit a :class:`UserWarning` and are skipped; they do
@@ -23,6 +23,11 @@ def discover(package: str) -> None:
     Importing a module evaluates its top-level ``@tool`` decorators,
     which is how registrations land in the active registry. Single-file
     modules are supported too: they are simply imported.
+
+    Args:
+        package: Dotted name of the package (or module) to import. May
+            be a regular package, a namespace package, or a single
+            module without submodules.
 
     Raises:
         ModuleNotFoundError: when ``package`` cannot be imported at all.

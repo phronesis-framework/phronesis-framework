@@ -3,10 +3,12 @@
 Provides ``configure_obs`` and the immutable ``ObsConfig`` snapshot
 that drives tracer provider initialization.
 
-The default configuration sends spans to ``ConsoleSpanExporter`` with
-100% sampling and the ``phronesis`` service name, so installing the
-``obs`` extra and calling ``configure_obs()`` produces useful output
-without any further setup.
+The default configuration sends spans to ``ConsoleSpanExporter`` and
+metrics to ``ConsoleMetricExporter`` via a
+``PeriodicExportingMetricReader``, with 100% sampling and the
+``phronesis`` service name, so installing the ``obs`` extra and
+calling ``configure_obs()`` produces useful output without any
+further setup.
 
 ``configure_obs`` is idempotent: subsequent calls fully replace the
 previous tracer provider rather than stacking processors.
@@ -33,7 +35,23 @@ _VALID_EXPORTERS = frozenset({"console", "otlp"})
 
 @dataclass(frozen=True, slots=True)
 class ObsConfig:
-    """Immutable snapshot of an active observability configuration."""
+    """Immutable snapshot of an active observability configuration.
+
+    Attributes:
+        exporter: Exporter selector. One of ``"console"`` or ``"otlp"``.
+        endpoint: OTLP endpoint URL. Required when ``exporter="otlp"``
+            and ``exporter_instance`` is ``None``.
+        sampling: Trace sampling ratio. ``>= 1.0`` enables every
+            trace, ``<= 0.0`` disables sampling, intermediate values
+            use ratio-based sampling.
+        service_name: ``service.name`` resource attribute attached
+            to every span and metric.
+        exporter_instance: Pre-built span exporter that overrides
+            ``exporter``/``endpoint`` when not ``None``. Used by tests
+            and advanced setups.
+        metric_reader_instance: Pre-built metric reader that overrides
+            the default reader when not ``None``.
+    """
 
     exporter: str = "console"
     endpoint: str | None = None
@@ -63,15 +81,37 @@ def configure_obs(
     exporter_instance: Any = None,
     metric_reader_instance: Any = None,
 ) -> ObsConfig:
-    """Initialize the global tracer provider.
+    """Initialize the global tracer and meter providers.
+
+    Idempotent: each call fully replaces any prior providers,
+    rebuilds the metrics registry and reinstalls the log correlation
+    filter on the root logger.
+
+    Args:
+        exporter: Exporter selector. ``"console"`` writes to stdout;
+            ``"otlp"`` ships spans and metrics over HTTP to
+            ``endpoint``.
+        endpoint: OTLP endpoint URL. Required when ``exporter="otlp"``
+            unless ``exporter_instance`` is supplied.
+        sampling: Trace sampling ratio. Values ``>= 1.0`` keep every
+            trace; ``<= 0.0`` drop every trace; intermediate values
+            sample by trace id ratio.
+        service_name: ``service.name`` resource attribute attached
+            to every span and metric.
+        exporter_instance: Optional pre-built span exporter. When
+            provided, bypasses ``exporter``/``endpoint`` selection.
+        metric_reader_instance: Optional pre-built metric reader.
+            When provided, replaces the default reader.
+
+    Returns:
+        The :class:`ObsConfig` snapshot captured for the active
+        configuration.
 
     Raises:
-        ObsNotAvailableError: if the ``obs`` extra is not installed.
-        ObsConfigError: if the argument combination is invalid (unknown
-            exporter, or ``exporter="otlp"`` without ``endpoint``).
-
-    Idempotent: each call fully replaces any prior tracer provider.
-    Returns the resulting :class:`ObsConfig` snapshot.
+        ObsNotAvailableError: when the ``obs`` extra is not
+            installed.
+        ObsConfigError: when ``exporter`` is unknown or
+            ``exporter="otlp"`` is requested without an ``endpoint``.
     """
     if not OBS_AVAILABLE:
         raise ObsNotAvailableError(_NOT_AVAILABLE_MESSAGE)
@@ -177,7 +217,12 @@ def _build_metric_readers(
 
         return [PeriodicExportingMetricReader(OTLPMetricExporter(endpoint=endpoint))]
 
-    return []
+    from opentelemetry.sdk.metrics.export import (
+        ConsoleMetricExporter,
+        PeriodicExportingMetricReader,
+    )
+
+    return [PeriodicExportingMetricReader(ConsoleMetricExporter())]
 
 
 def _reset_state() -> None:

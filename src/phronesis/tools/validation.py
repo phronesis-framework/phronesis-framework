@@ -1,9 +1,15 @@
 """Pydantic-backed validator for tool arguments.
 
-See ``docs/TOOLS-DECISIONS.md`` (D-12, D-26): build a dynamic Pydantic v2
-model from the function signature and use it to validate inputs before
-the tool runs. On failure, raise :class:`ToolValidationError` carrying the
-expected schema of the **affected parameter only** (not the full schema).
+A dynamic pydantic v2 model is built from the function signature and
+used to validate inputs before the tool runs. Validation failures are
+re-raised as :class:`ToolValidationError`; the ``details`` payload
+includes the offending ``field`` and the expected schema for that
+field only — never the full schema — to keep the message useful to the
+LLM without flooding it.
+
+Tools whose only non-context parameter is a single
+:class:`pydantic.BaseModel` short-circuit the model construction and
+delegate validation to the declared model directly.
 """
 
 from __future__ import annotations
@@ -124,9 +130,20 @@ def build_validator(
 ) -> Callable[[dict[str, Any]], dict[str, Any]]:
     """Return a callable that validates a kwargs dict against ``fn``'s signature.
 
-    Variadic ``*args`` and ``**kwargs`` are skipped: only named parameters
-    are validated. Single-model tools (D-12) delegate validation to the
-    declared :class:`BaseModel`.
+    Variadic ``*args`` and ``**kwargs`` are skipped: only named
+    parameters are validated. A tool whose only non-context parameter
+    is a single :class:`pydantic.BaseModel` delegates validation to
+    that model.
+
+    Args:
+        fn: The function whose signature drives validation. The
+            built validator is cached on the :class:`Tool` wrapper and
+            re-used for every invocation.
+
+    Returns:
+        A callable that accepts the raw kwargs dict and returns a
+        validated/coerced kwargs dict. Raises
+        :class:`ToolValidationError` on failure.
     """
     single = get_single_model(fn)
 

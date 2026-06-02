@@ -105,9 +105,30 @@ def retry(
 ) -> Callable[[Callable[P, Awaitable[T]]], Callable[P, Awaitable[T]]]:
     """Wrap an async callable so it is retried on transient failures.
 
-    Raises :class:`RetryExhaustedError` with the full attempt history when
-    ``max_attempts`` is reached. Exceptions outside ``on`` are propagated
-    immediately, as are exceptions for which ``should_retry`` returns ``False``.
+    Args:
+        on: Exception types that trigger a retry. Any exception
+            outside this tuple propagates immediately.
+        max_attempts: Total attempts including the first one. Must
+            be ``>= 1``.
+        should_retry: Optional predicate giving the final say on
+            whether to retry a matched exception. Returning ``False``
+            propagates the exception unchanged.
+        backoff: Delay strategy between attempts. Defaults to
+            :class:`ExponentialBackoff`.
+        honor_retry_after: When ``True``, an exception with a
+            ``retry_after_seconds`` attribute overrides the backoff
+            for that delay.
+        delay_hook: Optional callable invoked with the exception;
+            returning a float overrides both backoff and
+            ``retry_after_seconds``.
+        log_level: Logging level used for the "retrying" record.
+
+    Returns:
+        A decorator producing the retrying wrapper.
+
+    Raises:
+        RetryExhaustedError: When ``max_attempts`` retries do not
+            succeed; carries the full :class:`AttemptInfo` history.
     """
     effective_backoff: BackoffStrategy = backoff or ExponentialBackoff()
     log = get_logger(_LOGGER_NAME)

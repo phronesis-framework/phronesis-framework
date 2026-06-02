@@ -1,0 +1,47 @@
+{
+  "uid": "phronesis-agents",
+  "title": "Phronesis — Agents",
+  "tags": ["phronesis", "agents"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "time": {"from": "now-1h", "to": "now"},
+  "templating": {
+    "list": [
+      {"name": "agent", "type": "query", "datasource": {"type": "prometheus", "uid": "phronesis-prom"}, "query": "label_values(phronesis_agent_runs_total, agent_name)", "refresh": 2, "includeAll": true, "multi": true}
+    ]
+  },
+  "panels": [
+    {
+      "id": 1, "type": "stat", "title": "Active runs (5m)",
+      "datasource": {"type": "prometheus", "uid": "phronesis-prom"},
+      "gridPos": {"h": 4, "w": 6, "x": 0, "y": 0},
+      "targets": [{"expr": "sum(increase(phronesis_agent_runs_total{agent_name=~\"$agent\"}[5m]))", "refId": "A"}]
+    },
+    {
+      "id": 2, "type": "timeseries", "title": "Agent runs / min by agent",
+      "datasource": {"type": "prometheus", "uid": "phronesis-prom"},
+      "gridPos": {"h": 8, "w": 18, "x": 6, "y": 0},
+      "targets": [{"expr": "sum by (agent_name) (rate(phronesis_agent_runs_total{agent_name=~\"$agent\"}[1m])) * 60", "refId": "A", "legendFormat": "{{agent_name}}"}]
+    },
+    {
+      "id": 3, "type": "histogram", "title": "Tool calls per run",
+      "datasource": {"type": "prometheus", "uid": "phronesis-prom"},
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+      "targets": [{"expr": "sum by (le) (rate(phronesis_agent_tool_calls_per_run_bucket{agent_name=~\"$agent\"}[5m]))", "refId": "A", "format": "heatmap"}]
+    },
+    {
+      "id": 4, "type": "heatmap", "title": "Agent run duration heatmap",
+      "datasource": {"type": "prometheus", "uid": "phronesis-prom"},
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
+      "targets": [{"expr": "sum by (le) (rate(phronesis_agent_run_duration_seconds_bucket{agent_name=~\"$agent\"}[5m]))", "refId": "A", "format": "heatmap"}]
+    },
+    {
+      "id": 5, "type": "traces", "title": "Recent agent runs",
+      "datasource": {"type": "tempo", "uid": "phronesis-tempo"},
+      "gridPos": {"h": 10, "w": 24, "x": 0, "y": 16},
+      "targets": [{"query": "{ span.agent.id != \"\" }", "refId": "A", "queryType": "traceql"}]
+    }
+  ]
+}

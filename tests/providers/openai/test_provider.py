@@ -343,3 +343,232 @@ class TestOpenAIProviderStream:
         )
 
         assert hasattr(iterator, "__aiter__")
+
+
+class TestOpenAIContextWindowSize:
+    def test_known_model_returns_table_value(self) -> None:
+        provider = OpenAIProvider(
+            model="gpt-4o-mini",
+            api_key="sk-test",
+            http_client=_client(lambda r: httpx.Response(200, json=_ok_payload())),
+        )
+
+        assert provider.context_window_size() == 128_000
+
+    def test_o1_returns_200k(self) -> None:
+        provider = OpenAIProvider(
+            model="o1",
+            api_key="sk-test",
+            http_client=_client(lambda r: httpx.Response(200, json=_ok_payload())),
+        )
+
+        assert provider.context_window_size() == 200_000
+
+    def test_unknown_model_returns_default(self) -> None:
+        provider = OpenAIProvider(
+            model="gpt-future-unknown",
+            api_key="sk-test",
+            http_client=_client(lambda r: httpx.Response(200, json=_ok_payload())),
+        )
+
+        assert provider.context_window_size() == 128_000
+
+    @pytest.mark.parametrize(
+        ("model", "expected"),
+        [
+            ("qwen3-coder-30b", 262_144),
+            ("qwen3-vl-30b", 131_072),
+            ("qwen3-32b", 262_144),
+            ("qwen2.5-coder-32b", 32_768),
+            ("qwen2.5-vl-7b", 32_768),
+            ("qwen2.5", 128_000),
+            ("qwen2.5-7b-instruct", 128_000),
+            ("qwen2-72b", 131_072),
+            ("qwq-32b", 131_072),
+            ("qwen-7b", 32_768),
+            ("llama-4-scout", 128_000),
+            ("llama-3.3-70b", 128_000),
+            ("llama-3.2-3b", 128_000),
+            ("llama-3.1-70b", 128_000),
+            ("llama-3-8b", 8_192),
+            ("llama-2-13b", 4_096),
+            ("llama-guard-3", 131_072),
+            ("deepseek-r1-distill", 163_840),
+            ("deepseek-v3.1", 163_840),
+            ("deepseek-v3", 163_840),
+            ("deepseek-chat", 163_840),
+            ("deepseek-coder-6.7b", 16_384),
+            ("deepseek-v2", 163_840),
+            ("mistral-large", 262_144),
+            ("mistral-small-3", 128_000),
+            ("mistral-medium", 262_144),
+            ("mistral-nemo", 128_000),
+            ("mixtral-8x7b", 65_536),
+            ("mistral-7b", 32_768),
+            ("codestral-22b", 256_000),
+            ("devstral-small", 262_144),
+            ("magistral-medium", 128_000),
+            ("ministral-8b", 262_144),
+            ("pixtral-12b", 128_000),
+            ("phi-4", 128_000),
+            ("phi-3.5-mini", 128_000),
+            ("phi-3-mini", 128_000),
+            ("gemma-3-12b", 131_072),
+            ("gemma-2-9b", 8_192),
+            ("gemma-7b", 8_192),
+            ("command-a", 256_000),
+            ("command-r-plus", 128_000),
+            ("gpt-oss-20b", 131_072),
+            ("kimi-k2-instruct", 262_144),
+            ("glm-4.6", 204_800),
+            ("glm-4.5", 131_072),
+            ("hermes-3", 131_072),
+            ("granite-3.1-8b", 131_072),
+            ("nemotron-70b", 262_144),
+            ("minimax-m2", 204_800),
+            ("yi-34b", 32_768),
+        ],
+    )
+    def test_oss_models_return_table_value(self, model: str, expected: int) -> None:
+        provider = OpenAIProvider(
+            model=model,
+            api_key="",
+            http_client=_client(lambda r: httpx.Response(200, json=_ok_payload())),
+        )
+
+        assert provider.context_window_size() == expected
+
+    def test_instance_override_takes_precedence(self) -> None:
+        provider = OpenAIProvider(
+            model="gpt-4o",
+            api_key="sk-test",
+            http_client=_client(lambda r: httpx.Response(200, json=_ok_payload())),
+            context_window=4096,
+        )
+
+        assert provider.context_window_size() == 4096
+
+
+class TestOpenAIProviderInstanceFeatures:
+    def test_custom_features_override_classvar(self) -> None:
+        provider = OpenAIProvider(
+            model="qwen2.5",
+            api_key="",
+            http_client=_client(lambda r: httpx.Response(200, json=_ok_payload())),
+            features=frozenset({ProviderFeature.STRUCTURED_OUTPUT}),
+        )
+
+        assert provider.supports(ProviderFeature.STRUCTURED_OUTPUT)
+        assert not provider.supports(ProviderFeature.VISION)
+        assert not provider.supports(ProviderFeature.REASONING_EFFORT)
+
+    def test_none_features_fall_back_to_class_default(self) -> None:
+        provider = OpenAIProvider(
+            model="gpt-4o",
+            api_key="sk-test",
+            http_client=_client(lambda r: httpx.Response(200, json=_ok_payload())),
+            features=None,
+        )
+
+        assert provider.supports(ProviderFeature.VISION)
+        assert provider.supports(ProviderFeature.REASONING_EFFORT)
+
+
+class TestOpenAIExtraBody:
+    @pytest.mark.asyncio
+    async def test_extra_body_merged_into_payload(self) -> None:
+        captured: list[dict[str, Any]] = []
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            captured.append(json.loads(request.content))
+
+            return httpx.Response(200, json=_ok_payload())
+
+        provider = _make_provider(handler=handler)
+        await provider.complete(
+            LLMRequest(
+                model="",
+                messages=(Message(role=Role.USER, content="hi"),),
+                extra_body={"keep_alive": "5m", "options": {"num_ctx": 32768}},
+            ),
+        )
+
+        body = captured[0]
+        assert body["keep_alive"] == "5m"
+        assert body["options"] == {"num_ctx": 32768}
+
+    @pytest.mark.asyncio
+    async def test_extra_body_overrides_existing_field(self) -> None:
+        captured: list[dict[str, Any]] = []
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            captured.append(json.loads(request.content))
+
+            return httpx.Response(200, json=_ok_payload())
+
+        provider = _make_provider(handler=handler)
+        await provider.complete(
+            LLMRequest(
+                model="",
+                messages=(Message(role=Role.USER, content="hi"),),
+                temperature=0.1,
+                extra_body={"temperature": 0.9},
+            ),
+        )
+
+        assert captured[0]["temperature"] == 0.9
+
+
+class TestOpenAIEmptyApiKey:
+    @pytest.mark.asyncio
+    async def test_no_authorization_header_when_key_empty(self) -> None:
+        captured: list[httpx.Request] = []
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            captured.append(request)
+
+            return httpx.Response(200, json=_ok_payload())
+
+        provider = OpenAIProvider(
+            model="qwen2.5",
+            api_key="",
+            http_client=_client(handler),
+            retry_config=RetryConfig(backoff=FixedBackoff(0)),
+        )
+        await provider.complete(
+            LLMRequest(model="", messages=(Message(role=Role.USER, content="hi"),)),
+        )
+
+        assert "authorization" not in captured[0].headers
+
+
+class TestOpenAICountTokens:
+    def test_empty_history_returns_zero(self) -> None:
+        provider = _make_provider(handler=lambda r: httpx.Response(200, json=_ok_payload()))
+
+        assert provider.count_tokens([]) == 0
+
+    def test_text_messages_estimated_via_char_heuristic(self) -> None:
+        from phronesis.core.messages import TextBlock, UserMessage
+
+        provider = _make_provider(handler=lambda r: httpx.Response(200, json=_ok_payload()))
+        messages = [UserMessage(content=(TextBlock(text="abcdefgh"),))]  # 8 chars
+
+        assert provider.count_tokens(messages) == 2
+
+    def test_compaction_summary_block_included(self) -> None:
+        from phronesis.core.messages import AssistantMessage, CompactionSummaryBlock
+
+        provider = _make_provider(handler=lambda r: httpx.Response(200, json=_ok_payload()))
+        messages = [
+            AssistantMessage(
+                content=(
+                    CompactionSummaryBlock(
+                        text="abcdefgh",
+                        original_message_count=10,
+                    ),
+                )
+            )
+        ]
+
+        assert provider.count_tokens(messages) == 2

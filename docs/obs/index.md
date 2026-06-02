@@ -6,7 +6,7 @@
 
 <div align="center">
 
-# Phronesis Framework — `obs`
+# Phronesis Framework - `obs`
 
 </div>
 
@@ -43,7 +43,7 @@ Phronesis components need to be observable end-to-end (tools, providers, agents,
 - A **no-op fallback** that activates automatically when the `obs` extra is missing, so call sites never have to branch on availability.
 - A **closed catalog** of attribute names and metric instruments so dashboards and alerts stay consistent across the framework.
 - **First-class OTLP support** for production deployments.
-- **Automatic log correlation** — every log record produced while a span is active is enriched with `trace_id` and `span_id` in canonical hex form.
+- **Automatic log correlation** - every log record produced while a span is active is enriched with `trace_id` and `span_id` in canonical hex form.
 
 Non-goals:
 
@@ -99,7 +99,7 @@ flowchart LR
 | File | Responsibility |
 |---|---|
 | `_detect.py` | Runtime detection of OpenTelemetry. Exports `OBS_AVAILABLE: bool`. |
-| `_noop.py` | `_NoopSpan` — silent stand-in that satisfies both sync and async context manager protocols. |
+| `_noop.py` | `_NoopSpan` - silent stand-in that satisfies both sync and async context manager protocols. |
 | `attributes.py` | Closed catalog of 24 attribute name constants (identifiers, provider, operation, tokens, streaming). |
 | `metrics.py` | Closed catalog of 13 instrument names. Starts no-op, gets rebound to real OTel instruments by `_build_registry`. |
 | `errors.py` | `ObsError`, `ObsNotAvailableError`, `ObsConfigError`. |
@@ -166,7 +166,7 @@ def configure_obs(
 
 </div>
 
-No-op vs active mode — same call site, different runtime behavior:
+No-op vs active mode - same call site, different runtime behavior:
 
 ```mermaid
 flowchart LR
@@ -318,7 +318,7 @@ with start_span("phronesis.runtime.invoke"):
 
 </div>
 
-- Calling any obs API without the `obs` extra and without checking first raises `ObsNotAvailableError` for `configure_obs`. The span context managers and `traced` do **not** raise — they fall back to no-op behavior. Reach for the extra only when you actually want exports.
+- Calling any obs API without the `obs` extra and without checking first raises `ObsNotAvailableError` for `configure_obs`. The span context managers and `traced` do **not** raise - they fall back to no-op behavior. Reach for the extra only when you actually want exports.
 - `configure_obs(exporter="otlp")` requires `endpoint`. Omitting it raises `ObsConfigError`. Unknown exporter names raise the same error.
 - The logging filter wraps `logging.setLogRecordFactory` globally. If your app re-installs its own factory **after** `configure_obs`, you must call `install_trace_correlation_filter()` again to re-wire enrichment.
 - Span names must follow `phronesis.<component>.<operation>`. Variability (which tool, which provider) belongs in attributes from the closed catalog, not in the name.
@@ -338,3 +338,19 @@ uv run pytest -q tests/obs
 ```
 
 All four must pass in green before commit. The pytest run is environment-aware: with the `obs` extra installed the active-mode tests execute, without it they skip cleanly.
+
+<div align="center">
+
+## 🚀 Deployable stack
+
+</div>
+
+The `obs` module emits OTLP. To **consume** what it emits, the repo ships a self-contained Grafana stack under [`deploy/observability/`](../../deploy/observability/) in two profiles:
+
+- **Dev**: `grafana/otel-lgtm` all-in-one (one container, no persistence). For local iteration.
+- **Prod**: separated containers (OTel Collector, Tempo, Loki, Prometheus, Grafana) with persistent volumes, healthchecks and isolated networks.
+
+Both profiles auto-provision seven pre-built dashboards (`overview`, `providers`, `tools`, `agents`, `pipelines`, `retries`, `traces-explorer`) wired against the closed catalogs from `metrics.py` and `attributes.py`.
+
+- [`docs/obs/stack.md`](./stack.md) - stack architecture, versions, troubleshooting.
+- [`docs/obs/dashboards.md`](./dashboards.md) - panel-by-panel catalog with queries.

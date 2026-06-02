@@ -1,13 +1,18 @@
 """Detection of tools that take a single :class:`pydantic.BaseModel` input.
 
-See ``docs/TOOLS-DECISIONS.md`` (D-12): tools may accept either a flat
-list of typed parameters (the common 90% case) or a single parameter
-typed as a ``BaseModel`` subclass acting as the input root (~10%). The
-latter delegates schema generation and validation to the model itself.
+A tool may declare its inputs in one of two shapes:
 
-A :class:`Context`-typed parameter does not count toward the single-input
-rule: it is injected by the runtime and excluded from the LLM-facing
-contract.
+* a flat list of typed parameters (the common case), or
+* a single non-context parameter typed as a :class:`pydantic.BaseModel`
+  subclass acting as the input root.
+
+The single-model shape delegates schema generation and validation to
+the declared model, so the LLM sees the model's own JSON schema
+instead of an outer wrapper object.
+
+A :class:`Context`-typed parameter does not count toward the
+single-input rule: it is injected by the runtime and excluded from
+the LLM-facing contract.
 """
 
 from __future__ import annotations
@@ -42,9 +47,18 @@ def get_single_model(
 ) -> tuple[str, type[BaseModel]] | None:
     """Return ``(param_name, model)`` if ``fn`` is a single-model tool.
 
-    A single-model tool has exactly one non-``Context`` named parameter
-    whose annotation resolves to a :class:`BaseModel` subclass. Variadic
-    ``*args``/``**kwargs`` are ignored. Returns ``None`` otherwise.
+    A single-model tool has exactly one non-``Context`` named
+    parameter whose annotation resolves to a :class:`BaseModel`
+    subclass. Variadic ``*args``/``**kwargs`` are ignored. Any other
+    parameter shape — zero, two-or-more, or a non-model annotation —
+    disqualifies the tool from the single-model path.
+
+    Args:
+        fn: The function whose signature to inspect.
+
+    Returns:
+        A ``(param_name, model_class)`` tuple when the function
+        matches the single-model shape, otherwise ``None``.
     """
     signature = inspect.signature(fn)
     hints = get_type_hints(fn, include_extras=True)

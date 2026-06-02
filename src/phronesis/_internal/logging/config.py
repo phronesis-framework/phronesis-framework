@@ -20,10 +20,17 @@ def configure_logging(
 ) -> None:
     """Install a single managed handler on the ``phronesis`` root logger.
 
-    Idempotent: previously installed managed handlers are replaced, so
-    repeated calls do not accumulate output. Uses :class:`StructuredFormatter`
-    (JSON) by default; pass ``structured=False`` for the human-readable
-    formatter. ``stream`` defaults to :data:`sys.stderr`.
+    Idempotent: previously installed managed handlers are replaced,
+    so repeated calls do not accumulate output.
+
+    Args:
+        level: Logging level applied to the ``phronesis`` root
+            logger.
+        structured: When ``True`` use :class:`StructuredFormatter`
+            (one JSON object per record); when ``False`` use
+            :class:`HumanReadableFormatter`.
+        stream: Destination for the managed handler. Defaults to
+            :data:`sys.stderr`.
     """
     root = logging.getLogger(PHRONESIS_LOGGER_PREFIX)
     root.setLevel(level)

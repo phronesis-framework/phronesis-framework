@@ -1,0 +1,65 @@
+apiVersion: 1
+
+# Dev profile: grafana/otel-lgtm is all-in-one, every backend is reachable
+# from inside the container as localhost. Prod profile uses service names
+# (see ../datasources/datasources.yaml). This directory is bind-mounted
+# wholesale to replace the built-in datasource provisioning of otel-lgtm.
+datasources:
+  - name: Prometheus
+    uid: phronesis-prom
+    type: prometheus
+    access: proxy
+    url: http://localhost:9090
+    isDefault: true
+    jsonData:
+      timeInterval: 15s
+      exemplarTraceIdDestinations:
+        - name: trace_id
+          datasourceUid: phronesis-tempo
+
+  - name: Tempo
+    uid: phronesis-tempo
+    type: tempo
+    access: proxy
+    url: http://localhost:3200
+    jsonData:
+      tracesToLogsV2:
+        datasourceUid: phronesis-loki
+        spanStartTimeShift: '-1h'
+        spanEndTimeShift: '1h'
+        tags:
+          - key: trace_id
+            value: trace_id
+          - key: service.name
+            value: service_name
+        filterByTraceID: true
+        filterBySpanID: false
+      tracesToMetrics:
+        datasourceUid: phronesis-prom
+        spanStartTimeShift: '-1h'
+        spanEndTimeShift: '1h'
+        tags:
+          - key: provider.name
+          - key: tool.id
+          - key: agent.id
+      serviceMap:
+        datasourceUid: phronesis-prom
+      nodeGraph:
+        enabled: true
+      search:
+        hide: false
+      lokiSearch:
+        datasourceUid: phronesis-loki
+
+  - name: Loki
+    uid: phronesis-loki
+    type: loki
+    access: proxy
+    url: http://localhost:3100
+    jsonData:
+      derivedFields:
+        - name: TraceID
+          matcherRegex: 'trace_id=(\w+)'
+          url: '${__value.raw}'
+          datasourceUid: phronesis-tempo
+          urlDisplayLabel: 'View trace'

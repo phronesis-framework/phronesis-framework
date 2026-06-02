@@ -2,25 +2,51 @@
 
 :class:`ProviderFeature` is a closed :class:`enum.StrEnum`; adding a
 capability requires extending the enum, which forces explicit
-coordination across providers.
+coordination across providers and prevents callers from inventing
+ad-hoc feature names.
 
 :class:`LLMProvider` is a :class:`typing.Protocol`. Custom providers
-implement it by structural typing — there is no base class to inherit
-from. Reuse across built-in providers happens by composition.
+satisfy it by structural typing — there is no base class to inherit
+from. Built-in providers reuse code via composition, not inheritance.
 """
 
 from __future__ import annotations
 
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Sequence
 from enum import StrEnum
-from typing import Protocol, runtime_checkable
+from typing import TYPE_CHECKING, Protocol, runtime_checkable
 
 from phronesis.providers.chunks import LLMChunk
 from phronesis.providers.types import LLMRequest, LLMResponse
 
+if TYPE_CHECKING:
+    from phronesis.core.messages import Message
+
 
 class ProviderFeature(StrEnum):
-    """Optional capabilities a provider may declare via :meth:`LLMProvider.supports`."""
+    """Optional capabilities a provider may declare.
+
+    Members are queried via :meth:`LLMProvider.supports` so callers
+    can guard provider-specific code paths without hard-coding the
+    vendor name.
+
+    Attributes:
+        STRUCTURED_OUTPUT: Provider can return values that match a
+            caller-supplied schema.
+        PROMPT_CACHING: Provider supports caching of large prompt
+            prefixes across requests.
+        VISION: Provider accepts image inputs alongside text.
+        DOCUMENTS: Provider accepts document inputs (PDF, etc).
+        EXTENDED_THINKING: Provider exposes a long-form reasoning
+            mode billed and returned separately from the answer.
+        REASONING_EFFORT: Provider accepts a per-request reasoning
+            effort knob.
+        PREDICTED_OUTPUTS: Provider supports passing a draft of the
+            expected output to accelerate decoding.
+        NATIVE_TOKEN_COUNT: Provider exposes an exact token-count
+            implementation via :meth:`LLMProvider.count_tokens_exact`
+            (vendor tokeniser or counting endpoint).
+    """
 
     STRUCTURED_OUTPUT = "structured_output"
     PROMPT_CACHING = "prompt_caching"
@@ -29,25 +55,102 @@ class ProviderFeature(StrEnum):
     EXTENDED_THINKING = "extended_thinking"
     REASONING_EFFORT = "reasoning_effort"
     PREDICTED_OUTPUTS = "predicted_outputs"
+    NATIVE_TOKEN_COUNT = "native_token_count"
 
 
 @runtime_checkable
 class LLMProvider(Protocol):
     """Structural contract every provider satisfies.
 
-    A provider is anything exposing ``complete``, ``stream`` and
-    ``supports``. Built-in providers are instantiated via factory
-    functions; custom providers implement this protocol directly.
+    A provider is any object exposing :meth:`complete`,
+    :meth:`stream` and :meth:`supports`. Built-in providers are
+    instantiated via factory functions; custom providers implement
+    this protocol directly. The :func:`runtime_checkable` decorator
+    enables ``isinstance`` checks against the protocol when needed.
     """
 
     async def complete(self, request: LLMRequest) -> LLMResponse:
-        """Send ``request`` and await the full response."""
+        """Send ``request`` and await the full response.
+
+        Args:
+            request: The :class:`LLMRequest` to dispatch.
+
+        Returns:
+            The provider's :class:`LLMResponse` carrying messages,
+            tool calls and token accounting.
+        """
         ...
 
     def stream(self, request: LLMRequest) -> AsyncIterator[LLMChunk]:
-        """Send ``request`` and return an async iterator of chunks."""
+        """Send ``request`` and return an async iterator of chunks.
+
+        Args:
+            request: The :class:`LLMRequest` to dispatch.
+
+        Returns:
+            An async iterator yielding :data:`LLMChunk` events as
+            they arrive from the provider.
+        """
         ...
 
     def supports(self, feature: ProviderFeature) -> bool:
-        """Report whether the provider supports ``feature``."""
+        """Report whether the provider supports ``feature``.
+
+        Args:
+            feature: The :class:`ProviderFeature` to probe.
+
+        Returns:
+            ``True`` when the provider implements the capability,
+            ``False`` otherwise.
+        """
+        ...
+
+    def context_window_size(self) -> int:
+        """Return the maximum number of tokens this provider's model accepts.
+
+        Used by context builders that need to know the budget before
+        deciding whether to compact, truncate or otherwise rewrite the
+        history. The value reflects the model bound at construction
+        time, not the active request.
+
+        Returns:
+            Total tokens the model can consume in a single request.
+        """
+        ...
+
+    def count_tokens(self, messages: Sequence[Message]) -> int:
+        """Estimate the token count of ``messages`` for this provider.
+
+        Implementations may use vendor-specific tokenisers or
+        heuristic approximations. The result is best-effort and not
+        meant for billing — only for scheduling decisions like
+        compaction triggers.
+
+        Args:
+            messages: Domain messages to be sent to the provider.
+
+        Returns:
+            Estimated token count.
+        """
+        ...
+
+    async def count_tokens_exact(self, messages: Sequence[Message]) -> int | None:
+        """Return an exact token count for ``messages``, or ``None``.
+
+        Providers that advertise
+        :attr:`ProviderFeature.NATIVE_TOKEN_COUNT` return an integer
+        derived from their official tokeniser or counting endpoint.
+        Providers that do not return ``None`` so callers can fall
+        back to the synchronous :meth:`count_tokens` heuristic.
+
+        This method is async because some providers (e.g. Anthropic)
+        expose token counting only as a network endpoint. Callers
+        should be prepared to await it.
+
+        Args:
+            messages: Domain messages to be sent to the provider.
+
+        Returns:
+            Exact token count, or ``None`` when not supported.
+        """
         ...

@@ -1,0 +1,37 @@
+{
+  "uid": "phronesis-traces-explorer",
+  "title": "Phronesis - Traces Explorer",
+  "tags": ["phronesis", "traces", "tempo"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "1m",
+  "time": {"from": "now-1h", "to": "now"},
+  "templating": {
+    "list": [
+      {"name": "agent_id", "type": "textbox", "label": "agent.id"},
+      {"name": "session_id", "type": "textbox", "label": "session.id"},
+      {"name": "tool_id", "type": "textbox", "label": "tool.id"}
+    ]
+  },
+  "panels": [
+    {
+      "id": 1, "type": "nodeGraph", "title": "Service graph",
+      "datasource": {"type": "tempo", "uid": "phronesis-tempo"},
+      "gridPos": {"h": 10, "w": 24, "x": 0, "y": 0},
+      "targets": [{"refId": "A", "queryType": "serviceMap"}]
+    },
+    {
+      "id": 2, "type": "traces", "title": "Filtered traces",
+      "datasource": {"type": "tempo", "uid": "phronesis-tempo"},
+      "gridPos": {"h": 12, "w": 24, "x": 0, "y": 10},
+      "targets": [{"query": "{ span.agent.id =~ \"$agent_id.*\" && span.session.id =~ \"$session_id.*\" && span.tool.id =~ \"$tool_id.*\" }", "refId": "A", "queryType": "traceql", "limit": 50}]
+    },
+    {
+      "id": 3, "type": "traces", "title": "Slow provider calls (recent)",
+      "datasource": {"type": "tempo", "uid": "phronesis-tempo"},
+      "gridPos": {"h": 10, "w": 24, "x": 0, "y": 22},
+      "targets": [{"query": "{ span.provider.name != \"\" && duration > 5s }", "refId": "A", "queryType": "traceql", "limit": 50}]
+    }
+  ]
+}
