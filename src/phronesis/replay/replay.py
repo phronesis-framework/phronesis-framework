@@ -12,6 +12,7 @@ strict request matching should wrap the cassette themselves.
 
 from __future__ import annotations
 
+import asyncio
 from collections.abc import AsyncIterator, Sequence
 from pathlib import Path
 
@@ -21,6 +22,22 @@ from phronesis.providers.protocol import ProviderFeature
 from phronesis.providers.types import LLMRequest, LLMResponse
 from phronesis.replay.cassette import read_cassette
 from phronesis.replay.errors import CassetteExhaustedError
+
+
+async def _failing_stream() -> AsyncIterator[LLMChunk]:
+    """Async generator that raises when iterated.
+
+    Replay carries no streaming entries; the helper yields nothing
+    and then surfaces the not-supported error on first iteration.
+    The leading empty loop keeps the function a real async generator
+    without unreachable code.
+    """
+    empty: tuple[LLMChunk, ...] = ()
+
+    for chunk in empty:
+        yield chunk
+
+    raise CassetteExhaustedError("ReplayProvider does not support streaming.")
 
 
 class ReplayProvider:
@@ -56,7 +73,7 @@ class ReplayProvider:
         self._cursor = 0
         self._context_window = context_window
 
-    async def complete(self, request: LLMRequest) -> LLMResponse:
+    async def complete(self, _request: LLMRequest) -> LLMResponse:
         """Return the next recorded response.
 
         Raises:
@@ -71,19 +88,15 @@ class ReplayProvider:
 
         response = self._responses[self._cursor]
         self._cursor += 1
+        await asyncio.sleep(0)
 
         return response
 
-    def stream(self, request: LLMRequest) -> AsyncIterator[LLMChunk]:
+    def stream(self, _request: LLMRequest) -> AsyncIterator[LLMChunk]:
         """Streaming is not supported by the replay provider."""
+        return _failing_stream()
 
-        async def _empty() -> AsyncIterator[LLMChunk]:
-            raise CassetteExhaustedError("ReplayProvider does not support streaming.")
-            yield  # pragma: no cover
-
-        return _empty()
-
-    def supports(self, feature: ProviderFeature) -> bool:
+    def supports(self, _feature: ProviderFeature) -> bool:
         """Return ``False`` for every feature. Replay carries no native capabilities."""
         return False
 
@@ -107,6 +120,8 @@ class ReplayProvider:
 
         return total_chars // 4
 
-    async def count_tokens_exact(self, messages: Sequence[Message]) -> int | None:
+    async def count_tokens_exact(self, _messages: Sequence[Message]) -> int | None:
         """Return ``None``. Replay has no native token counter."""
+        await asyncio.sleep(0)
+
         return None
