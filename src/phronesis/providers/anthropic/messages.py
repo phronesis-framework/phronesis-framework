@@ -117,43 +117,65 @@ def to_anthropic_messages(
                 system_chunks.append((message.content, message.cache))
             continue
 
-        if message.role is Role.USER:
-            blocks: list[dict[str, Any]] = []
+        translated = _translate_non_system(message)
 
-            if message.content:
-                blocks.append(_text_block(message.content))
+        if translated is not None:
+            out.append(translated)
 
-            blocks.extend(_media_block(ref) for ref in message.media)
+    return out, _build_system(system_chunks)
 
-            if not blocks:
-                blocks.append(_text_block(""))
 
-            if message.cache:
-                blocks[-1] = _mark_cached(blocks[-1])
+def _translate_non_system(message: Message) -> dict[str, Any] | None:
+    """Translate a non-system message into the Anthropic envelope.
 
-            out.append({"role": "user", "content": blocks})
-            continue
+    Returns ``None`` for roles outside the user/assistant/tool set so
+    the caller can drop unrecognised entries silently.
+    """
+    if message.role is Role.USER:
+        return _user_envelope(message)
 
-        if message.role is Role.ASSISTANT:
-            assistant_blocks = _assistant_blocks(message)
+    if message.role is Role.ASSISTANT:
+        return _assistant_envelope(message)
 
-            if message.cache and assistant_blocks:
-                assistant_blocks[-1] = _mark_cached(assistant_blocks[-1])
+    if message.role is Role.TOOL:
+        return _tool_envelope(message)
 
-            out.append({"role": "assistant", "content": assistant_blocks})
-            continue
+    return None
 
-        if message.role is Role.TOOL:
-            tool_blocks: list[dict[str, Any]] = [_tool_result_block(message)]
 
-            if message.cache and tool_blocks:
-                tool_blocks[-1] = _mark_cached(tool_blocks[-1])
+def _user_envelope(message: Message) -> dict[str, Any]:
+    blocks: list[dict[str, Any]] = []
 
-            out.append({"role": "user", "content": tool_blocks})
+    if message.content:
+        blocks.append(_text_block(message.content))
 
-    system = _build_system(system_chunks)
+    blocks.extend(_media_block(ref) for ref in message.media)
 
-    return out, system
+    if not blocks:
+        blocks.append(_text_block(""))
+
+    if message.cache:
+        blocks[-1] = _mark_cached(blocks[-1])
+
+    return {"role": "user", "content": blocks}
+
+
+def _assistant_envelope(message: Message) -> dict[str, Any]:
+    blocks = _assistant_blocks(message)
+
+    if message.cache and blocks:
+        blocks[-1] = _mark_cached(blocks[-1])
+
+    return {"role": "assistant", "content": blocks}
+
+
+def _tool_envelope(message: Message) -> dict[str, Any]:
+    blocks: list[dict[str, Any]] = [_tool_result_block(message)]
+
+    if message.cache:
+        blocks[-1] = _mark_cached(blocks[-1])
+
+    return {"role": "user", "content": blocks}
 
 
 def _build_system(
