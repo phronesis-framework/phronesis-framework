@@ -147,6 +147,7 @@ configure_obs(
 </div>
 
 - **Prometheus OTLP receiver**: a partir de v3.0 esta estable; en versiones anteriores requiere `--enable-feature=otlp-write-receiver`. Pinneamos v3.0.1.
+- **Temporalidad OTLP**: Prometheus solo acepta `CUMULATIVE` por defecto. Si la app exporta `DELTA` (por ejemplo via `OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE=delta` en el entorno), Prometheus devuelve `HTTP 500: invalid temporality and type combination` y la metrica no se persiste. Forzar `CUMULATIVE` en el exporter (ver `scripts/obs_demo.py`) o arrancar Prometheus con `--enable-feature=otlp-deltatocumulative`.
 - **Loki OTLP endpoint**: usa `/otlp` desde Loki 3.0+. El collector apunta a `http://loki:3100/otlp`.
 - **Tempo metrics-generator**: la metrica derivada `cost.usd` requiere habilitar el generator (ya activado en `tempo.yaml` con `span-metrics`).
 - **Log shipping desde phronesis**: `install_trace_correlation_filter` inyecta `trace_id` en logs, pero no hay `OTLPLogHandler` por defecto. Hasta que se anada, los logs no llegan a Loki desde apps Python.
