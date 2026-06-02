@@ -2,7 +2,7 @@ name: phronesis-obs-dev
 
 services:
   lgtm:
-    image: grafana/otel-lgtm:0.8.6
+    image: grafana/otel-lgtm:0.11.12
     container_name: phronesis-lgtm
     ports:
       - "3000:3000"
@@ -14,7 +14,11 @@ services:
       - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
       - GF_AUTH_DISABLE_LOGIN_FORM=true
     volumes:
-      - ./grafana/provisioning/datasources:/otel-lgtm/grafana/conf/provisioning/datasources:ro
+      # Dev datasources point to localhost (otel-lgtm is all-in-one).
+      # Mount the full directory so the built-in grafana-datasources.yaml
+      # is replaced; mounting a single file would leave conflicting
+      # built-in datasources and crash Grafana provisioning.
+      - ./grafana/provisioning/datasources-dev:/otel-lgtm/grafana/conf/provisioning/datasources:ro
       - ./grafana/provisioning/dashboards:/otel-lgtm/grafana/conf/provisioning/dashboards:ro
       - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
     healthcheck:
