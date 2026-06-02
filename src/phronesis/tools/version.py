@@ -2,7 +2,7 @@
 
 :class:`ToolVersion` is the strict, comparable representation of a
 tool's version. It accepts the ``MAJOR.MINOR.PATCH`` subset of SemVer
-that the framework actually needs — no pre-release or build metadata.
+that the framework actually needs - no pre-release or build metadata.
 Tools continue to declare their version as a plain string via
 :attr:`ToolSpec.version`; validation happens at spec construction
 time and lifts the string into a :class:`ToolVersion` on demand.
@@ -93,10 +93,7 @@ def parse_version(value: str) -> ToolVersion:
             details={"value": value},
         )
 
-    try:
-        major, minor, patch = (_parse_component(p, value) for p in parts)
-    except InvalidVersionError:
-        raise
+    major, minor, patch = (_parse_component(p, value) for p in parts)
 
     return ToolVersion(major=major, minor=minor, patch=patch)
 
