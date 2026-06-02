@@ -7,6 +7,7 @@ external dependencies.
 
 from __future__ import annotations
 
+import asyncio
 from collections import deque
 from collections.abc import AsyncIterator, Iterable, Sequence
 
@@ -14,6 +15,19 @@ from phronesis.core.messages import Message
 from phronesis.providers.chunks import LLMChunk
 from phronesis.providers.protocol import ProviderFeature
 from phronesis.providers.types import LLMRequest, LLMResponse
+
+
+async def _empty_chunks() -> AsyncIterator[LLMChunk]:
+    """Async generator that yields no chunks.
+
+    Used by stub providers whose ``stream`` is part of the protocol
+    surface but has nothing to emit. The empty tuple keeps the
+    function a real async generator without any unreachable code.
+    """
+    empty: tuple[LLMChunk, ...] = ()
+
+    for chunk in empty:
+        yield chunk
 
 
 class FakeProvider:
@@ -58,23 +72,20 @@ class FakeProvider:
 
     async def complete(self, request: LLMRequest) -> LLMResponse:
         self._calls.append(request)
+        await asyncio.sleep(0)
 
         return self.response
 
-    def stream(self, request: LLMRequest) -> AsyncIterator[LLMChunk]:
-        async def _empty() -> AsyncIterator[LLMChunk]:
-            return
-            yield  # pragma: no cover - empty async generator
+    def stream(self, _request: LLMRequest) -> AsyncIterator[LLMChunk]:
+        return _empty_chunks()
 
-        return _empty()
-
-    def supports(self, feature: ProviderFeature) -> bool:
+    def supports(self, _feature: ProviderFeature) -> bool:
         return False
 
     def context_window_size(self) -> int:
         return self._context_window
 
-    def count_tokens(self, messages: Sequence[Message]) -> int:
+    def count_tokens(self, _messages: Sequence[Message]) -> int:
         return 0
 
 
@@ -131,21 +142,18 @@ class ScriptedProvider:
             )
 
         self._calls.append(request)
+        await asyncio.sleep(0)
 
         return self._responses.popleft()
 
-    def stream(self, request: LLMRequest) -> AsyncIterator[LLMChunk]:
-        async def _empty() -> AsyncIterator[LLMChunk]:
-            return
-            yield  # pragma: no cover - empty async generator
+    def stream(self, _request: LLMRequest) -> AsyncIterator[LLMChunk]:
+        return _empty_chunks()
 
-        return _empty()
-
-    def supports(self, feature: ProviderFeature) -> bool:
+    def supports(self, _feature: ProviderFeature) -> bool:
         return False
 
     def context_window_size(self) -> int:
         return self._context_window
 
-    def count_tokens(self, messages: Sequence[Message]) -> int:
+    def count_tokens(self, _messages: Sequence[Message]) -> int:
         return 0
