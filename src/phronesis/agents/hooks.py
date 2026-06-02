@@ -3,7 +3,7 @@
 Hooks are user-supplied callables invoked at well-defined lifecycle
 points during :func:`phronesis.agents.loop.run_loop` and
 :func:`phronesis.agents.loop.run_loop_stream`. They are complementary
-to the :class:`AgentEvent` stream exposed by :meth:`Agent.stream` —
+to the :class:`AgentEvent` stream exposed by :meth:`Agent.stream` -
 events suit consumers that pull from an iterator, hooks suit
 fire-and-forget side effects (logging, metrics, audit trails).
 

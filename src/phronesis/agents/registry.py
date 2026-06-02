@@ -2,7 +2,7 @@
 
 A process-wide :class:`_AgentRegistry` holds every declared agent
 keyed by its canonical id. The :func:`agent` decorator registers each
-agent into the registry that is *active in the current context* — by
+agent into the registry that is *active in the current context* - by
 default this is the global registry, but :func:`agent_scope` lets
 tests and isolated workloads swap it out without leaking declarations
 into the rest of the process.

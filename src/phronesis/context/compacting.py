@@ -6,7 +6,7 @@ provider's context window, replaces the older portion with an
 LLM-generated summary. The summary is materialised as an
 :class:`AssistantMessage` carrying a single
 :class:`CompactionSummaryBlock`, so subsequent iterations can detect
-already-compacted prefixes and skip re-compaction (statelessness — the
+already-compacted prefixes and skip re-compaction (statelessness - the
 state lives in the history, not on the builder).
 
 Compaction is opt-in: the default agent uses
@@ -29,11 +29,11 @@ Algorithm (high level):
   output consolidates everything into a single rolling summary
   (incremental compaction).
 * Wrap the response in a :class:`CompactionSummaryBlock` and emit
-  ``[system, new_summary, *preserved, new_input?]`` — at most one
+  ``[system, new_summary, *preserved, new_input?]`` - at most one
   summary message survives across iterations.
 
 Failures of the compactor LLM call propagate as :class:`CompactionError`
-without fallback — silent degradation would hide budget overruns from
+without fallback - silent degradation would hide budget overruns from
 operators.
 """
 

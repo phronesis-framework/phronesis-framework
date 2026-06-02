@@ -1,7 +1,7 @@
 """Eager validation of :class:`AgentSpec` at decoration time.
 
 The :func:`agent` decorator invokes :func:`validate_spec` immediately
-after building the spec so misconfiguration fails fast — before the
+after building the spec so misconfiguration fails fast - before the
 agent is registered or any run is attempted.
 
 Validation is split into:
@@ -13,7 +13,7 @@ Validation is split into:
     * ``output_type`` is a class or ``None``.
     * ``max_iterations`` is a positive integer.
 * Soft checks that emit a :class:`UserWarning` subclass instead of
-  raising — currently only the empty-system-prompt warning.
+  raising - currently only the empty-system-prompt warning.
 
 Tool/provider feature compatibility is *not* checked here; that is
 validated lazily on the first run.
@@ -32,7 +32,7 @@ from phronesis.tools.tool import Tool
 class EmptySystemPromptWarning(UserWarning):
     """Emitted when an agent is built with an empty or whitespace-only prompt.
 
-    The warning is informational — the spec is still valid and the
+    The warning is informational - the spec is still valid and the
     agent is still registered. Callers that prefer a strict policy can
     promote this warning to an error using :mod:`warnings.filterwarnings`.
     """

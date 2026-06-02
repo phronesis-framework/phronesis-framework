@@ -1,4 +1,4 @@
-"""``ProviderAdapter`` Protocol — contract for provider-specific schemas.
+"""``ProviderAdapter`` Protocol - contract for provider-specific schemas.
 
 A single canonical schema is generated eagerly per tool; adapters
 translate it to each provider's expected shape lazily, on the first

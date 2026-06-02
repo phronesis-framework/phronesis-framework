@@ -34,7 +34,7 @@ def translate_response_error(response: httpx.Response) -> ProviderError:
 
     Classification looks at the HTTP status first and falls back to
     the vendor-specific ``error.code`` and ``error.type`` for the
-    cases the status alone cannot distinguish — most notably 400s
+    cases the status alone cannot distinguish - most notably 400s
     caused by context-window overflow.
 
     Args:

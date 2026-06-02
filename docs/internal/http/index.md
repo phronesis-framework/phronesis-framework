@@ -6,7 +6,7 @@
 
 <div align="center">
 
-# Phronesis Framework — `_internal.http`
+# Phronesis Framework - `_internal.http`
 
 </div>
 
@@ -104,7 +104,7 @@ Main methods of `HttpClient`:
 | `await client.request(method, url, *, json, content, params, headers, timeouts)` | `HttpResponse` |
 | `await client.get/post/put/patch/delete(url, ...)` | `HttpResponse` |
 | `client.stream(method, url, ...)` | async context manager -> `HttpStreamResponse` |
-| `await client.close()` | — (also supports `async with`) |
+| `await client.close()` | - (also supports `async with`) |
 
 <div align="center">
 

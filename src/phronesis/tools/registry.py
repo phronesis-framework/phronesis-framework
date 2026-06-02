@@ -2,7 +2,7 @@
 
 A process-wide :class:`_ToolRegistry` holds every declared tool keyed
 by canonical id. The :func:`tool` decorator registers into the
-*active* registry — by default the global one, but tests and isolated
+*active* registry - by default the global one, but tests and isolated
 workloads can swap it with :func:`tool_scope` so declarations do not
 leak into the rest of the process.
 

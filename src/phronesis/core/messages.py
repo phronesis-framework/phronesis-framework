@@ -31,7 +31,7 @@ class MessageId(Id):
     """Stable identifier for a single :class:`Message` instance.
 
     Subclass of :class:`phronesis._internal.ids.id.Id` with the short
-    prefix ``"MID"``. Useful for replay, tracing and observability —
+    prefix ``"MID"``. Useful for replay, tracing and observability -
     every message produced by the framework carries one.
     """
 
@@ -61,7 +61,7 @@ class TextBlock:
         cache: Marks this block as the end of a cacheable prefix.
             Providers that support prompt caching (e.g. Anthropic)
             translate the flag into their native cache hint; providers
-            that don't ignore it. The flag is advisory — set it on the
+            that don't ignore it. The flag is advisory - set it on the
             last block of a stable prefix (system prompt, tool
             definitions, long static context) to opt into caching.
     """

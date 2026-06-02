@@ -2,11 +2,11 @@
 
 Every declared tool carries two distinct identifiers:
 
-* :class:`ToolId` — the stable, framework-side canonical id used as
+* :class:`ToolId` - the stable, framework-side canonical id used as
   the registry key and as the value of observability attributes. It is
   derived from the declaring function's dotted path and is opaque to
   the model.
-* :class:`ToolName` — the LLM-facing, human-readable name. It defaults
+* :class:`ToolName` - the LLM-facing, human-readable name. It defaults
   to the function's ``__name__`` but can be overridden on the
   :func:`tool` decorator.
 

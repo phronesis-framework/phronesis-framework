@@ -2,11 +2,11 @@
 
 Two distinct concerns share this package:
 
-* :class:`Context` and :class:`Budget` — frozen records injected into
+* :class:`Context` and :class:`Budget` - frozen records injected into
   tool callables by the runtime.
 * :class:`ContextBuilder` and its reference implementations
   (:class:`DefaultContextBuilder`, :class:`CompactingContextBuilder`)
-  — the agent-side abstraction that turns run state into the
+  - the agent-side abstraction that turns run state into the
   ``list[Message]`` sent to the provider.
 """
 

@@ -70,7 +70,7 @@ class TestAnnotatedAndOptional:
         assert detect_context_param(_ctx_annotated) == "ctx"
 
     def test_optional_context_with_default_is_not_detected(self) -> None:
-        # Union types are not Context — explicit Optional is treated as opt-out
+        # Union types are not Context - explicit Optional is treated as opt-out
         # because the parameter is no longer a pure Context annotation.
         assert detect_context_param(_ctx_with_default) is None
 
