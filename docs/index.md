@@ -42,7 +42,7 @@
 | `runtime` - orquestación de agentes (19 modos) | estable | [runtime/](./runtime/index.md) |
 | `providers` - adaptadores por proveedor LLM | estable | [providers/](./providers/index.md) |
 | `obs` - observabilidad (spans, metrics, log correlation) | estable | [obs/](./obs/index.md) |
-| `context` - contexto compartido entre tools | pendiente | _no docs yet_ |
+| `context` - ContextBuilder + Context inyectado a tools | estable | [context/](./context/index.md) |
 | `memory` - working/kv/vector/episodic stores + checkpoints | estable | [memory/](./memory/index.md) |
 | `communication`, `core`, `mcp`, `pipelines` | pendiente | _no docs yet_ |
 
