@@ -6,7 +6,7 @@
 
 <div align="center">
 
-# Phronesis Framework — `_internal`
+# Phronesis Framework - `_internal`
 
 </div>
 
@@ -74,7 +74,7 @@ Each subpackage covers one isolated concern, has its own `__init__.py`, and mirr
 
 External (declared in `pyproject.toml`):
 
-- `httpx` — HTTP transport (only used by `_internal/http`).
+- `httpx` - HTTP transport (only used by `_internal/http`).
 
 Internal: see the diagram above.
 

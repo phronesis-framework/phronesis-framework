@@ -2,9 +2,9 @@
 
 A :class:`ChainedContextBuilder` runs each child builder in
 declaration order, feeding the output of one as the ``history`` of
-the next. This makes it possible to compose orthogonal concerns —
+the next. This makes it possible to compose orthogonal concerns -
 e.g. compact long histories, then inject RAG snippets, then attach a
-prompt-cache marker — without writing a monolithic builder.
+prompt-cache marker - without writing a monolithic builder.
 
 Chaining semantics:
 
@@ -46,7 +46,7 @@ class ChainedContextBuilder:
 
         Args:
             builders: Non-empty sequence of :class:`ContextBuilder`
-                instances. Order matters — the first builder consumes
+                instances. Order matters - the first builder consumes
                 ``new_input``.
 
         Raises:

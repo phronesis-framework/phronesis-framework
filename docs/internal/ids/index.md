@@ -6,7 +6,7 @@
 
 <div align="center">
 
-# Phronesis Framework — `_internal.ids`
+# Phronesis Framework - `_internal.ids`
 
 </div>
 
@@ -74,9 +74,9 @@ Concrete subclasses (`ToolId`, `AgentId`, …) live in their own packages and on
 | File | Responsibility |
 |---|---|
 | `id.py` | Frozen dataclass `Id` with `canonical` and `short` property (SHA-256 prefix). |
-| `validator.py` | `CanonicalIdValidator.validate(value)` — regex and clear error message. |
-| `derivation.py` | `canonical_from_function(fn) -> str` — lowercased `module.qualname`. |
-| `generator.py` | `IdGenerator[IdT]` — factory `.from_function()` / `.from_canonical()`. |
+| `validator.py` | `CanonicalIdValidator.validate(value)` - regex and clear error message. |
+| `derivation.py` | `canonical_from_function(fn) -> str` - lowercased `module.qualname`. |
+| `generator.py` | `IdGenerator[IdT]` - factory `.from_function()` / `.from_canonical()`. |
 
 <div align="center">
 

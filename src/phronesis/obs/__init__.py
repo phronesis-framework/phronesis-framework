@@ -10,13 +10,13 @@ of the runtime environment.
 
 Subpackage layout:
 
-- ``_detect``        — runtime detection of OpenTelemetry availability.
-- ``_noop``          — no-op fallbacks used when OpenTelemetry is absent.
-- ``attributes``     — closed catalog of standard span attribute names.
-- ``config``         — ``configure_obs`` and the global configuration state.
-- ``spans``          — ``traced`` decorator and ``start_span`` context manager.
-- ``metrics``        — closed catalog of standard metric instruments.
-- ``logging_filter`` — ``logging.Filter`` that correlates logs with the
+- ``_detect``        - runtime detection of OpenTelemetry availability.
+- ``_noop``          - no-op fallbacks used when OpenTelemetry is absent.
+- ``attributes``     - closed catalog of standard span attribute names.
+- ``config``         - ``configure_obs`` and the global configuration state.
+- ``spans``          - ``traced`` decorator and ``start_span`` context manager.
+- ``metrics``        - closed catalog of standard metric instruments.
+- ``logging_filter`` - ``logging.Filter`` that correlates logs with the
   active span via ``trace_id`` and ``span_id``.
 """
 

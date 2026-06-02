@@ -6,7 +6,7 @@ coordination across providers and prevents callers from inventing
 ad-hoc feature names.
 
 :class:`LLMProvider` is a :class:`typing.Protocol`. Custom providers
-satisfy it by structural typing — there is no base class to inherit
+satisfy it by structural typing - there is no base class to inherit
 from. Built-in providers reuse code via composition, not inheritance.
 """
 
@@ -123,7 +123,7 @@ class LLMProvider(Protocol):
 
         Implementations may use vendor-specific tokenisers or
         heuristic approximations. The result is best-effort and not
-        meant for billing — only for scheduling decisions like
+        meant for billing - only for scheduling decisions like
         compaction triggers.
 
         Args:

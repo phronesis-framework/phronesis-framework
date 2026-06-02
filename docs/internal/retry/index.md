@@ -6,7 +6,7 @@
 
 <div align="center">
 
-# Phronesis Framework — `_internal.retry`
+# Phronesis Framework - `_internal.retry`
 
 </div>
 
@@ -73,7 +73,7 @@ External calls (LLMs, vector stores, APIs) are **transient by nature**. This mod
 
 | File | Responsibility |
 |---|---|
-| `attempt.py` | `AttemptInfo` — number, exception, duration, next delay. |
+| `attempt.py` | `AttemptInfo` - number, exception, duration, next delay. |
 | `backoff.py` | `BackoffStrategy` (Protocol), `FixedBackoff`, `ExponentialBackoff` (optional full-jitter). |
 | `exceptions.py` | `RetryError`, `RetryExhaustedError` (with history). |
 | `decorator.py` | `@retry(...)` and `_calculate_delay` with priority. |
@@ -240,7 +240,7 @@ Tests live under `tests/_internal/retry/`:
 - Delay priority: hook > `retry_after_seconds` > backoff.
 - Exceptions outside `on=` propagate on the first attempt.
 - `should_retry=False` does not retry.
-- `FixedBackoff` and `ExponentialBackoff` (with and without jitter) — delay range validated.
+- `FixedBackoff` and `ExponentialBackoff` (with and without jitter) - delay range validated.
 - Logging emitted on each retry and on exhaustion.
 
 <div align="center">

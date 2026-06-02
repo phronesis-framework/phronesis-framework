@@ -6,7 +6,7 @@ exception. Policies are attached to the :class:`Tool` wrapper (not
 the :class:`ToolSpec`, which is purely declarative) because retry is
 an operational concern of the runtime.
 
-The default policy attached to every tool is :data:`NO_RETRY` — a
+The default policy attached to every tool is :data:`NO_RETRY` - a
 single attempt with no backoff. Override it via the ``retry`` keyword
 on the :func:`tool` decorator::
 

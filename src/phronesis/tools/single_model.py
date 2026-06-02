@@ -50,7 +50,7 @@ def get_single_model(
     A single-model tool has exactly one non-``Context`` named
     parameter whose annotation resolves to a :class:`BaseModel`
     subclass. Variadic ``*args``/``**kwargs`` are ignored. Any other
-    parameter shape — zero, two-or-more, or a non-model annotation —
+    parameter shape - zero, two-or-more, or a non-model annotation -
     disqualifies the tool from the single-model path.
 
     Args:

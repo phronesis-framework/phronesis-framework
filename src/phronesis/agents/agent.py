@@ -2,7 +2,7 @@
 
 :class:`Agent` is the callable side of an agent declaration; the
 pure-data side lives on :attr:`Agent.spec` as an :class:`AgentSpec`.
-The wrapper carries no extra state beyond the spec — identity, name
+The wrapper carries no extra state beyond the spec - identity, name
 and every configurable property are read straight from it.
 
 Use :meth:`Agent.run` for a one-shot call and :meth:`Agent.session`
@@ -12,7 +12,7 @@ Use the :meth:`Agent.with_provider`, :meth:`Agent.with_tools`,
 :meth:`Agent.with_system_prompt`, :meth:`Agent.with_max_iterations`,
 :meth:`Agent.with_context_builder`, :meth:`Agent.with_output_type` and
 :meth:`Agent.with_description` methods to derive a new agent with a
-single field swapped. They preserve immutability — the receiver agent
+single field swapped. They preserve immutability - the receiver agent
 is never mutated.
 """
 
@@ -101,7 +101,7 @@ class Agent:
         of :class:`TextDelta` / :class:`ToolCallStarted` /
         :class:`ToolCallCompleted` events, and ends with either
         :class:`RunCompleted` or :class:`RunFailed`. The iterator
-        does **not** re-raise on failure — consumers must inspect the
+        does **not** re-raise on failure - consumers must inspect the
         terminal event to detect aborted runs.
 
         Args:

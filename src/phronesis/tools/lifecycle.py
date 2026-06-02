@@ -7,7 +7,7 @@ those two callbacks; the agent loop invokes them once per run via
 :func:`run_tools_lifecycle`.
 
 Both callbacks are optional and may be sync or async. When the loop
-finishes — successfully or via an exception — every ``teardown`` is
+finishes - successfully or via an exception - every ``teardown`` is
 invoked exactly once, even when the run aborted. Exceptions raised
 by ``teardown`` are caught and logged so a misbehaving tool cannot
 mask the run's outcome.

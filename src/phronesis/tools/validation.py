@@ -4,7 +4,7 @@ A dynamic pydantic v2 model is built from the function signature and
 used to validate inputs before the tool runs. Validation failures are
 re-raised as :class:`ToolValidationError`; the ``details`` payload
 includes the offending ``field`` and the expected schema for that
-field only — never the full schema — to keep the message useful to the
+field only - never the full schema - to keep the message useful to the
 LLM without flooding it.
 
 Tools whose only non-context parameter is a single

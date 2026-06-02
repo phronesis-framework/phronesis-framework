@@ -1,8 +1,8 @@
 """Stateful multi-turn session over a stateless :class:`Agent`.
 
 An :class:`Agent` is stateless: every :meth:`Agent.run` call starts
-from a fresh history. :class:`Session` adds the missing piece —
-conversation memory — without coupling the spec to it.
+from a fresh history. :class:`Session` adds the missing piece -
+conversation memory - without coupling the spec to it.
 
 Each :meth:`Session.run` call:
 
@@ -12,7 +12,7 @@ Each :meth:`Session.run` call:
    ``initial_history`` (or seeding a fresh history on the first turn).
 3. Stores the returned :attr:`Result.messages` as the new baseline.
 
-Sessions are not safe for concurrent use — each turn mutates the
+Sessions are not safe for concurrent use - each turn mutates the
 internal history; serialize calls per session if needed.
 """
 
@@ -37,7 +37,7 @@ class Session:
     """Multi-turn wrapper around a stateless agent.
 
     The session owns the conversation history. It does not own the
-    spec — multiple sessions can share the same :class:`AgentSpec`
+    spec - multiple sessions can share the same :class:`AgentSpec`
     safely because the spec is immutable.
 
     Attributes:

@@ -4,8 +4,8 @@ The :mod:`phronesis.testing` module exposes utilities that are useful
 when writing unit tests against agent code without touching real LLM
 providers. Two providers are exported:
 
-* :class:`FakeProvider` — always returns the same canned response.
-* :class:`ScriptedProvider` — pops responses from a queue, one per
+* :class:`FakeProvider` - always returns the same canned response.
+* :class:`ScriptedProvider` - pops responses from a queue, one per
   ``complete`` call.
 
 These helpers are deliberately minimal; they implement the
