@@ -34,15 +34,15 @@
       "id": 3, "type": "heatmap", "title": "Provider duration heatmap",
       "datasource": {"type": "prometheus", "uid": "phronesis-prom"},
       "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
-      "targets": [{"expr": "sum by (le) (rate(phronesis_provider_duration_bucket{provider_name=~\"$provider\"}[5m]))", "refId": "A", "format": "heatmap"}]
+      "targets": [{"expr": "sum by (le) (rate(phronesis_provider_duration_seconds_bucket{provider_name=~\"$provider\"}[5m]))", "refId": "A", "format": "heatmap"}]
     },
     {
       "id": 4, "type": "timeseries", "title": "Quantiles per provider",
       "datasource": {"type": "prometheus", "uid": "phronesis-prom"},
       "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
       "targets": [
-        {"expr": "histogram_quantile(0.50, sum by (provider_name, le) (rate(phronesis_provider_duration_bucket{provider_name=~\"$provider\"}[5m])))", "refId": "P50", "legendFormat": "P50/{{provider_name}}"},
-        {"expr": "histogram_quantile(0.95, sum by (provider_name, le) (rate(phronesis_provider_duration_bucket{provider_name=~\"$provider\"}[5m])))", "refId": "P95", "legendFormat": "P95/{{provider_name}}"}
+        {"expr": "histogram_quantile(0.50, sum by (provider_name, le) (rate(phronesis_provider_duration_seconds_bucket{provider_name=~\"$provider\"}[5m])))", "refId": "P50", "legendFormat": "P50/{{provider_name}}"},
+        {"expr": "histogram_quantile(0.95, sum by (provider_name, le) (rate(phronesis_provider_duration_seconds_bucket{provider_name=~\"$provider\"}[5m])))", "refId": "P95", "legendFormat": "P95/{{provider_name}}"}
       ],
       "fieldConfig": {"defaults": {"unit": "s"}}
     },

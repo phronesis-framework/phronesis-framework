@@ -35,7 +35,7 @@
       "id": 4, "type": "heatmap", "title": "Agent run duration heatmap",
       "datasource": {"type": "prometheus", "uid": "phronesis-prom"},
       "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
-      "targets": [{"expr": "sum by (le) (rate(phronesis_agent_run_duration_bucket{agent_name=~\"$agent\"}[5m]))", "refId": "A", "format": "heatmap"}]
+      "targets": [{"expr": "sum by (le) (rate(phronesis_agent_run_duration_seconds_bucket{agent_name=~\"$agent\"}[5m]))", "refId": "A", "format": "heatmap"}]
     },
     {
       "id": 5, "type": "traces", "title": "Recent agent runs",

@@ -30,7 +30,7 @@
       "id": 3, "type": "heatmap", "title": "Tool duration heatmap",
       "datasource": {"type": "prometheus", "uid": "phronesis-prom"},
       "gridPos": {"h": 8, "w": 24, "x": 0, "y": 8},
-      "targets": [{"expr": "sum by (le) (rate(phronesis_tool_duration_bucket{tool_id=~\"$tool\"}[5m]))", "refId": "A", "format": "heatmap"}]
+      "targets": [{"expr": "sum by (le) (rate(phronesis_tool_duration_seconds_bucket{tool_id=~\"$tool\"}[5m]))", "refId": "A", "format": "heatmap"}]
     },
     {
       "id": 4, "type": "traces", "title": "Recent failed tool calls",

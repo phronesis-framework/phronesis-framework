@@ -53,9 +53,9 @@
       "datasource": {"type": "prometheus", "uid": "phronesis-prom"},
       "gridPos": {"h": 8, "w": 12, "x": 0, "y": 4},
       "targets": [
-        {"expr": "histogram_quantile(0.50, sum(rate(phronesis_provider_duration_bucket[5m])) by (le))", "refId": "P50", "legendFormat": "P50"},
-        {"expr": "histogram_quantile(0.95, sum(rate(phronesis_provider_duration_bucket[5m])) by (le))", "refId": "P95", "legendFormat": "P95"},
-        {"expr": "histogram_quantile(0.99, sum(rate(phronesis_provider_duration_bucket[5m])) by (le))", "refId": "P99", "legendFormat": "P99"}
+        {"expr": "histogram_quantile(0.50, sum(rate(phronesis_provider_duration_seconds_bucket[5m])) by (le))", "refId": "P50", "legendFormat": "P50"},
+        {"expr": "histogram_quantile(0.95, sum(rate(phronesis_provider_duration_seconds_bucket[5m])) by (le))", "refId": "P95", "legendFormat": "P95"},
+        {"expr": "histogram_quantile(0.99, sum(rate(phronesis_provider_duration_seconds_bucket[5m])) by (le))", "refId": "P99", "legendFormat": "P99"}
       ],
       "fieldConfig": {"defaults": {"unit": "s"}}
     },
@@ -64,9 +64,9 @@
       "datasource": {"type": "prometheus", "uid": "phronesis-prom"},
       "gridPos": {"h": 8, "w": 12, "x": 12, "y": 4},
       "targets": [
-        {"expr": "histogram_quantile(0.50, sum(rate(phronesis_agent_run_duration_bucket[5m])) by (le))", "refId": "P50", "legendFormat": "P50"},
-        {"expr": "histogram_quantile(0.95, sum(rate(phronesis_agent_run_duration_bucket[5m])) by (le))", "refId": "P95", "legendFormat": "P95"},
-        {"expr": "histogram_quantile(0.99, sum(rate(phronesis_agent_run_duration_bucket[5m])) by (le))", "refId": "P99", "legendFormat": "P99"}
+        {"expr": "histogram_quantile(0.50, sum(rate(phronesis_agent_run_duration_seconds_bucket[5m])) by (le))", "refId": "P50", "legendFormat": "P50"},
+        {"expr": "histogram_quantile(0.95, sum(rate(phronesis_agent_run_duration_seconds_bucket[5m])) by (le))", "refId": "P95", "legendFormat": "P95"},
+        {"expr": "histogram_quantile(0.99, sum(rate(phronesis_agent_run_duration_seconds_bucket[5m])) by (le))", "refId": "P99", "legendFormat": "P99"}
       ],
       "fieldConfig": {"defaults": {"unit": "s"}}
     },

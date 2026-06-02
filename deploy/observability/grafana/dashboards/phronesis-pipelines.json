@@ -32,7 +32,7 @@
       "id": 3, "type": "heatmap", "title": "Pipeline run duration heatmap",
       "datasource": {"type": "prometheus", "uid": "phronesis-prom"},
       "gridPos": {"h": 10, "w": 24, "x": 0, "y": 8},
-      "targets": [{"expr": "sum by (le) (rate(phronesis_pipeline_run_duration_bucket{pipeline_name=~\"$pipeline\"}[5m]))", "refId": "A", "format": "heatmap"}]
+      "targets": [{"expr": "sum by (le) (rate(phronesis_pipeline_run_duration_seconds_bucket{pipeline_name=~\"$pipeline\"}[5m]))", "refId": "A", "format": "heatmap"}]
     }
   ]
 }
