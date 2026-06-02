@@ -2,12 +2,12 @@
 
 Public API:
 
-- :class:`Middleware` — structural type for middleware callables.
-- :data:`NextCall` — type alias for the continuation passed to a
+- :class:`Middleware` - structural type for middleware callables.
+- :data:`NextCall` - type alias for the continuation passed to a
   middleware.
-- :func:`apply_middleware` — wrap an :class:`LLMProvider` with an
+- :func:`apply_middleware` - wrap an :class:`LLMProvider` with an
   ordered chain of middlewares.
-- :class:`MiddlewareError` — base error class for middleware failures.
+- :class:`MiddlewareError` - base error class for middleware failures.
 
 Middlewares only intercept ``complete``; ``stream`` and capability
 checks pass through to the underlying provider. The first middleware

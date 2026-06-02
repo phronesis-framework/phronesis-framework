@@ -1,4 +1,4 @@
-"""Tests for ``ToolEffect`` — closed vocabulary of tool side-effects."""
+"""Tests for ``ToolEffect`` - closed vocabulary of tool side-effects."""
 
 from __future__ import annotations
 

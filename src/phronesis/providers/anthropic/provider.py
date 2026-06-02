@@ -163,7 +163,7 @@ class AnthropicProvider:
 
         Returns:
             Exact token count, or ``None`` if the endpoint response
-            is malformed (defensive — the heuristic is a safe
+            is malformed (defensive - the heuristic is a safe
             fallback).
         """
         provider_messages = translate_history(messages)

@@ -6,7 +6,7 @@
 
 <div align="center">
 
-# Phronesis Framework — `_internal.logging`
+# Phronesis Framework - `_internal.logging`
 
 </div>
 
@@ -78,9 +78,9 @@ The user's global `logging` configuration is never touched: only the `phronesis`
 |---|---|
 | `constants.py` | `PHRONESIS_LOGGER_PREFIX = "phronesis"`, `DEFAULT_LEVEL = WARNING`. |
 | `formatters.py` | `StructuredFormatter` (JSON line) and `HumanReadableFormatter`. |
-| `config.py` | `configure_logging(level, structured, stream)` — installs a managed handler, replaces the previous one. |
+| `config.py` | `configure_logging(level, structured, stream)` - installs a managed handler, replaces the previous one. |
 | `factory.py` | `get_logger(name)`, `get_logger_with_context(name, **context)`. |
-| `adapter.py` | `ContextLoggerAdapter` — merge of fixed context + call-site `extra`. |
+| `adapter.py` | `ContextLoggerAdapter` - merge of fixed context + call-site `extra`. |
 
 <div align="center">
 

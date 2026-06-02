@@ -1,7 +1,7 @@
 """``@agent`` decorator with optional arguments.
 
 The decorator declares an agent from a function whose body is
-**ignored** — the function is used purely as a metadata carrier.
+**ignored** - the function is used purely as a metadata carrier.
 Defaults are derived from the function as follows:
 
 * ``__name__`` → default ``name``

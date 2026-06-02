@@ -19,7 +19,7 @@ Capability and accounting methods (``supports``,
 ``context_window_size``, ``count_tokens``, ``count_tokens_exact``)
 delegate to the **first** provider in the list. The list is treated
 as ordered preference, so the first entry is the authoritative source
-for capabilities — callers should put their preferred provider first.
+for capabilities - callers should put their preferred provider first.
 """
 
 from __future__ import annotations

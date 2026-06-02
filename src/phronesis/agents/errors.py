@@ -2,22 +2,22 @@
 
 Every error in this module is intended for the *caller* of the agent.
 They are raised out of :meth:`Agent.run` (and :func:`run_loop`) and are
-not serialized back to the LLM — tool-level failures use
+not serialized back to the LLM - tool-level failures use
 :class:`phronesis.tools.errors.ToolError`, which the loop converts into
 a ``ToolResultBlock`` with ``is_error=True``.
 
 The hierarchy:
 
-* :class:`AgentError` — common base, subclass of :class:`PhronesisError`.
-* :class:`AgentMaxIterationsError` — the loop hit the iteration cap.
+* :class:`AgentError` - common base, subclass of :class:`PhronesisError`.
+* :class:`AgentMaxIterationsError` - the loop hit the iteration cap.
   Raised natively by the loop; never wraps a cause.
-* :class:`AgentOutputValidationError` — structured output did not match
+* :class:`AgentOutputValidationError` - structured output did not match
   the declared ``output_type``. Native to the validator.
-* :class:`AgentConfigurationError` — raised at spec-build time when the
+* :class:`AgentConfigurationError` - raised at spec-build time when the
   spec is structurally invalid.
-* :class:`AgentExecutionError` — wraps any non-``ToolError`` exception
+* :class:`AgentExecutionError` - wraps any non-``ToolError`` exception
   that escapes a tool or provider call.
-* :class:`DuplicateAgentError` — subclass of the configuration error
+* :class:`DuplicateAgentError` - subclass of the configuration error
   for the registry-collision case.
 """
 

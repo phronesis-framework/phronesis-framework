@@ -1,4 +1,4 @@
-"""``Result[T, E]`` — tagged union for typed success or failure."""
+"""``Result[T, E]`` - tagged union for typed success or failure."""
 
 from __future__ import annotations
 

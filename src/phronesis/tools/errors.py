@@ -117,7 +117,7 @@ class ToolHTTPError(ToolError):
 
     Derived from ``httpx.HTTPStatusError`` by :func:`auto_map_exception`
     when the response status is in the 4xx range. Server-side (5xx)
-    errors are intentionally **not** mapped — those typically indicate
+    errors are intentionally **not** mapped - those typically indicate
     a transient condition that the runtime should retry, not a
     failure to surface to the model.
     """
@@ -138,7 +138,7 @@ class DuplicateToolError(ToolError):
 class ToolDefinitionError(ToolError):
     """A tool definition is structurally invalid.
 
-    Raised at decoration time — for instance when the decorated
+    Raised at decoration time - for instance when the decorated
     function declares more than one :class:`Context`-typed parameter.
     """
 

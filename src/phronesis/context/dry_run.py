@@ -30,7 +30,7 @@ class DryRunReport:
             agent loop would send them to the provider.
         message_count: ``len(messages)`` for convenient assertions in
             tests.
-        token_estimate: ``provider.count_tokens(messages)`` — a rough
+        token_estimate: ``provider.count_tokens(messages)`` - a rough
             estimate for budgeting decisions.
         window_size: ``provider.context_window_size()``.
         within_window: ``token_estimate <= window_size``.

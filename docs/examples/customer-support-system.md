@@ -2,7 +2,7 @@
 
 <div align="center">
 
-# Phronesis Framework — Example: Customer Support System
+# Phronesis Framework - Example: Customer Support System
 
 </div>
 
@@ -31,7 +31,7 @@
 
 This document shows what defining a complete, production-grade agent system would look like in Phronesis. It mixes the surface that exists today (`@agent`, `@tool`, `ContextBuilder`, `Session`, streaming events) with the proposed runtime combinators (`sequence`, `router`, `reflexion`, `approval`, ...) that will live in `phronesis/runtime/` once the placeholder is filled.
 
-The point is not the scenario — it is the **shape of the code**. Read it as if it were a final API and ask:
+The point is not the scenario - it is the **shape of the code**. Read it as if it were a final API and ask:
 
 - Does it read declaratively?
 - Does each layer do one thing?
@@ -39,8 +39,8 @@ The point is not the scenario — it is the **shape of the code**. Read it as if
 
 Markers used inline:
 
-- `[IMPL]` — already implemented on the `main`/`feats/context/init-context` branch.
-- `[FUT]` — proposed addition that follows the same design philosophy.
+- `[IMPL]` - already implemented on the `main`/`feats/context/init-context` branch.
+- `[FUT]` - proposed addition that follows the same design philosophy.
 
 <div align="center">
 
@@ -48,9 +48,9 @@ Markers used inline:
 
 </div>
 
-1. **Decorators declare atoms** — `@agent`, `@tool`. Frozen specs, no behavior coupling.
-2. **Functions compose** — `sequence(a, b)`, `router(triage, {...})`. Combinators take agents and return agents.
-3. **One uniform interface** — every leaf and every composite has `.run()`, `.stream()`, `.session()`.
+1. **Decorators declare atoms** - `@agent`, `@tool`. Frozen specs, no behavior coupling.
+2. **Functions compose** - `sequence(a, b)`, `router(triage, {...})`. Combinators take agents and return agents.
+3. **One uniform interface** - every leaf and every composite has `.run()`, `.stream()`, `.session()`.
 
 <div align="center">
 
@@ -59,11 +59,11 @@ Markers used inline:
 </div>
 
 ```python
-"""Customer support system — Phronesis full-stack example.
+"""Customer support system - Phronesis full-stack example.
 
 Markers:
-  [IMPL] — works today on the current main branch.
-  [FUT]  — proposed combinator that follows the same philosophy and
+  [IMPL] - works today on the current main branch.
+  [FUT]  - proposed combinator that follows the same philosophy and
            would live in phronesis.runtime once implemented.
 """
 
@@ -85,7 +85,7 @@ from phronesis.providers import anthropic, openai
 from phronesis.providers.errors import ProviderError
 from phronesis.agents import RunRequest, TextDelta, ToolCallStarted
 
-# [FUT] runtime combinators — same philosophy: frozen specs,
+# [FUT] runtime combinators - same philosophy: frozen specs,
 # protocol-driven, registry-aware.
 from phronesis.runtime import (
     # composition
@@ -279,7 +279,7 @@ support_system = router(
 
 
 # ────────────────────────────────────────────────────────────────────
-# Usage — one-shot [IMPL for Agent, FUT for composites]
+# Usage - one-shot [IMPL for Agent, FUT for composites]
 # ────────────────────────────────────────────────────────────────────
 
 async def handle_ticket(text: str) -> str:
@@ -288,11 +288,11 @@ async def handle_ticket(text: str) -> str:
 
 
 # ────────────────────────────────────────────────────────────────────
-# Usage — streaming
+# Usage - streaming
 # ────────────────────────────────────────────────────────────────────
 
 async def stream_ticket(text: str) -> None:
-    """Streaming with typed events — runtime events extend the union."""
+    """Streaming with typed events - runtime events extend the union."""
     async for event in support_system.stream(RunRequest(input=text)):
         match event:
             case TextDelta(text=chunk):
@@ -314,7 +314,7 @@ async def stream_ticket(text: str) -> None:
 
 
 # ────────────────────────────────────────────────────────────────────
-# Usage — multi-turn session [IMPL]
+# Usage - multi-turn session [IMPL]
 # ────────────────────────────────────────────────────────────────────
 
 async def chat_loop() -> None:
@@ -337,7 +337,7 @@ async def chat_loop() -> None:
 The same philosophy extended to every execution mode discussed:
 
 ```python
-# Plan-and-Execute — plan the full roadmap, then execute without
+# Plan-and-Execute - plan the full roadmap, then execute without
 # returning to the LLM between tools.
 roadmap_planner = plan_and_execute(
     planner=strategic_planner,
@@ -368,13 +368,13 @@ doc_digest = map_reduce(
     chunk_by=4000,
 )
 
-# Race — first provider to answer wins, the rest are cancelled.
+# Race - first provider to answer wins, the rest are cancelled.
 fastest_answer = race(
     tech_support.with_provider(anthropic_provider),
     tech_support.with_provider(openai_provider),
 )
 
-# Consensus — N runs in parallel, vote.
+# Consensus - N runs in parallel, vote.
 robust_classifier = consensus(
     voters=[triage, triage, triage],
     quorum=2,
@@ -391,7 +391,7 @@ research_team = supervisor(
     max_delegations=10,
 )
 
-# Handoff chain — control jumps forward with no return.
+# Handoff chain - control jumps forward with no return.
 onboarding = handoff_chain([
     welcome_agent,
     setup_agent,
@@ -412,7 +412,7 @@ keep_polishing = loop_(
 
 </div>
 
-1. **A single uniform interface.** `Agent`, `sequence(...)`, `router(...)`, `reflexion(...)` — every one of them exposes `.run()`, `.stream()`, `.session()`. Composites are not second-class citizens.
+1. **A single uniform interface.** `Agent`, `sequence(...)`, `router(...)`, `reflexion(...)` - every one of them exposes `.run()`, `.stream()`, `.session()`. Composites are not second-class citizens.
 
 2. **Decorators for atoms, functions for composition.** Reads naturally and matches how `@agent` / `@tool` already work today.
 
@@ -449,13 +449,13 @@ Those are the decisions that lock in or unlock future flexibility.
 
 A sensible order that maximises value per increment:
 
-1. `Agent.stream()` — purely additive, unblocks UX for everything else.
-2. `runtime/` skeleton + `sequence`, `parallel`, `conditional` — the bedrock combinators.
-3. `retry`, `fallback` — robustness layer.
-4. `router`, `supervisor`, `handoff_chain` — single-LLM multi-agent topologies.
-5. `reflexion`, `plan_and_execute` — alternative single-agent loops.
-6. `approval` + human-in-the-loop runtime events — closes the `REQUIRES_CONFIRMATION` story.
-7. `consensus`, `debate`, `tree_search`, `map_reduce` — advanced patterns.
-8. `memory/`, `mcp/`, `pipelines/` — fill the remaining placeholders.
+1. `Agent.stream()` - purely additive, unblocks UX for everything else.
+2. `runtime/` skeleton + `sequence`, `parallel`, `conditional` - the bedrock combinators.
+3. `retry`, `fallback` - robustness layer.
+4. `router`, `supervisor`, `handoff_chain` - single-LLM multi-agent topologies.
+5. `reflexion`, `plan_and_execute` - alternative single-agent loops.
+6. `approval` + human-in-the-loop runtime events - closes the `REQUIRES_CONFIRMATION` story.
+7. `consensus`, `debate`, `tree_search`, `map_reduce` - advanced patterns.
+8. `memory/`, `mcp/`, `pipelines/` - fill the remaining placeholders.
 
 Each step is one PR, each step ships its own docs page following the same conventions as `docs/context/index.md`.

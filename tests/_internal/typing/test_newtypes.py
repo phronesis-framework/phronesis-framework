@@ -1,6 +1,6 @@
 """Tests for semantic NewType aliases.
 
-NewTypes are zero-cost at runtime — the constructor is an identity
+NewTypes are zero-cost at runtime - the constructor is an identity
 function. The type-checker uses them to prevent mixing of conceptually
 different quantities; the runtime cannot enforce that, so these tests
 only assert the constructor passes the value through unchanged.

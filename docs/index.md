@@ -6,7 +6,7 @@
 
 <div align="center">
 
-# Phronesis Framework — Documentation
+# Phronesis Framework - Documentation
 
 </div>
 
@@ -36,13 +36,13 @@
 
 | Área | Estado | Documentación |
 |---|---|---|
-| `_internal` — infraestructura compartida | en construcción | [internal/](./internal/index.md) |
-| `tools` — declaración y registro de tools | estable | [tools/](./tools/index.md) |
-| `agents` — `@agent`, runtime, sessions, tool-calling loop | estable | [agents/](./agents/index.md) |
-| `runtime` — orquestación de agentes | pendiente | _no docs yet_ |
-| `providers` — adaptadores por proveedor LLM | estable | [providers/](./providers/index.md) |
-| `obs` — observabilidad (spans, metrics, log correlation) | estable | [obs/](./obs/index.md) |
-| `context` — contexto compartido entre tools | pendiente | _no docs yet_ |
+| `_internal` - infraestructura compartida | en construcción | [internal/](./internal/index.md) |
+| `tools` - declaración y registro de tools | estable | [tools/](./tools/index.md) |
+| `agents` - `@agent`, runtime, sessions, tool-calling loop | estable | [agents/](./agents/index.md) |
+| `runtime` - orquestación de agentes | pendiente | _no docs yet_ |
+| `providers` - adaptadores por proveedor LLM | estable | [providers/](./providers/index.md) |
+| `obs` - observabilidad (spans, metrics, log correlation) | estable | [obs/](./obs/index.md) |
+| `context` - contexto compartido entre tools | pendiente | _no docs yet_ |
 | `communication`, `core`, `mcp`, `memory`, `pipelines` | pendiente | _no docs yet_ |
 
 <div align="center">

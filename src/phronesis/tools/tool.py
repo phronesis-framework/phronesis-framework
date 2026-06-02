@@ -136,7 +136,7 @@ class Tool:
 
         The runtime calls this method, not :meth:`__call__`. ``args``
         is the LLM-provided argument dict and must **not** include
-        the runtime context — that is supplied via the ``context``
+        the runtime context - that is supplied via the ``context``
         keyword and is matched to the tool's :class:`Context`-typed
         parameter (if any) by name.
 

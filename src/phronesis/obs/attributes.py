@@ -13,11 +13,11 @@ dot-separated, no underscores at the segment boundaries.
 
 Catalog sections:
 
-- **Identifiers** — IDs and names of framework entities.
-- **Provider** — LLM provider metadata.
-- **Operation** — outcome and timing of a single operation.
-- **Tokens** — token counts and cost reported by providers.
-- **Streaming** — metadata for streaming responses.
+- **Identifiers** - IDs and names of framework entities.
+- **Provider** - LLM provider metadata.
+- **Operation** - outcome and timing of a single operation.
+- **Tokens** - token counts and cost reported by providers.
+- **Streaming** - metadata for streaming responses.
 """
 
 from __future__ import annotations

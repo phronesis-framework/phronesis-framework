@@ -6,7 +6,7 @@
 
 <div align="center">
 
-# Phronesis Framework — `_internal.typing`
+# Phronesis Framework - `_internal.typing`
 
 </div>
 
@@ -72,14 +72,14 @@ Each file covers one orthogonal responsibility. There is no cross-hierarchy: `__
 
 | File | Responsibility |
 |---|---|
-| `json.py` | `JsonValue`, `JsonArray`, `JsonObject` — recursive type aliases. |
-| `result.py` | `Ok[T]`, `Err[E]`, `Result[T, E]` — tagged union of success/failure. |
-| `maybe.py` | `Some[T]`, `NOTHING`, `NothingType`, `Maybe[T]` — explicit optional. |
-| `sentinels.py` | `MISSING`, `MissingType` — distinguish "not provided" from `None`. |
+| `json.py` | `JsonValue`, `JsonArray`, `JsonObject` - recursive type aliases. |
+| `result.py` | `Ok[T]`, `Err[E]`, `Result[T, E]` - tagged union of success/failure. |
+| `maybe.py` | `Some[T]`, `NOTHING`, `NothingType`, `Maybe[T]` - explicit optional. |
+| `sentinels.py` | `MISSING`, `MissingType` - distinguish "not provided" from `None`. |
 | `newtypes.py` | `Seconds`, `Milliseconds`, `TokenCount`, `PromptTokens`, `CompletionTokens`, `Cost`, `ByteSize`. |
-| `protocols.py` | `SupportsJson`, `Identifiable` — structural contracts. |
-| `streaming.py` | `StreamChunk[T]`, `Stream[T]` — primitives for streaming responses. |
-| `binary.py` | `BinaryContent` — bytes tagged with `content_type`. |
+| `protocols.py` | `SupportsJson`, `Identifiable` - structural contracts. |
+| `streaming.py` | `StreamChunk[T]`, `Stream[T]` - primitives for streaming responses. |
+| `binary.py` | `BinaryContent` - bytes tagged with `content_type`. |
 
 <div align="center">
 

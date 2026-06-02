@@ -7,7 +7,7 @@ by :meth:`Tool.invoke` before the underlying callable runs.
 
 Caching is opt-in and intentionally local to a single :class:`Tool`
 instance: registries do not share state, and the cache disappears
-with the tool. Only successful invocations are stored — exceptions
+with the tool. Only successful invocations are stored - exceptions
 are propagated unchanged so retry semantics remain unaffected.
 
 The default policy is :data:`NO_CACHE`, which short-circuits the
@@ -68,7 +68,7 @@ def make_cache_key(args: dict[str, Any]) -> str:
     Args:
         args: The validated argument dict passed to the tool's
             callable. The runtime :class:`Context`, when present,
-            must already be excluded by the caller — it is not part
+            must already be excluded by the caller - it is not part
             of the cache identity.
 
     Returns:

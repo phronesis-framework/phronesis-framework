@@ -3,7 +3,7 @@
 :class:`ToolSpec` is the immutable, JSON-serialisable side of a tool
 declaration. The callable side lives on the :class:`Tool` wrapper,
 which exposes the spec via ``tool.spec``. The spec deliberately holds
-**no function reference** — the runtime resolves the executable via
+**no function reference** - the runtime resolves the executable via
 the tool registry keyed by :class:`ToolId`.
 
 The spec is suitable for logging, persisting and sharing across

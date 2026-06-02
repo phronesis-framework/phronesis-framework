@@ -1,4 +1,4 @@
-"""``Maybe[T]`` — explicit optional alternative to ``T | None``."""
+"""``Maybe[T]`` - explicit optional alternative to ``T | None``."""
 
 from __future__ import annotations
 

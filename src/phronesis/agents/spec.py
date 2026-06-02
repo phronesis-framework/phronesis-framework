@@ -2,7 +2,7 @@
 
 :class:`AgentSpec` is the source of truth for every configurable
 property of an agent. It is a frozen dataclass with no behaviour of
-its own — executing the spec is the job of
+its own - executing the spec is the job of
 :class:`phronesis.agents.agent.Agent` and the loop in
 :mod:`phronesis.agents.loop`.
 

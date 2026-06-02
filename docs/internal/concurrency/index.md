@@ -6,7 +6,7 @@
 
 <div align="center">
 
-# Phronesis Framework — `_internal.concurrency`
+# Phronesis Framework - `_internal.concurrency`
 
 </div>
 
@@ -72,7 +72,7 @@ Both operations emit structured logs under `phronesis.concurrency`.
 
 | File | Responsibility |
 |---|---|
-| `executor.py` | `run_sync(fn, *args, **kwargs)` — wrapper around `asyncio.to_thread` with logging. |
+| `executor.py` | `run_sync(fn, *args, **kwargs)` - wrapper around `asyncio.to_thread` with logging. |
 | `policies.py` | `GatherPolicy` (ABC), `FailFastPolicy`, `BestEffortPolicy`. |
 | `gather.py` | `gather_all(*awaitables, policy=...)`. |
 | `exceptions.py` | `ConcurrencyError`, `PartialFailureError` (with `results` and `exceptions`). |

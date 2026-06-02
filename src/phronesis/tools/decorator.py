@@ -109,9 +109,9 @@ def tool(
 
     The decorator accepts two forms:
 
-    * ``@tool`` — used directly on a function, returns the built
+    * ``@tool`` - used directly on a function, returns the built
       :class:`Tool`.
-    * ``@tool(...)`` — used with keyword arguments, returns the
+    * ``@tool(...)`` - used with keyword arguments, returns the
       inner decorator which is then applied to the function.
 
     Args:
