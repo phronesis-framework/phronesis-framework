@@ -45,7 +45,8 @@
 | `context` - ContextBuilder + Context inyectado a tools | estable | [context/](./context/index.md) |
 | `memory` - working/kv/vector/episodic stores + checkpoints | estable | [memory/](./memory/index.md) |
 | `pipelines` - composición declarativa de Executables nombrados | estable | [pipelines/](./pipelines/index.md) |
-| `communication`, `core`, `mcp` | pendiente | _no docs yet_ |
+| `mcp` - cliente y servidor Model Context Protocol | estable | [mcp/](./mcp/index.md) |
+| `communication`, `core` | pendiente | _no docs yet_ |
 
 <div align="center">
 

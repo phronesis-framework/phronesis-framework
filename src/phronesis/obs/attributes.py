@@ -71,3 +71,12 @@ STREAM_FIRST_CHUNK_MS: Final[str] = "stream.first_chunk_ms"
 CONTEXT_BUILDER: Final[str] = "context.builder"
 CONTEXT_HISTORY_SIZE: Final[str] = "context.history_size"
 CONTEXT_COMPACTED: Final[str] = "context.compacted"
+
+# MCP -----------------------------------------------------------------
+
+MCP_SERVER_ID: Final[str] = "mcp.server.id"
+MCP_SERVER_NAME: Final[str] = "mcp.server.name"
+MCP_CLIENT_ID: Final[str] = "mcp.client.id"
+MCP_TRANSPORT: Final[str] = "mcp.transport"
+MCP_OPERATION: Final[str] = "mcp.operation"
+MCP_TOOL_NAME: Final[str] = "mcp.tool.name"
