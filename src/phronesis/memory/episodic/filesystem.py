@@ -77,14 +77,11 @@ class FilesystemJSONEpisodicStore:
             "type": episode.type,
             "payload": dict(episode.payload),
         }
+        line = json.dumps(record) + "\n"
 
         async with lock:
             try:
-                path.parent.mkdir(parents=True, exist_ok=True)
-
-                with path.open("a", encoding="utf-8") as fh:
-                    fh.write(json.dumps(record))
-                    fh.write("\n")
+                await asyncio.to_thread(_append_line, path, line)
             except OSError as exc:
                 raise MemoryBackendError(
                     f"failed to append episode at {path}",
@@ -156,6 +153,13 @@ class FilesystemJSONEpisodicStore:
                     f"failed to delete episodic store at {path}",
                     details={"path": str(path)},
                 ) from exc
+
+
+def _append_line(path: Path, line: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+
+    with path.open("a", encoding="utf-8") as fh:
+        fh.write(line)
 
 
 def _episode_from_raw(raw: dict[str, Any], scope: MemoryScope) -> Episode:
