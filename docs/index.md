@@ -48,7 +48,8 @@
 | `mcp` - cliente y servidor Model Context Protocol | estable | [mcp/](./mcp/index.md) |
 | `middleware` - cadena onion sobre `LLMProvider.complete` | estable | [middleware/](./middleware/index.md) |
 | `replay` - record/replay de respuestas LLM en cassettes JSONL | estable | [replay/](./replay/index.md) |
-| `communication`, `core`, `testing` | pendiente | _no docs yet_ |
+| `core` - tipos de dominio (`Message`, `ContentBlock`) | estable | [core/](./core/index.md) |
+| `communication` - identidad de sesión (`SessionId`) | estable | [communication/](./communication/index.md) |
 
 <div align="center">
 
