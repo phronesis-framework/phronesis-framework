@@ -14,7 +14,7 @@ class TestSupervisor:
         async def sup(_c: ExecutionContext, value: Any) -> dict[str, Any]:
             return {"final": value}
 
-        s = Supervisor(supervisor=callable_node(sup), workers={}, max_iterations=3)
+        s = Supervisor(dispatcher=callable_node(sup), workers={}, max_iterations=3)
         outcome = await s(root_ctx, "x")
 
         assert outcome.success
@@ -30,7 +30,7 @@ class TestSupervisor:
             return "after_a"
 
         s = Supervisor(
-            supervisor=callable_node(sup),
+            dispatcher=callable_node(sup),
             workers={"a": callable_node(worker_a)},
             max_iterations=3,
         )
@@ -47,7 +47,7 @@ class TestSupervisor:
             return {}
 
         s = Supervisor(
-            supervisor=callable_node(sup),
+            dispatcher=callable_node(sup),
             workers={"a": callable_node(worker_a)},
             max_iterations=2,
         )

@@ -36,14 +36,14 @@ class Supervisor:
     """Supervisor agent decides which worker to invoke each iteration.
 
     Attributes:
-        supervisor: Executable acting as the dispatcher.
+        dispatcher: Executable acting as the supervisor agent.
         workers: Mapping of route key to worker executable.
-        max_iterations: Hard cap on supervisor/worker round-trips.
+        max_iterations: Hard cap on dispatcher/worker round-trips.
         route_extractor: Callable extracting a route key from the
-            supervisor output. ``None`` signals termination.
+            dispatcher output. ``None`` signals termination.
     """
 
-    supervisor: Executable
+    dispatcher: Executable
     workers: Mapping[str, Executable]
     max_iterations: int = 10
     route_extractor: Callable[[Any], str | None] = field(default=default_route_extractor)
@@ -60,7 +60,7 @@ class Supervisor:
                         children=tuple(children),
                     ).merge_children()
 
-                sup_outcome = await self.supervisor(
+                sup_outcome = await self.dispatcher(
                     ctx.child(metadata={RUNTIME_ITERATION: iteration}),
                     current,
                 )

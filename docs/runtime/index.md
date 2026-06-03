@@ -522,7 +522,7 @@ result = await ref(ctx, "Draft a release note.")
 from phronesis.runtime import Supervisor
 
 sup = Supervisor(
-    supervisor=agent_node(router_agent),     # output: {"route": "search", ...}
+    dispatcher=agent_node(router_agent),     # output: {"route": "search", ...}
     workers={
         "search": agent_node(search_agent),
         "compute": agent_node(math_agent),
