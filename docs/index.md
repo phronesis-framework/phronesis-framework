@@ -46,6 +46,8 @@
 | `memory` - working/kv/vector/episodic stores + checkpoints | estable | [memory/](./memory/index.md) |
 | `pipelines` - composición declarativa de Executables nombrados | estable | [pipelines/](./pipelines/index.md) |
 | `mcp` - cliente y servidor Model Context Protocol | estable | [mcp/](./mcp/index.md) |
+| `middleware` - cadena onion sobre `LLMProvider.complete` | estable | [middleware/](./middleware/index.md) |
+| `replay` - record/replay de respuestas LLM en cassettes JSONL | estable | [replay/](./replay/index.md) |
 | `core` - tipos de dominio (`Message`, `ContentBlock`) | estable | [core/](./core/index.md) |
 | `communication` - identidad de sesión (`SessionId`) | estable | [communication/](./communication/index.md) |
 
