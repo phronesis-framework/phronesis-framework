@@ -17,6 +17,23 @@ from phronesis.runtime.outcome import RunOutcome
 from phronesis.runtime.protocol import Executable
 
 
+def _collect_expanded(output: Any, candidates: list[Any]) -> None:
+    if isinstance(output, (list, tuple)):
+        candidates.extend(output)
+    else:
+        candidates.append(output)
+
+
+def _fail(
+    error: Exception,
+    children_log: list[RunOutcome],
+) -> RunOutcome:
+    return RunOutcome.fail(
+        error=error,
+        children=tuple(children_log),
+    ).merge_children()
+
+
 @dataclass(frozen=True, slots=True)
 class TreeSearch:
     """Beam search via ``expander`` and ``evaluator`` executables.
@@ -33,6 +50,62 @@ class TreeSearch:
     max_depth: int = 3
     beam_width: int = 3
 
+    async def _expand_beam(
+        self,
+        ctx: ExecutionContext,
+        beam: list[Any],
+        depth: int,
+        children_log: list[RunOutcome],
+    ) -> tuple[list[Any] | None, RunOutcome | None]:
+        candidates: list[Any] = []
+
+        for node in beam:
+            outcome = await self.expander(
+                ctx.child(metadata={RUNTIME_ITERATION: depth}),
+                node,
+            )
+            children_log.append(outcome)
+
+            if not outcome.success:
+                return None, _fail(
+                    outcome.error or ExecutionFailedError("expander failed"),
+                    children_log,
+                )
+
+            _collect_expanded(outcome.output, candidates)
+
+        return candidates, None
+
+    async def _score_candidates(
+        self,
+        ctx: ExecutionContext,
+        candidates: list[Any],
+        children_log: list[RunOutcome],
+    ) -> tuple[list[tuple[float, Any]] | None, RunOutcome | None]:
+        scored: list[tuple[float, Any]] = []
+
+        for cand in candidates:
+            outcome = await self.evaluator(ctx.child(), cand)
+            children_log.append(outcome)
+
+            if not outcome.success:
+                return None, _fail(
+                    outcome.error or ExecutionFailedError("evaluator failed"),
+                    children_log,
+                )
+
+            try:
+                score = float(outcome.output)
+            except (TypeError, ValueError) as exc:
+                return None, _fail(
+                    ExecutionFailedError(f"evaluator did not return a number: {exc}"),
+                    children_log,
+                )
+
+            scored.append((score, cand))
+
+        return scored, None
+
     async def __call__(self, ctx: ExecutionContext, input: Any) -> RunOutcome:
         async with runtime_span("tree_search", run_id=ctx.run_id.canonical):
             beam: list[Any] = [input]
@@ -40,52 +113,22 @@ class TreeSearch:
             best: tuple[float, Any] | None = None
 
             for depth in range(1, self.max_depth + 1):
-                candidates: list[Any] = []
+                candidates, failure = await self._expand_beam(ctx, beam, depth, children_log)
 
-                for node in beam:
-                    expand_outcome = await self.expander(
-                        ctx.child(metadata={RUNTIME_ITERATION: depth}),
-                        node,
-                    )
-                    children_log.append(expand_outcome)
+                if failure is not None:
+                    return failure
 
-                    if not expand_outcome.success:
-                        return RunOutcome.fail(
-                            error=expand_outcome.error or ExecutionFailedError("expander failed"),
-                            children=tuple(children_log),
-                        ).merge_children()
-
-                    expanded = expand_outcome.output
-
-                    if isinstance(expanded, (list, tuple)):
-                        candidates.extend(expanded)
-                    else:
-                        candidates.append(expanded)
+                assert candidates is not None
 
                 if not candidates:
                     break
 
-                scored: list[tuple[float, Any]] = []
+                scored, failure = await self._score_candidates(ctx, candidates, children_log)
 
-                for cand in candidates:
-                    eval_outcome = await self.evaluator(ctx.child(), cand)
-                    children_log.append(eval_outcome)
+                if failure is not None:
+                    return failure
 
-                    if not eval_outcome.success:
-                        return RunOutcome.fail(
-                            error=eval_outcome.error or ExecutionFailedError("evaluator failed"),
-                            children=tuple(children_log),
-                        ).merge_children()
-
-                    try:
-                        score = float(eval_outcome.output)
-                    except (TypeError, ValueError) as exc:
-                        return RunOutcome.fail(
-                            error=ExecutionFailedError(f"evaluator did not return a number: {exc}"),
-                            children=tuple(children_log),
-                        ).merge_children()
-
-                    scored.append((score, cand))
+                assert scored is not None
 
                 scored.sort(key=lambda pair: pair[0], reverse=True)
                 top = scored[: self.beam_width]
@@ -96,10 +139,10 @@ class TreeSearch:
                 beam = [cand for _, cand in top]
 
             if best is None:
-                return RunOutcome.fail(
-                    error=ExecutionFailedError("tree search produced no candidates"),
-                    children=tuple(children_log),
-                ).merge_children()
+                return _fail(
+                    ExecutionFailedError("tree search produced no candidates"),
+                    children_log,
+                )
 
             return RunOutcome.ok(
                 output=best[1],
