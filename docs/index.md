@@ -46,7 +46,9 @@
 | `memory` - working/kv/vector/episodic stores + checkpoints | estable | [memory/](./memory/index.md) |
 | `pipelines` - composición declarativa de Executables nombrados | estable | [pipelines/](./pipelines/index.md) |
 | `mcp` - cliente y servidor Model Context Protocol | estable | [mcp/](./mcp/index.md) |
-| `communication`, `core` | pendiente | _no docs yet_ |
+| `middleware` - cadena onion sobre `LLMProvider.complete` | estable | [middleware/](./middleware/index.md) |
+| `replay` - record/replay de respuestas LLM en cassettes JSONL | estable | [replay/](./replay/index.md) |
+| `communication`, `core`, `testing` | pendiente | _no docs yet_ |
 
 <div align="center">
 
