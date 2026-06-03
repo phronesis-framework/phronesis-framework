@@ -180,7 +180,6 @@ class MemoryAwareContextBuilder:
 
             if len(snippet) > remaining:
                 snippets.append(snippet[:remaining])
-                used = budget
                 break
 
             snippets.append(snippet)
