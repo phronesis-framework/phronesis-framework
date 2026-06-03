@@ -39,11 +39,12 @@
 | `_internal` - infraestructura compartida | en construcción | [internal/](./internal/index.md) |
 | `tools` - declaración y registro de tools | estable | [tools/](./tools/index.md) |
 | `agents` - `@agent`, runtime, sessions, tool-calling loop | estable | [agents/](./agents/index.md) |
-| `runtime` - orquestación de agentes | pendiente | _no docs yet_ |
+| `runtime` - orquestación de agentes (19 modos) | estable | [runtime/](./runtime/index.md) |
 | `providers` - adaptadores por proveedor LLM | estable | [providers/](./providers/index.md) |
 | `obs` - observabilidad (spans, metrics, log correlation) | estable | [obs/](./obs/index.md) |
 | `context` - ContextBuilder + Context inyectado a tools | estable | [context/](./context/index.md) |
-| `communication`, `core`, `mcp`, `memory`, `pipelines` | pendiente | _no docs yet_ |
+| `memory` - working/kv/vector/episodic stores + checkpoints | estable | [memory/](./memory/index.md) |
+| `communication`, `core`, `mcp`, `pipelines` | pendiente | _no docs yet_ |
 
 <div align="center">
 
