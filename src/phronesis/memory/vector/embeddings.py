@@ -13,6 +13,7 @@ embedding service.
 
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import struct
 from collections.abc import Sequence
@@ -43,6 +44,8 @@ class DeterministicEmbeddingProvider:
 
     async def embed(self, texts: Sequence[str]) -> tuple[tuple[float, ...], ...]:
         """Return one deterministic vector per input text."""
+        await asyncio.sleep(0)
+
         return tuple(self._embed_single(text) for text in texts)
 
     def _embed_single(self, text: str) -> tuple[float, ...]:
