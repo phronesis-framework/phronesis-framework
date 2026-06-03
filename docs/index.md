@@ -44,7 +44,8 @@
 | `obs` - observabilidad (spans, metrics, log correlation) | estable | [obs/](./obs/index.md) |
 | `context` - ContextBuilder + Context inyectado a tools | estable | [context/](./context/index.md) |
 | `memory` - working/kv/vector/episodic stores + checkpoints | estable | [memory/](./memory/index.md) |
-| `communication`, `core`, `mcp`, `pipelines` | pendiente | _no docs yet_ |
+| `pipelines` - composición declarativa de Executables nombrados | estable | [pipelines/](./pipelines/index.md) |
+| `communication`, `core`, `mcp` | pendiente | _no docs yet_ |
 
 <div align="center">
 
