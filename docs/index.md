@@ -46,7 +46,8 @@
 | `memory` - working/kv/vector/episodic stores + checkpoints | estable | [memory/](./memory/index.md) |
 | `pipelines` - composición declarativa de Executables nombrados | estable | [pipelines/](./pipelines/index.md) |
 | `mcp` - cliente y servidor Model Context Protocol | estable | [mcp/](./mcp/index.md) |
-| `communication`, `core` | pendiente | _no docs yet_ |
+| `core` - tipos de dominio (`Message`, `ContentBlock`) | estable | [core/](./core/index.md) |
+| `communication` - identidad de sesión (`SessionId`) | estable | [communication/](./communication/index.md) |
 
 <div align="center">
 
