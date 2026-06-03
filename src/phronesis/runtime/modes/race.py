@@ -14,6 +14,37 @@ from phronesis.runtime.outcome import RunOutcome
 from phronesis.runtime.protocol import Executable
 
 
+def _scan_done(
+    done: set[asyncio.Task[RunOutcome]],
+    last_error: Exception | None,
+) -> tuple[RunOutcome | None, Exception | None]:
+    """Return the first successful outcome (if any) and the latest error seen."""
+    for task in done:
+        try:
+            outcome = task.result()
+        except Exception as exc:
+            last_error = exc
+            continue
+
+        if outcome.success:
+            return outcome, last_error
+
+        last_error = outcome.error or last_error
+
+    return None, last_error
+
+
+async def _drain(tasks: list[asyncio.Task[RunOutcome]]) -> None:
+    for task in tasks:
+        if not task.done():
+            task.cancel()
+
+    for task in tasks:
+        if not task.done():
+            with contextlib.suppress(BaseException):
+                await task
+
+
 @dataclass(frozen=True, slots=True)
 class Race:
     """First node to complete successfully wins.
@@ -43,33 +74,17 @@ class Race:
 
                 while pending:
                     done, pending = await asyncio.wait(pending, return_when=asyncio.FIRST_COMPLETED)
+                    winner, last_error = _scan_done(done, last_error)
 
-                    for task in done:
-                        try:
-                            outcome = task.result()
-                        except Exception as exc:
-                            last_error = exc
-
-                            continue
-
-                        if outcome.success:
-                            return RunOutcome.ok(
-                                output=outcome.output,
-                                tokens=outcome.tokens,
-                                cost_usd=outcome.cost_usd,
-                            )
-
-                        last_error = outcome.error or last_error
+                    if winner is not None:
+                        return RunOutcome.ok(
+                            output=winner.output,
+                            tokens=winner.tokens,
+                            cost_usd=winner.cost_usd,
+                        )
 
                 return RunOutcome.fail(
                     error=last_error or ExecutionFailedError("all racers failed")
                 )
             finally:
-                for task in tasks:
-                    if not task.done():
-                        task.cancel()
-
-                for task in tasks:
-                    if not task.done():
-                        with contextlib.suppress(BaseException):
-                            await task
+                await _drain(tasks)
