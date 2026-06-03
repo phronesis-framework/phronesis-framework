@@ -104,17 +104,12 @@ class InMemoryKeyValueStore:
 
         async with lock:
             bucket = self._data.get(scope, {})
-            alive_keys: list[str] = []
+            dead_keys = [k for k, entry in bucket.items() if not self._alive(entry)]
 
-            for k, entry in list(bucket.items()):
-                if not self._alive(entry):
-                    bucket.pop(k, None)
-                    continue
+            for k in dead_keys:
+                bucket.pop(k, None)
 
-                if not k.startswith(prefix):
-                    continue
-
-                alive_keys.append(k)
+            alive_keys = [k for k in bucket if k.startswith(prefix)]
 
             return tuple(sorted(alive_keys))
 
