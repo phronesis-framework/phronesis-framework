@@ -5,6 +5,8 @@ from __future__ import annotations
 import math
 from collections.abc import Sequence
 
+_ZERO_NORM_THRESHOLD = 1e-12
+
 
 def cosine_similarity(a: Sequence[float], b: Sequence[float]) -> float:
     """Return the cosine similarity of ``a`` and ``b`` in ``[-1.0, 1.0]``.
@@ -26,7 +28,7 @@ def cosine_similarity(a: Sequence[float], b: Sequence[float]) -> float:
         norm_a += x * x
         norm_b += y * y
 
-    if norm_a == 0.0 or norm_b == 0.0:
+    if norm_a < _ZERO_NORM_THRESHOLD or norm_b < _ZERO_NORM_THRESHOLD:
         return 0.0
 
     return dot / (math.sqrt(norm_a) * math.sqrt(norm_b))
