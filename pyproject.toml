@@ -2,7 +2,7 @@
 name = "phronesis-framework"
 version = "0.1.0"
 description = "Phronesis Framework"
-readme = "README.md"
+readme = { file = "docs/index.md", content-type = "text/markdown" }
 requires-python = ">=3.11"
 authors = [
     { name = "Eduardo Marrero González", email = "edumarreroglezz@gmail.com" },
