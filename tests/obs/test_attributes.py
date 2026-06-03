@@ -92,4 +92,5 @@ class TestCatalogIntegrity:
             "cost",
             "stream",
             "context",
+            "mcp",
         }

@@ -44,7 +44,12 @@
 | `obs` - observabilidad (spans, metrics, log correlation) | estable | [obs/](./obs/index.md) |
 | `context` - ContextBuilder + Context inyectado a tools | estable | [context/](./context/index.md) |
 | `memory` - working/kv/vector/episodic stores + checkpoints | estable | [memory/](./memory/index.md) |
-| `communication`, `core`, `mcp`, `pipelines` | pendiente | _no docs yet_ |
+| `pipelines` - composición declarativa de Executables nombrados | estable | [pipelines/](./pipelines/index.md) |
+| `mcp` - cliente y servidor Model Context Protocol | estable | [mcp/](./mcp/index.md) |
+| `middleware` - cadena onion sobre `LLMProvider.complete` | estable | [middleware/](./middleware/index.md) |
+| `replay` - record/replay de respuestas LLM en cassettes JSONL | estable | [replay/](./replay/index.md) |
+| `core` - tipos de dominio (`Message`, `ContentBlock`) | estable | [core/](./core/index.md) |
+| `communication` - identidad de sesión (`SessionId`) | estable | [communication/](./communication/index.md) |
 
 <div align="center">
 

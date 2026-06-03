@@ -2,13 +2,14 @@
 name = "phronesis-framework"
 version = "0.1.0"
 description = "Phronesis Framework"
-readme = "README.md"
+readme = { file = "docs/index.md", content-type = "text/markdown" }
 requires-python = ">=3.11"
 authors = [
     { name = "Eduardo Marrero González", email = "edumarreroglezz@gmail.com" },
 ]
 dependencies = [
     "httpx>=0.27",
+    "mcp>=1.27.2",
     "pydantic>=2.5",
 ]
 
@@ -67,16 +68,3 @@ exclude_lines = [
     "if TYPE_CHECKING:",
 ]
 
-[tool.semantic_release]
-version_variables = ["src/phronesis/__init__.py:__version__"]
-version_toml = ["pyproject.toml:project.version"]
-branch = "main"
-upload_to_pypi = false
-upload_to_release = true
-build_command = "uv build"
-commit_parser = "conventional"
-
-[tool.semantic_release.commit_parser_options]
-allowed_tags = ["feat", "fix", "perf", "refactor", "docs", "test", "build", "ci", "chore"]
-minor_tags = ["feat"]
-patch_tags = ["fix", "perf", "refactor"]
