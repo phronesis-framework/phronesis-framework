@@ -41,10 +41,10 @@ class _NoopInstrument:
 
     __slots__ = ()
 
-    def add(self, amount: float, attributes: dict[str, Any] | None = None) -> None:
+    def add(self, _amount: float, _attributes: dict[str, Any] | None = None) -> None:
         return None
 
-    def record(self, amount: float, attributes: dict[str, Any] | None = None) -> None:
+    def record(self, _amount: float, _attributes: dict[str, Any] | None = None) -> None:
         return None
 
 
