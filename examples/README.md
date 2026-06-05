@@ -56,13 +56,13 @@ ni acceso a red.
 Levanta Ollama y descarga el modelo:
 
 ```bash
-ollama pull qwen2.5:3b
+ollama pull qwen3.5:9b
 python -m examples.ex01_hello_agent.main
 ```
 
 Variables de entorno opcionales:
 
-- `OLLAMA_MODEL` (default `qwen2.5:3b`)
+- `OLLAMA_MODEL` (default `qwen3.5:9b`)
 - `OLLAMA_HOST` (default `http://localhost:11434`)
 
 <div align="center">
@@ -75,7 +75,7 @@ Si cambias el codigo de un ejemplo (prompt, tools, numero de rondas, etc.)
 la cassette comiteada queda obsoleta. Para regrabar contra Ollama:
 
 ```bash
-ollama pull qwen2.5:3b
+ollama pull qwen3.5:9b
 
 RECORD_CASSETTE=examples/ex01_hello_agent/cassette.jsonl \
   python -m examples.ex01_hello_agent.main
