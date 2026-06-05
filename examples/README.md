@@ -24,12 +24,54 @@
 
 </div>
 
-| #  | Ejemplo                                                       | Demuestra                                | Provider          | Como correr                                              |
-| -- | ------------------------------------------------------------- | ---------------------------------------- | ----------------- | -------------------------------------------------------- |
-| 01 | [`ex01_hello_agent`](./ex01_hello_agent/)                     | `@agent`, `@tool`, tool-calling loop     | Ollama / Cassette | `python -m examples.ex01_hello_agent.main`               |
-| 02 | [`ex02_research_assistant`](./ex02_research_assistant/)       | multi-tool loop, dependencias entre tools| Ollama / Cassette | `python -m examples.ex02_research_assistant.main`        |
-| 03 | [`ex03_chat_with_memory`](./ex03_chat_with_memory/)           | `Session`, historial multi-turno         | Ollama / Cassette | `python -m examples.ex03_chat_with_memory.main`          |
-| 04 | [`ex04_bull_vs_bear_debate`](./ex04_bull_vs_bear_debate/)     | `runtime.Debate`, `agent_node`, moderador| Ollama / Cassette | `python -m examples.ex04_bull_vs_bear_debate.main`       |
+### Fundamentos
+
+| #  | Ejemplo                                                       | Demuestra                                  |
+| -- | ------------------------------------------------------------- | ------------------------------------------ |
+| 01 | [`ex01_hello_agent`](./ex01_hello_agent/)                     | `@agent`, `@tool`, tool-calling loop       |
+| 02 | [`ex02_research_assistant`](./ex02_research_assistant/)       | multi-tool loop, dependencias entre tools  |
+| 03 | [`ex03_chat_with_memory`](./ex03_chat_with_memory/)           | `Session`, historial multi-turno           |
+| 04 | [`ex04_bull_vs_bear_debate`](./ex04_bull_vs_bear_debate/)     | `runtime.Debate`, moderador                |
+
+### Runtime modes - primitivas
+
+| #  | Ejemplo                                                       | Demuestra                                  |
+| -- | ------------------------------------------------------------- | ------------------------------------------ |
+| 05 | [`ex05_sequence_pipeline`](./ex05_sequence_pipeline/)         | `runtime.Sequence` (researcher->writer->editor) |
+| 06 | [`ex06_parallel_fanout`](./ex06_parallel_fanout/)             | `runtime.Parallel` (3 perspectivas)        |
+| 07 | [`ex07_race_fastest_wins`](./ex07_race_fastest_wins/)         | `runtime.Race` (primer ganador cancela el resto) |
+| 08 | [`ex08_fallback_chain`](./ex08_fallback_chain/)               | `runtime.Fallback` (cae al siguiente si falla) |
+| 09 | [`ex09_cascade_quality_gate`](./ex09_cascade_quality_gate/)   | `runtime.Cascade` (acepta o escala)        |
+
+### Runtime modes - control flow
+
+| #  | Ejemplo                                                       | Demuestra                                  |
+| -- | ------------------------------------------------------------- | ------------------------------------------ |
+| 10 | [`ex10_conditional_branch`](./ex10_conditional_branch/)       | `runtime.Conditional` (predicate -> rama)  |
+| 11 | [`ex11_router_classifier`](./ex11_router_classifier/)         | `runtime.Router` (clave -> destino)        |
+| 12 | [`ex12_loop_until_done`](./ex12_loop_until_done/)             | `runtime.Loop` (re-itera mientras truthy)  |
+| 13 | [`ex13_retry_with_backoff`](./ex13_retry_with_backoff/)       | `runtime.Retry` (reintentos con backoff)   |
+
+### Runtime modes - multi-agente
+
+| #  | Ejemplo                                                       | Demuestra                                  |
+| -- | ------------------------------------------------------------- | ------------------------------------------ |
+| 14 | [`ex14_consensus_vote`](./ex14_consensus_vote/)               | `runtime.Consensus` (voto mayoritario)     |
+| 15 | [`ex15_handoff_chain`](./ex15_handoff_chain/)                 | `runtime.HandoffChain` (delegacion explicita) |
+| 16 | [`ex16_supervisor_dispatch`](./ex16_supervisor_dispatch/)     | `runtime.Supervisor` (dispatcher + workers)|
+
+### Runtime modes - cognitivos
+
+| #  | Ejemplo                                                       | Demuestra                                  |
+| -- | ------------------------------------------------------------- | ------------------------------------------ |
+| 17 | [`ex17_reflexion_critic`](./ex17_reflexion_critic/)           | `runtime.Reflexion` (actor + critic)       |
+| 18 | [`ex18_validation_schema`](./ex18_validation_schema/)         | `runtime.Validation` (re-prompt hasta valido)|
+| 19 | [`ex19_plan_and_execute`](./ex19_plan_and_execute/)           | `runtime.PlanAndExecute` (planner + executor)|
+| 20 | [`ex20_tree_search_beam`](./ex20_tree_search_beam/)           | `runtime.TreeSearch` (expander + evaluator)|
+| 21 | [`ex21_map_reduce_summarize`](./ex21_map_reduce_summarize/)   | `runtime.MapReduce` (split/map/reduce)     |
+| 22 | [`ex22_approval_gate`](./ex22_approval_gate/)                 | `runtime.Approval` (gate humano/automatico)|
+
+Todos corren con `CASSETTE_PATH=examples/exNN_xxx/cassette.jsonl python -m examples.exNN_xxx.main` o contra Ollama si no se define la variable.
 
 <div align="center">
 
@@ -47,7 +89,7 @@ CASSETTE_PATH=examples/ex01_hello_agent/cassette.jsonl \
   python -m examples.ex01_hello_agent.main
 ```
 
-Los smoke tests en `tests/examples/` corren los cuatro ejemplos de esta
+Los smoke tests en `tests/examples/` corren todos los ejemplos de esta
 manera, asi que la suite global (`uv run pytest -q`) no necesita Ollama
 ni acceso a red.
 
@@ -120,11 +162,11 @@ examples/
 
 <div align="center">
 
-## Proximos lotes (no en M1)
+## Proximos lotes
 
 </div>
 
-- **M2**: pipeline secuencial, parallel fanout, structured output con Pydantic.
-- **M3**: supervisor, handoff chain, router condicional.
-- **M4**: cliente MCP, servidor MCP.
-- **M5**: middleware logging, checkpoint/resume, vector RAG.
+- **MCP**: cliente y servidor MCP.
+- **Memoria avanzada**: vector RAG, checkpoint/resume.
+- **Middleware**: logging, tracing, rate limiting.
+- **Structured output**: validacion Pydantic + retry semantico.
