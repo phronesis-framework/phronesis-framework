@@ -1,0 +1,2 @@
+{"text": "This is a billing issue. [handoff:billing]", "tool_calls": [], "finish_reason": "stop", "usage": {"input_tokens": 64, "output_tokens": 14, "cache_read_tokens": 0, "cache_creation_tokens": 0}}
+{"text": "I located the duplicate charge from last month and queued a refund. Expect the credit on your card within five business days.", "tool_calls": [], "finish_reason": "stop", "usage": {"input_tokens": 80, "output_tokens": 30, "cache_read_tokens": 0, "cache_creation_tokens": 0}}
