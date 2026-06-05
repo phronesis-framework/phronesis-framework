@@ -278,7 +278,7 @@ async def _complete(
     run_attrs: dict[str, Any],
 ) -> Any:
     request = LLMRequest(
-        model=spec.name,
+        model="",
         messages=_translate_history(tuple(messages)),
         tools=tuple(t.spec for t in spec.tools),
         system=spec.system_prompt or None,
