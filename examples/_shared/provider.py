@@ -23,7 +23,7 @@ from phronesis.providers import ollama
 from phronesis.providers.protocol import LLMProvider
 from phronesis.replay import RecordingProvider, ReplayProvider
 
-DEFAULT_MODEL = "qwen3.5:9b"
+DEFAULT_MODEL = "qwen2.5:3b"
 DEFAULT_HOST = "http://localhost:11434"
 
 

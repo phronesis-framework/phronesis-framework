@@ -37,7 +37,7 @@
 
 </div>
 
-Contra Ollama local (necesita `ollama pull qwen3.5:9b`):
+Contra Ollama local (necesita `ollama pull qwen2.5:3b`):
 
 ```bash
 python -m examples.ex01_hello_agent.main
