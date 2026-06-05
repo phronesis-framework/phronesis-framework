@@ -1,0 +1,2 @@
+{"text": "Rayleigh scattering effect.", "tool_calls": [], "finish_reason": "stop", "usage": {"input_tokens": 16, "output_tokens": 6, "cache_read_tokens": 0, "cache_creation_tokens": 0}}
+{"text": "Sunlight is scattered by air molecules, and shorter blue wavelengths scatter much more than red. So the diffuse light reaching our eyes from every direction of the sky is dominated by blue.", "tool_calls": [], "finish_reason": "stop", "usage": {"input_tokens": 24, "output_tokens": 42, "cache_read_tokens": 0, "cache_creation_tokens": 0}}
