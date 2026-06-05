@@ -63,7 +63,7 @@ def ollama(
         (``keep_alive``, ``options.num_ctx``, ...) are passed per
         request via :attr:`LLMRequest.extra_body`.
     """
-    base_url = f"{host.rstrip('/')}/v1"
+    base_url = host.rstrip("/")
 
     return openai(
         model,
