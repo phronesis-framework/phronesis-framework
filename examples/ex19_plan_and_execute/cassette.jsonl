@@ -1,0 +1,4 @@
+{"text": "1. Mix dry ingredients.\n2. Add wet ingredients and stir.\n3. Bake at 180C for 35 minutes.", "tool_calls": [], "finish_reason": "stop", "usage": {"input_tokens": 32, "output_tokens": 28, "cache_read_tokens": 0, "cache_creation_tokens": 0}}
+{"text": "Whisk flour, cocoa, sugar and baking powder in a large bowl.", "tool_calls": [], "finish_reason": "stop", "usage": {"input_tokens": 24, "output_tokens": 16, "cache_read_tokens": 0, "cache_creation_tokens": 0}}
+{"text": "Pour in eggs, milk and oil; stir until smooth.", "tool_calls": [], "finish_reason": "stop", "usage": {"input_tokens": 28, "output_tokens": 14, "cache_read_tokens": 0, "cache_creation_tokens": 0}}
+{"text": "Transfer to a tin and bake at 180C for thirty-five minutes.", "tool_calls": [], "finish_reason": "stop", "usage": {"input_tokens": 30, "output_tokens": 16, "cache_read_tokens": 0, "cache_creation_tokens": 0}}
