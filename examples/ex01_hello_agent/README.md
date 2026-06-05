@@ -23,12 +23,13 @@
 
 </div>
 
-- `@tool` sobre una funcion sincrona.
-- `@agent` cableado con un provider, una system prompt y un set de tools.
-- Tool-calling loop completo: primera respuesta del modelo emite `tool_calls`,
-  el framework ejecuta la tool, y la segunda respuesta del modelo produce el
-  texto final.
+- `@tool` sobre cuatro funciones sincronas (`add`, `sustract`, `times`, `divide`).
+- `@agent` cableado con un provider, una system prompt y la tupla completa de tools.
+- Tool-calling loop multi-paso: el modelo emite tres `tool_calls` encadenadas
+  (add -> times -> sustract) y solo emite el texto final tras consumir todos
+  los resultados intermedios.
 - `Result.output` como `str` final.
+- `max_iterations=8` para permitir varios turnos de tool calls en un mismo run.
 
 <div align="center">
 
@@ -36,7 +37,7 @@
 
 </div>
 
-Contra Ollama local (necesita `ollama pull qwen2.5:3b`):
+Contra Ollama local (necesita `ollama pull qwen3.5:9b`):
 
 ```bash
 python -m examples.ex01_hello_agent.main
@@ -56,7 +57,7 @@ CASSETTE_PATH=examples/ex01_hello_agent/cassette.jsonl \
 </div>
 
 ```
-17 + 25 = 42.
+(17 + 25) * 2 - 4 = 80.
 ```
 
 (El texto exacto varia con el modelo; la cassette lo fija para que los tests sean

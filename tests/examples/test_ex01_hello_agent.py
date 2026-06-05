@@ -18,4 +18,4 @@ async def test_runs_against_cassette(
     await module.main()
 
     captured = capsys.readouterr()
-    assert "42" in captured.out
+    assert "80" in captured.out

@@ -26,18 +26,42 @@ def add(a: int, b: int) -> int:
     return a + b
 
 
+@tool
+def sustract(a: int, b: int) -> int:
+    """Sustract two integers and return the result."""
+    return a - b
+
+
+@tool
+def times(a: int, b: int) -> int:
+    """Times two integers and return the result."""
+    return a * b
+
+
+@tool
+def divide(a: int, b: int) -> int:
+    """Divide two integers and return the result."""
+    return a % b
+
+
 @agent(
     model=build_provider(),
-    tools=(add,),
-    system_prompt="You are a precise calculator. Use the add tool when needed.",
+    tools=(add, sustract, times, divide),
+    system_prompt=(
+        "You are a precise calculator. You have four tools: add, sustract, "
+        "times and divide. Use them to compute the requested expression. "
+        "Always call the tools instead of computing in your head, and only "
+        "produce the final answer after running every required step."
+    ),
+    max_iterations=8,
 )
 def calculator() -> str:
-    """Answer arithmetic questions using the add tool."""
+    """Answer arithmetic questions by chaining the calculator tools."""
 
 
 async def main() -> None:
-    """Run a single arithmetic query against the calculator agent."""
-    result = await calculator.run("How much is 17 + 25?")
+    """Run a multi-step arithmetic query against the calculator agent."""
+    result = await calculator.run("How much is (17 + 25) * 2 - 4?")
 
     print(result.output)
 
