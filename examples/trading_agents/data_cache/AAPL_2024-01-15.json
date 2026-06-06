@@ -1,0 +1,45 @@
+{
+  "ticker": "AAPL",
+  "as_of": "2024-01-15",
+  "price": {
+    "open": 184.50,
+    "close": 185.92,
+    "high": 186.40,
+    "low": 183.92,
+    "volume": 47283120
+  },
+  "fundamentals": {
+    "pe": 30.1,
+    "eps": 6.16,
+    "market_cap_b": 2890.4,
+    "dividend_yield": 0.0051,
+    "revenue_growth_yoy": 0.018,
+    "profit_margin": 0.255
+  },
+  "news": [
+    {
+      "title": "Apple unveils Vision Pro launch date and pricing",
+      "publisher": "Reuters",
+      "ts": "2024-01-08T13:30:00Z"
+    },
+    {
+      "title": "China iPhone shipments slip, analyst cuts target",
+      "publisher": "Bloomberg",
+      "ts": "2024-01-12T10:00:00Z"
+    },
+    {
+      "title": "Services revenue expected to set record this quarter",
+      "publisher": "WSJ",
+      "ts": "2024-01-14T09:00:00Z"
+    }
+  ],
+  "indicators": {
+    "sma_20": 187.3,
+    "sma_50": 189.1,
+    "rsi_14": 52.4,
+    "macd": -0.42,
+    "macd_signal": -0.31,
+    "bollinger_upper": 195.2,
+    "bollinger_lower": 178.5
+  }
+}
