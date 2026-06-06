@@ -63,18 +63,39 @@ examples/trading_agents/
 
 ## Como correr
 
+La mini-app trae un CLI minimo (argparse, sin dependencias extra). Se
+invoca con `python -m examples.trading_agents`.
+
+```
+usage: python -m examples.trading_agents [-h] [--ticker TICKER]
+                                         [--as-of AS_OF] [-v]
+
+  --ticker TICKER   Equity symbol (default: AAPL).
+  --as-of AS_OF     Snapshot date in ISO format (default: 2024-01-15).
+  -v, --verbose     Print the output of every phase, not just the final
+                    decision.
+```
+
 ### Contra cassette (determinista, sin red)
 
 ```bash
 CASSETTE_PATH=examples/trading_agents/cassette.jsonl \
-  python -m examples.trading_agents.main
+  python -m examples.trading_agents
+```
+
+Solo imprime la decision final del portfolio manager. Para ver el output
+de cada fase:
+
+```bash
+CASSETTE_PATH=examples/trading_agents/cassette.jsonl \
+  python -m examples.trading_agents --verbose
 ```
 
 ### Contra Ollama local
 
 ```bash
 ollama pull qwen2.5:3b
-python -m examples.trading_agents.main
+python -m examples.trading_agents --ticker AAPL --as-of 2024-01-15
 ```
 
 ### Regrabar la cassette
@@ -84,7 +105,7 @@ la cassette queda obsoleta. Para regrabar:
 
 ```bash
 RECORD_CASSETTE=examples/trading_agents/cassette.jsonl \
-  python -m examples.trading_agents.main
+  python -m examples.trading_agents
 ```
 
 > **Nota sobre orden en `Parallel`**: los 4 analistas pueden llegar al
