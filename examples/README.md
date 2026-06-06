@@ -75,6 +75,20 @@ Todos corren con `CASSETTE_PATH=examples/exNN_xxx/cassette.jsonl python -m examp
 
 <div align="center">
 
+## Mini-apps
+
+</div>
+
+Composiciones que combinan varias primitivas en un sistema mas grande.
+No son ejemplos numerados: viven en su propia subcarpeta con estructura
+modular (`agents/`, `prompts.py`, `tools.py`, `data.py`).
+
+| Mini-app                                          | Demuestra                                                    |
+| ------------------------------------------------- | ------------------------------------------------------------ |
+| [`trading_agents`](./trading_agents/)             | Organigrama del paper TradingAgents (13 agentes, 5 fases): `Sequence` + `Parallel` + dos `Debate` moderados |
+
+<div align="center">
+
 ## Como correr
 
 </div>
