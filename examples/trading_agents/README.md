@@ -64,7 +64,12 @@ examples/trading_agents/
 ## Como correr
 
 La mini-app trae un CLI minimo (argparse, sin dependencias extra). Se
-invoca con `python -m examples.trading_agents`.
+invoca con `uv run python -m examples.trading_agents`.
+
+> Todos los ejemplos del repo asumen que el paquete `phronesis` esta en
+> el path. Lo mas comodo es usar `uv run` (sin activar nada). Si
+> prefieres `python` directo, activa el venv (`.venv\Scripts\activate`
+> en Windows) o haz `uv pip install -e .` una sola vez.
 
 ```
 usage: python -m examples.trading_agents [-h] [--ticker TICKER]
@@ -80,7 +85,7 @@ usage: python -m examples.trading_agents [-h] [--ticker TICKER]
 
 ```bash
 CASSETTE_PATH=examples/trading_agents/cassette.jsonl \
-  python -m examples.trading_agents
+  uv run python -m examples.trading_agents
 ```
 
 Solo imprime la decision final del portfolio manager. Para ver el output
@@ -88,14 +93,14 @@ de cada fase:
 
 ```bash
 CASSETTE_PATH=examples/trading_agents/cassette.jsonl \
-  python -m examples.trading_agents --verbose
+  uv run python -m examples.trading_agents --verbose
 ```
 
 ### Contra Ollama local
 
 ```bash
 ollama pull qwen2.5:3b
-python -m examples.trading_agents --ticker AAPL --as-of 2024-01-15
+uv run python -m examples.trading_agents --ticker AAPL --as-of 2024-01-15
 ```
 
 ### Regrabar la cassette
@@ -105,7 +110,7 @@ la cassette queda obsoleta. Para regrabar:
 
 ```bash
 RECORD_CASSETTE=examples/trading_agents/cassette.jsonl \
-  python -m examples.trading_agents
+  uv run python -m examples.trading_agents
 ```
 
 > **Nota sobre orden en `Parallel`**: los 4 analistas pueden llegar al
