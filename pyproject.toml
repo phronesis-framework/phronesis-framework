@@ -26,6 +26,9 @@ obs = [
     "opentelemetry-sdk>=1.27",
     "opentelemetry-exporter-otlp>=1.27",
 ]
+trading = [
+    "yfinance>=0.2",
+]
 
 [build-system]
 requires = ["hatchling"]
