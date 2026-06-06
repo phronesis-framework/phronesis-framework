@@ -9,15 +9,9 @@ Five phases composed with ``runtime.Sequence`` plus the right adapters:
    risk manager.
 5. Portfolio manager emits ``DECISION: BUY | SELL | HOLD``.
 
-Run against the committed cassette::
-
-    CASSETTE_PATH=examples/trading_agents/cassette.jsonl \\
-      python -m examples.trading_agents.main
-
-Run live against a local Ollama (and refresh the cassette)::
-
-    RECORD_CASSETTE=examples/trading_agents/cassette.jsonl \\
-      python -m examples.trading_agents.main
+Use the CLI (``python -m examples.trading_agents``) for the normal entry
+point; this module exposes :func:`run` for programmatic use and a tiny
+:func:`main` helper that prints the final decision.
 """
 
 from __future__ import annotations
@@ -50,6 +44,7 @@ from phronesis.runtime import (
     Debate,
     ExecutionContext,
     Parallel,
+    RunOutcome,
     Sequence,
     agent_node,
     callable_node,
@@ -124,13 +119,24 @@ def build_pipeline() -> Sequence:
     )
 
 
-async def main(ticker: str = "AAPL", as_of: str = "2024-01-15") -> None:
-    """Load the snapshot, drive the pipeline and print the final decision."""
+async def run(ticker: str = "AAPL", as_of: str = "2024-01-15") -> RunOutcome:
+    """Drive the full TradingAgents pipeline for a single ticker.
+
+    Returns the raw :class:`RunOutcome` so callers (CLI, tests, notebooks)
+    can either print the final decision or walk ``outcome.children`` to
+    inspect each phase.
+    """
     snapshot = load_ticker_snapshot(ticker, as_of)
     pipeline = build_pipeline()
 
     ctx = ExecutionContext.new()
-    outcome = await pipeline(ctx, snapshot)
+
+    return await pipeline(ctx, snapshot)
+
+
+async def main(ticker: str = "AAPL", as_of: str = "2024-01-15") -> None:
+    """Run the pipeline and print only the final decision."""
+    outcome = await run(ticker, as_of)
 
     print(outcome.output)
 
