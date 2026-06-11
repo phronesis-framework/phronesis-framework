@@ -1,7 +1,7 @@
 #
 
 <div align="center">
-  <img src="./public/assets/phronesis-banner.png" alt="Phronesis Framework" width="70%" />
+  <img src="./public/assets/lockup/lockup-horizontal-dark.svg" alt="Phronesis Framework" width="60%" />
 </div>
 
 <div align="center">
@@ -24,10 +24,9 @@
 <div align="center">
 
 [![Status](https://img.shields.io/badge/status-v0.1.0_alpha-orange)]()
+[![Coverage](https://img.shields.io/badge/coverage-90%25+-brightgreen)]()
 [![Python](https://img.shields.io/badge/python-3.11+-blue?logo=python&logoColor=white)]()
-[![Typing](https://img.shields.io/badge/mypy-strict-blue)]()
-[![Tests](https://img.shields.io/badge/tests-1650+-brightgreen)]()
-[![Coverage](https://img.shields.io/badge/coverage-%E2%89%A590%25-brightgreen)]()
+[![Tests](https://img.shields.io/badge/tests-1650+-blue)]()
 
 </div>
 
@@ -146,6 +145,24 @@ flowchart TB
   OBS["obs · OpenTelemetry"] -. spans + metrics .- RUNTIME & AGENTS & PROVIDERS
 ```
 
+Un catálogo cerrado de modos de ejecución — suficientemente expresivo, suficientemente
+finito para razonar sobre él. Todos los modos satisfacen el mismo contrato
+`Executable` y anidan entre sí:
+
+| Categoría | Modos |
+|---|---|
+| Primitivas | `Sequence` · `Parallel` · `Race` · `Fallback` · `Cascade` |
+| Control de flujo | `Conditional` · `Router` · `Loop` · `Retry` |
+| Multiagente | `Consensus` · `HandoffChain` · `Supervisor` · `Debate` |
+| Cognitivos | `Reflexion` · `Validation` · `PlanAndExecute` · `TreeSearch` · `MapReduce` |
+| Human-in-the-loop | `Approval` |
+
+<div align="center">
+
+## 📦 Module layout
+
+</div>
+
 | Área | Qué aporta | Docs |
 |---|---|---|
 | `agents` | `@agent`, sessions, streaming, tool-calling loop | [agents/](./docs/agents/index.md) |
@@ -162,23 +179,6 @@ flowchart TB
 | `core` | tipos de dominio (`Message`, `ContentBlock`) | [core/](./docs/core/index.md) |
 | `communication` | identidad de sesión (`SessionId`) | [communication/](./docs/communication/index.md) |
 | `_internal` | http, ids, logging, retry, typing, concurrency | [internal/](./docs/internal/index.md) |
-
-<div align="center">
-
-## 📦 Execution modes
-
-</div>
-
-Un catálogo cerrado — suficientemente expresivo, suficientemente finito para razonar
-sobre él. Todos los modos satisfacen el mismo contrato `Executable` y anidan entre sí.
-
-| Categoría | Modos |
-|---|---|
-| Primitivas | `Sequence` · `Parallel` · `Race` · `Fallback` · `Cascade` |
-| Control de flujo | `Conditional` · `Router` · `Loop` · `Retry` |
-| Multiagente | `Consensus` · `HandoffChain` · `Supervisor` · `Debate` |
-| Cognitivos | `Reflexion` · `Validation` · `PlanAndExecute` · `TreeSearch` · `MapReduce` |
-| Human-in-the-loop | `Approval` |
 
 <div align="center">
 
