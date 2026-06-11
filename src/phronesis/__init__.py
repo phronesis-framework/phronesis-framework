@@ -17,7 +17,7 @@ from .tools.effects import ToolEffect
 from .tools.errors import ToolError
 from .tools.registry import tool_scope
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
 # Defensive: prevent stdlib "no handlers" warnings when the consumer has not
 # configured logging. Users opt in by calling `configure_logging()` or by
