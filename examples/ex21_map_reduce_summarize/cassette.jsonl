@@ -1,0 +1,3 @@
+{"text": "Python agentic framework.", "tool_calls": [], "finish_reason": "stop", "usage": {"input_tokens": 28, "output_tokens": 6, "cache_read_tokens": 0, "cache_creation_tokens": 0}}
+{"text": "Agents, tools, runtime modes.", "tool_calls": [], "finish_reason": "stop", "usage": {"input_tokens": 32, "output_tokens": 8, "cache_read_tokens": 0, "cache_creation_tokens": 0}}
+{"text": "Cassettes enable offline tests.", "tool_calls": [], "finish_reason": "stop", "usage": {"input_tokens": 24, "output_tokens": 6, "cache_read_tokens": 0, "cache_creation_tokens": 0}}

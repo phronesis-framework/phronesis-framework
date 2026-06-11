@@ -1,0 +1,2 @@
+{"text": "Hi Eduardo, nice to meet you. How can I help today?", "tool_calls": [], "finish_reason": "stop", "usage": {"input_tokens": 48, "output_tokens": 14, "cache_read_tokens": 0, "cache_creation_tokens": 0}}
+{"text": "Your name is Eduardo.", "tool_calls": [], "finish_reason": "stop", "usage": {"input_tokens": 92, "output_tokens": 6, "cache_read_tokens": 0, "cache_creation_tokens": 0}}

@@ -1,0 +1,3 @@
+{"text": "Need fresh web data. [route:web]", "tool_calls": [], "finish_reason": "stop", "usage": {"input_tokens": 64, "output_tokens": 10, "cache_read_tokens": 0, "cache_creation_tokens": 0}}
+{"text": "1) MMLU-Pro favours frontier reasoning models. 2) MT-Bench is saturated. 3) LiveBench rotates monthly to avoid contamination.", "tool_calls": [], "finish_reason": "stop", "usage": {"input_tokens": 80, "output_tokens": 32, "cache_read_tokens": 0, "cache_creation_tokens": 0}}
+{"text": "Benchmarks converge on frontier models, with rotating live suites reducing contamination.", "tool_calls": [], "finish_reason": "stop", "usage": {"input_tokens": 120, "output_tokens": 18, "cache_read_tokens": 0, "cache_creation_tokens": 0}}

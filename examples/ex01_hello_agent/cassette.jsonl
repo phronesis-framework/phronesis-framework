@@ -1,0 +1,4 @@
+{"text": "", "tool_calls": [{"call_id": "call_add", "tool_name": "add", "arguments": {"a": 17, "b": 25}}], "finish_reason": "tool_use", "usage": {"input_tokens": 96, "output_tokens": 18, "cache_read_tokens": 0, "cache_creation_tokens": 0}}
+{"text": "", "tool_calls": [{"call_id": "call_times", "tool_name": "times", "arguments": {"a": 42, "b": 2}}], "finish_reason": "tool_use", "usage": {"input_tokens": 132, "output_tokens": 18, "cache_read_tokens": 0, "cache_creation_tokens": 0}}
+{"text": "", "tool_calls": [{"call_id": "call_sustract", "tool_name": "sustract", "arguments": {"a": 84, "b": 4}}], "finish_reason": "tool_use", "usage": {"input_tokens": 168, "output_tokens": 18, "cache_read_tokens": 0, "cache_creation_tokens": 0}}
+{"text": "(17 + 25) * 2 - 4 = 80.", "tool_calls": [], "finish_reason": "stop", "usage": {"input_tokens": 200, "output_tokens": 14, "cache_read_tokens": 0, "cache_creation_tokens": 0}}

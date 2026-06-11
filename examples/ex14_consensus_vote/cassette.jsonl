@@ -1,0 +1,3 @@
+{"text": "positive", "tool_calls": [], "finish_reason": "stop", "usage": {"input_tokens": 36, "output_tokens": 2, "cache_read_tokens": 0, "cache_creation_tokens": 0}}
+{"text": "positive", "tool_calls": [], "finish_reason": "stop", "usage": {"input_tokens": 36, "output_tokens": 2, "cache_read_tokens": 0, "cache_creation_tokens": 0}}
+{"text": "neutral", "tool_calls": [], "finish_reason": "stop", "usage": {"input_tokens": 36, "output_tokens": 2, "cache_read_tokens": 0, "cache_creation_tokens": 0}}

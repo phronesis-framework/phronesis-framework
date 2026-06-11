@@ -1,6 +1,6 @@
 [project]
 name = "phronesis-framework"
-version = "0.1.0"
+version = "0.1.1"
 description = "Phronesis Framework"
 readme = { file = "docs/index.md", content-type = "text/markdown" }
 requires-python = ">=3.11"
@@ -25,6 +25,9 @@ obs = [
     "opentelemetry-api>=1.27",
     "opentelemetry-sdk>=1.27",
     "opentelemetry-exporter-otlp>=1.27",
+]
+trading = [
+    "yfinance>=0.2",
 ]
 
 [build-system]
@@ -54,9 +57,19 @@ warn_unused_ignores = true
 warn_redundant_casts = true
 files = ["src"]
 
+[[tool.mypy.overrides]]
+module = ["examples.*"]
+disallow_untyped_decorators = false
+disable_error_code = ["empty-body"]
+
+[[tool.mypy.overrides]]
+module = ["phronesis.*"]
+ignore_missing_imports = true
+
 [tool.coverage.run]
 source = ["src/phronesis"]
 branch = true
+omit = ["examples/*"]
 
 [tool.coverage.report]
 fail_under = 90

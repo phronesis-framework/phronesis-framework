@@ -18,10 +18,10 @@ def _mock_client(base_url: str) -> httpx.AsyncClient:
 
 
 class TestOllamaFactory:
-    def test_default_host_yields_v1_base_url(self) -> None:
+    def test_default_host_yields_bare_host_base_url(self) -> None:
         provider = ollama(
             "qwen2.5",
-            http_client=_mock_client("http://localhost:11434/v1"),
+            http_client=_mock_client("http://localhost:11434"),
         )
 
         assert isinstance(provider, OpenAIProvider)
@@ -32,7 +32,7 @@ class TestOllamaFactory:
         provider = ollama(
             "qwen2.5",
             host="http://localhost:11434/",
-            http_client=_mock_client("http://localhost:11434/v1"),
+            http_client=_mock_client("http://localhost:11434"),
         )
 
         assert provider._api_key == ""
@@ -40,7 +40,7 @@ class TestOllamaFactory:
     def test_default_features_only_structured_output(self) -> None:
         provider = ollama(
             "qwen2.5",
-            http_client=_mock_client("http://localhost:11434/v1"),
+            http_client=_mock_client("http://localhost:11434"),
         )
 
         assert provider.supports(ProviderFeature.STRUCTURED_OUTPUT)
@@ -50,7 +50,7 @@ class TestOllamaFactory:
     def test_context_window_resolved_from_oss_table(self) -> None:
         provider = ollama(
             "qwen2.5",
-            http_client=_mock_client("http://localhost:11434/v1"),
+            http_client=_mock_client("http://localhost:11434"),
         )
 
         assert provider.context_window_size() == 128_000
@@ -59,7 +59,7 @@ class TestOllamaFactory:
         provider = ollama(
             "qwen2.5",
             features=frozenset({ProviderFeature.VISION}),
-            http_client=_mock_client("http://localhost:11434/v1"),
+            http_client=_mock_client("http://localhost:11434"),
         )
 
         assert provider.supports(ProviderFeature.VISION)
@@ -69,10 +69,41 @@ class TestOllamaFactory:
         provider = ollama(
             "qwen2.5",
             context_window=4096,
-            http_client=_mock_client("http://localhost:11434/v1"),
+            http_client=_mock_client("http://localhost:11434"),
         )
 
         assert provider.context_window_size() == 4096
+
+    @pytest.mark.asyncio
+    async def test_complete_posts_to_single_v1_chat_completions(self) -> None:
+        captured: list[httpx.Request] = []
+
+        def _handler(request: httpx.Request) -> httpx.Response:
+            captured.append(request)
+
+            return httpx.Response(
+                200,
+                json={
+                    "choices": [{"message": {"role": "assistant", "content": "ok"}}],
+                    "usage": {"prompt_tokens": 1, "completion_tokens": 1, "total_tokens": 2},
+                },
+            )
+
+        transport = httpx.MockTransport(_handler)
+        client = httpx.AsyncClient(transport=transport, base_url="http://localhost:11434")
+
+        from phronesis.providers.types import LLMRequest, Message, Role
+
+        provider = ollama("qwen2.5", http_client=client)
+        await provider.complete(
+            LLMRequest(
+                model="qwen2.5",
+                messages=(Message(role=Role.USER, content="hi"),),
+            ),
+        )
+
+        assert len(captured) == 1
+        assert str(captured[0].url) == "http://localhost:11434/v1/chat/completions"
 
 
 class TestVllmFactory:
