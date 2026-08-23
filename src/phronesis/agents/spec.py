@@ -20,6 +20,7 @@ from phronesis.agents.hooks import AgentHooks
 from phronesis.agents.id import AgentId
 from phronesis.context.default import DefaultContextBuilder
 from phronesis.context.protocol import ContextBuilder
+from phronesis.providers.pricing import Pricing
 from phronesis.providers.protocol import LLMProvider
 from phronesis.tools.tool import Tool
 
@@ -66,6 +67,11 @@ class AgentSpec:
         hooks: :class:`AgentHooks` aggregate of optional lifecycle
             callbacks. Defaults to an :class:`AgentHooks` instance
             with every field unset.
+        pricing: Optional :class:`Pricing` giving the USD rates this
+            agent is billed at. When set, the loop populates
+            :attr:`Result.cost_usd` and enforces
+            :attr:`RunRequest.max_cost_usd`. ``None`` leaves both
+            inert - the framework ships no price table.
     """
 
     id: AgentId
@@ -79,6 +85,7 @@ class AgentSpec:
     version: str = "0.1.0"
     context_builder: ContextBuilder = field(default=_DEFAULT_CONTEXT_BUILDER)
     hooks: AgentHooks = field(default=_DEFAULT_HOOKS)
+    pricing: Pricing | None = None
 
     def __repr__(self) -> str:
         return (

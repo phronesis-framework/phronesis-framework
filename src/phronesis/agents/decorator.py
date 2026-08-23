@@ -34,6 +34,7 @@ from phronesis.agents.id import AgentId
 from phronesis.agents.spec import AgentSpec
 from phronesis.context.default import DefaultContextBuilder
 from phronesis.context.protocol import ContextBuilder
+from phronesis.providers.pricing import Pricing
 from phronesis.providers.protocol import LLMProvider
 from phronesis.tools.tool import Tool
 
@@ -83,6 +84,7 @@ def _build_spec(
     version: str | None,
     context_builder: ContextBuilder | None,
     hooks: AgentHooks | None,
+    pricing: Pricing | None,
 ) -> AgentSpec:
     """Combine explicit overrides with defaults derived from ``fn``.
 
@@ -113,6 +115,7 @@ def _build_spec(
         max_iterations=resolved_max,
         version=resolved_version,
         hooks=resolved_hooks,
+        pricing=pricing,
     )
 
 
@@ -129,6 +132,7 @@ def agent(
     version: str | None = None,
     context_builder: ContextBuilder | None = None,
     hooks: AgentHooks | None = None,
+    pricing: Pricing | None = None,
 ) -> Callable[[Callable[..., Any]], Agent]:
     """Declare an agent from a function used purely as metadata.
 
@@ -160,6 +164,9 @@ def agent(
             :class:`DefaultContextBuilder` singleton.
         hooks: Optional :class:`AgentHooks` aggregate of lifecycle
             callbacks. Defaults to an empty :class:`AgentHooks`.
+        pricing: Optional :class:`Pricing` rates. Required for
+            ``Result.cost_usd`` to be populated and for
+            ``RunRequest.max_cost_usd`` to be enforced.
 
     Returns:
         A decorator that consumes the target function and yields the
@@ -188,6 +195,7 @@ def agent(
             version=version,
             context_builder=context_builder,
             hooks=hooks,
+            pricing=pricing,
         )
 
         return build_agent(spec)

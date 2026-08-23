@@ -31,6 +31,7 @@ from phronesis.providers.errors import (
 )
 from phronesis.providers.fallback import FallbackExhaustedError, FallbackProvider
 from phronesis.providers.openai import ollama, openai, openwebui, vllm
+from phronesis.providers.pricing import Pricing
 from phronesis.providers.protocol import LLMProvider, ProviderFeature
 from phronesis.providers.retry_config import RetryConfig
 from phronesis.providers.types import (
@@ -57,6 +58,7 @@ __all__ = [
     "LLMResponse",
     "MediaRef",
     "Message",
+    "Pricing",
     "ProviderError",
     "ProviderFeature",
     "RateLimitError",

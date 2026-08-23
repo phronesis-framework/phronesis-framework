@@ -24,6 +24,7 @@ from phronesis.providers.openai.factory import openai as _openai_impl
 from phronesis.providers.openai.helpers import ollama as _ollama_impl
 from phronesis.providers.openai.helpers import openwebui as _openwebui_impl
 from phronesis.providers.openai.helpers import vllm as _vllm_impl
+from phronesis.providers.pricing import Pricing as _PricingImpl
 from phronesis.providers.protocol import LLMProvider as _LLMProviderImpl
 from phronesis.providers.protocol import ProviderFeature as _ProviderFeatureImpl
 from phronesis.providers.retry_config import RetryConfig as _RetryConfigImpl
@@ -49,6 +50,7 @@ _EXPECTED_NAMES = {
     "LLMResponse": _LLMResponseImpl,
     "MediaRef": _MediaRefImpl,
     "Message": _MessageImpl,
+    "Pricing": _PricingImpl,
     "ProviderError": _ProviderErrImpl,
     "ProviderFeature": _ProviderFeatureImpl,
     "RateLimitError": _RateImpl,

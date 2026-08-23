@@ -14,6 +14,7 @@ from phronesis.agents.run import RunRequest
 from phronesis.agents.spec import AgentSpec
 from phronesis.core.messages import Message
 from phronesis.providers.chunks import LLMChunk
+from phronesis.providers.pricing import Pricing
 from phronesis.providers.protocol import ProviderFeature
 from phronesis.providers.types import LLMRequest, LLMResponse
 from phronesis.providers.usage import TokenUsage
@@ -152,3 +153,62 @@ class TestTimeout:
 
         with pytest.raises(AgentBudgetExceededError):
             await agent.run(RunRequest(input="hi", timeout_seconds=0.05))
+
+
+def _priced_spec(provider: object, pricing: Pricing) -> AgentSpec:
+    return AgentSpec(
+        id=AgentId("phronesis.agents.priced"),
+        name="priced",
+        model=provider,  # type: ignore[arg-type]
+        system_prompt="hi",
+        pricing=pricing,
+    )
+
+
+class TestMaxCostUsd:
+    @pytest.mark.asyncio
+    async def test_result_carries_no_cost_without_pricing(self) -> None:
+        agent = Agent(_spec(_UsageProvider(input_tokens=1_000, output_tokens=1_000)))
+
+        result = await agent.run("hi")
+
+        assert result.cost_usd is None
+
+    @pytest.mark.asyncio
+    async def test_result_carries_cost_when_priced(self) -> None:
+        provider = _UsageProvider(input_tokens=1_000_000, output_tokens=500_000)
+        pricing = Pricing(input=3.0, output=15.0)
+        agent = Agent(_priced_spec(provider, pricing))
+
+        result = await agent.run("hi")
+
+        assert result.cost_usd == pytest.approx(10.5)
+
+    @pytest.mark.asyncio
+    async def test_does_not_raise_below_threshold(self) -> None:
+        provider = _UsageProvider(input_tokens=1_000, output_tokens=0)
+        agent = Agent(_priced_spec(provider, Pricing(input=3.0)))
+
+        result = await agent.run(RunRequest(input="hi", max_cost_usd=1.0))
+
+        assert result.output == "done"
+
+    @pytest.mark.asyncio
+    async def test_raises_when_exceeded(self) -> None:
+        provider = _UsageProvider(input_tokens=1_000_000, output_tokens=0)
+        agent = Agent(_priced_spec(provider, Pricing(input=3.0)))
+
+        with pytest.raises(AgentBudgetExceededError) as exc_info:
+            await agent.run(RunRequest(input="hi", max_cost_usd=1.0))
+
+        assert exc_info.value.details["limit"] == "max_cost_usd"
+        assert exc_info.value.details["observed"] == pytest.approx(3.0)
+
+    @pytest.mark.asyncio
+    async def test_cap_is_inert_without_pricing(self) -> None:
+        provider = _UsageProvider(input_tokens=1_000_000, output_tokens=1_000_000)
+        agent = Agent(_spec(provider))
+
+        result = await agent.run(RunRequest(input="hi", max_cost_usd=0.000_001))
+
+        assert result.output == "done"
