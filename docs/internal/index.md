@@ -11,7 +11,7 @@
 </div>
 
 <div align="center">
-  Shared infrastructure that underpins the rest of the framework: typing, identity, logging, HTTP, retry, and concurrency.
+  Shared infrastructure that underpins the rest of the framework: identity, logging, retry, and concurrency.
 </div>
 
 <div align="center">
@@ -46,10 +46,9 @@ Each subpackage covers one isolated concern, has its own `__init__.py`, and mirr
 
 </div>
 
-- `typing` depends on nothing (base of the graph).
-- `logging` depends only on `typing`.
-- `http`, `retry`, and `concurrency` depend on `logging` for structured emission.
-- `retry` and `http` are natural consumers of each other (retry wraps HTTP calls), but the `retry` module is **transport-agnostic**.
+- `ids` depends on nothing (base of the graph).
+- `retry` and `concurrency` depend on `logging` for structured emission.
+- `retry` is **transport-agnostic**: it retries on whatever exception types the caller declares.
 
 <div align="center">
 
@@ -59,10 +58,8 @@ Each subpackage covers one isolated concern, has its own `__init__.py`, and mirr
 
 | Module | Status | Description | Doc |
 |---|---|---|---|
-| `typing` | implemented | Typing primitives: `JSON`, `Result`, `Maybe`, `MISSING`, NewTypes, protocols, streaming, binary | [typing/](./typing/index.md) |
 | `ids` | implemented | Identifiers: base `Id`, deterministic derivation, generator, validators | [ids/](./ids/index.md) |
 | `logging` | implemented | Structured and human-readable loggers, context adapter, factory, idempotent config | [logging/](./logging/index.md) |
-| `http` | implemented | Async HTTP client, per-phase timeouts, error hierarchy, sensitive-header redaction | [http/](./http/index.md) |
 | `retry` | implemented | `@retry` decorator, backoffs (fixed and exponential with jitter), attempt history | [retry/](./retry/index.md) |
 | `concurrency` | implemented | `run_sync`, `gather_all` with policies (`FailFast`/`BestEffort`), partial failures | [concurrency/](./concurrency/index.md) |
 
@@ -72,9 +69,7 @@ Each subpackage covers one isolated concern, has its own `__init__.py`, and mirr
 
 </div>
 
-External (declared in `pyproject.toml`):
-
-- `httpx` - HTTP transport (only used by `_internal/http`).
+External: none. `_internal` relies exclusively on the standard library.
 
 Internal: see the diagram above.
 

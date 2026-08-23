@@ -177,10 +177,10 @@ Delay selection:
 
 ```python
 from phronesis._internal.retry import retry, ExponentialBackoff
-from phronesis._internal.http import HttpServerError, HttpTransportError
+from phronesis.providers.errors import ServerError, TransportError
 
 @retry(
-    on=(HttpServerError, HttpTransportError),
+    on=(ServerError, TransportError),
     max_attempts=5,
     backoff=ExponentialBackoff(initial=0.5, max_delay=8.0, jitter=True),
 )
