@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+import asyncio
 from collections.abc import AsyncIterator
 
 import pytest
 
 from phronesis.agents.agent import Agent
+from phronesis.agents.errors import AgentTimeoutError
 from phronesis.agents.id import AgentId
 from phronesis.agents.run import RunRequest
 from phronesis.agents.session import Session
@@ -36,6 +38,17 @@ class _ScriptedProvider:
 
     def supports(self, feature: ProviderFeature) -> bool:
         return False
+
+
+class _SlowProvider(_ScriptedProvider):
+    def __init__(self, delay: float) -> None:
+        super().__init__([LLMResponse(text="late")])
+        self._delay = delay
+
+    async def complete(self, request: LLMRequest) -> LLMResponse:
+        await asyncio.sleep(self._delay)
+
+        return await super().complete(request)
 
 
 def _agent(provider: LLMProvider) -> Agent:
@@ -153,6 +166,34 @@ class TestRequestCoercion:
         # Session forces its own id internally; we only assert it ran successfully
         # and consumed the request's input.
         assert provider.requests[0].messages[-1].content == "hi"
+
+    @pytest.mark.asyncio
+    async def test_explicit_request_keeps_budget_and_timeout(self) -> None:
+        provider = _ScriptedProvider([LLMResponse(text="ok")])
+        sess = _agent(provider).session()
+
+        req = RunRequest(
+            input="hi",
+            max_iterations=3,
+            max_tokens=100,
+            max_cost_usd=0.5,
+            timeout_seconds=30.0,
+        )
+        coerced = sess._coerce_request(req)
+
+        assert coerced.session_id == sess.id
+        assert coerced.max_iterations == 3
+        assert coerced.max_tokens == 100
+        assert coerced.max_cost_usd == 0.5
+        assert coerced.timeout_seconds == 30.0
+
+    @pytest.mark.asyncio
+    async def test_timeout_is_enforced_through_the_session(self) -> None:
+        provider = _SlowProvider(delay=0.2)
+        sess = _agent(provider).session()
+
+        with pytest.raises(AgentTimeoutError):
+            await sess.run(RunRequest(input="hi", timeout_seconds=0.01))
 
 
 class TestReset:

@@ -18,6 +18,7 @@ internal history; serialize calls per session if needed.
 
 from __future__ import annotations
 
+import dataclasses
 import uuid
 
 from phronesis.agents.loop import run_loop
@@ -109,12 +110,7 @@ class Session:
 
     def _coerce_request(self, input_or_request: str | RunRequest) -> RunRequest:
         if isinstance(input_or_request, RunRequest):
-            return RunRequest(
-                input=input_or_request.input,
-                session_id=self.id,
-                metadata=input_or_request.metadata,
-                max_iterations=input_or_request.max_iterations,
-            )
+            return dataclasses.replace(input_or_request, session_id=self.id)
 
         return RunRequest(input=input_or_request, session_id=self.id)
 
