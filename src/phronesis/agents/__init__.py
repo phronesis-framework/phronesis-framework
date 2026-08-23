@@ -4,6 +4,9 @@ This package contains everything needed to declare, register, validate
 and execute agents:
 
 * :class:`Agent` and the :func:`agent` decorator declare new agents.
+* :func:`build_agent` declares one from a plain :class:`AgentSpec`,
+  for callers that build agents from data rather than from a
+  decorated function. :func:`validate_spec` is exposed alongside it.
 * :class:`AgentSpec` is the pure-data description of an agent.
 * :class:`Session` runs multi-turn conversations against a stateless
   agent.
@@ -39,6 +42,7 @@ from phronesis.agents.events import (
     ToolCallCompleted,
     ToolCallStarted,
 )
+from phronesis.agents.factory import build_agent
 from phronesis.agents.id import AgentId, agent_id_generator
 from phronesis.agents.registry import (
     AgentNotFoundError,
@@ -48,7 +52,7 @@ from phronesis.agents.registry import (
 from phronesis.agents.run import Result, RunId, RunRequest, TokenUsage
 from phronesis.agents.session import Session
 from phronesis.agents.spec import AgentSpec
-from phronesis.agents.validation import EmptySystemPromptWarning
+from phronesis.agents.validation import EmptySystemPromptWarning, validate_spec
 
 __all__ = [
     "Agent",
@@ -77,5 +81,7 @@ __all__ = [
     "agent",
     "agent_id_generator",
     "agent_scope",
+    "build_agent",
     "current_registry",
+    "validate_spec",
 ]

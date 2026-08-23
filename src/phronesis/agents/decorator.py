@@ -28,11 +28,10 @@ from typing import Any, get_type_hints
 
 from phronesis._internal.ids.derivation import canonical_from_function
 from phronesis.agents.agent import Agent
+from phronesis.agents.factory import build_agent
 from phronesis.agents.hooks import AgentHooks
 from phronesis.agents.id import AgentId
-from phronesis.agents.registry import current_registry
 from phronesis.agents.spec import AgentSpec
-from phronesis.agents.validation import validate_spec
 from phronesis.context.default import DefaultContextBuilder
 from phronesis.context.protocol import ContextBuilder
 from phronesis.providers.protocol import LLMProvider
@@ -190,11 +189,7 @@ def agent(
             context_builder=context_builder,
             hooks=hooks,
         )
-        validate_spec(spec)
 
-        built = Agent(spec)
-        current_registry().register(built)
-
-        return built
+        return build_agent(spec)
 
     return wrap
