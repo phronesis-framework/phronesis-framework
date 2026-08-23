@@ -6,8 +6,11 @@ The loop is the heart of the agents module. Its responsibilities:
   ``request.input``, or continue from a provided ``initial_history``
   when a :class:`Session` is driving the call.
 * On each turn, translate the history into provider messages and ask
-  ``spec.model`` for a completion.
-* If the model emits no tool calls the loop returns a :class:`Result`.
+  ``spec.model`` for a completion. When ``spec.output_type`` is set and
+  the provider advertises structured output, the request carries the
+  type's JSON Schema.
+* If the model emits no tool calls the loop returns a :class:`Result`,
+  parsing the answer into ``spec.output_type`` when one is declared.
 * Otherwise it executes every requested tool call in parallel via
   :func:`asyncio.gather`. A :class:`ToolError` is serialised back to
   the model as a ``ToolResultBlock`` with ``is_error=True``; any other
@@ -59,6 +62,7 @@ from phronesis.agents.events import (
     ToolCallCompleted,
     ToolCallStarted,
 )
+from phronesis.agents.output import coerce_output, response_format_for
 from phronesis.agents.run import (
     Result,
     RunId,
@@ -126,9 +130,12 @@ async def run_loop(
             ``request.max_iterations or spec.max_iterations`` without
             terminating.
         AgentBudgetExceededError: if the run exceeds
-            ``request.max_tokens`` or ``request.max_cost_usd``.
+            ``request.max_tokens``, or ``request.max_cost_usd`` when
+            ``spec.pricing`` supplies rates.
         AgentTimeoutError: if the run exceeds
             ``request.timeout_seconds``.
+        AgentOutputValidationError: if ``spec.output_type`` is set and
+            the final answer does not parse into it.
         AgentExecutionError: if a tool or provider call raises an
             exception that is not a :class:`ToolError`.
     """
@@ -195,7 +202,8 @@ async def _run_loop_inner(
 
                     response = await _complete(spec, messages, run_attrs)
                     aggregated_usage = _merge_usage(aggregated_usage, response.usage)
-                    _check_budget(spec, request, aggregated_usage)
+                    cost_usd = _estimate_cost(spec, aggregated_usage)
+                    _check_budget(spec, request, aggregated_usage, cost_usd)
 
                     await _dispatch_hook(spec.hooks.on_iteration, iterations)
 
@@ -206,11 +214,16 @@ async def _run_loop_inner(
                     if not requested_calls:
                         result = Result(
                             run_id=run_id,
-                            output=response.text,
+                            output=coerce_output(
+                                spec.output_type,
+                                response.text,
+                                agent_id=spec.id.canonical,
+                            ),
                             tokens=aggregated_usage,
                             iterations=iterations,
                             tool_calls=tuple(aggregated_tool_calls),
                             messages=history,
+                            cost_usd=cost_usd,
                         )
                         await _dispatch_hook(spec.hooks.on_run_complete, result)
 
@@ -282,6 +295,7 @@ async def _complete(
         messages=_translate_history(tuple(messages)),
         tools=tuple(t.spec for t in spec.tools),
         system=spec.system_prompt or None,
+        response_format=response_format_for(spec.output_type, spec.model),
     )
     provider_attrs = {
         **run_attrs,
@@ -532,10 +546,19 @@ def _add_optional(a: int | None, b: int | None) -> int | None:
     return (a or 0) + (b or 0)
 
 
+def _estimate_cost(spec: AgentSpec, usage: TokenUsage) -> float | None:
+    """Price ``usage`` with the agent's rates, or ``None`` without them."""
+    if spec.pricing is None:
+        return None
+
+    return spec.pricing.estimate(usage)
+
+
 def _check_budget(
     spec: AgentSpec,
     request: RunRequest,
     usage: TokenUsage,
+    cost_usd: float | None,
 ) -> None:
     if request.max_tokens is not None:
         total = (usage.input_tokens or 0) + (usage.output_tokens or 0)
@@ -554,10 +577,26 @@ def _check_budget(
                 },
             )
 
-    # Cost enforcement is opt-in: callers wire a cost estimator into
-    # their provider; this MVP check only fires when a cost lands on
-    # ``usage`` via a future provider extension. Left as a placeholder
-    # so the field on ``RunRequest`` is honoured the moment costs land.
+    # Cost is only enforceable once the caller declares its rates via
+    # ``AgentSpec.pricing``; without them ``cost_usd`` stays ``None``
+    # and the cap is inert rather than silently satisfied.
+    if (
+        request.max_cost_usd is not None
+        and cost_usd is not None
+        and cost_usd > request.max_cost_usd
+    ):
+        raise AgentBudgetExceededError(
+            (
+                f"Agent {spec.id.canonical!r} accrued ${cost_usd:.6f}, "
+                f"exceeding the cap of ${request.max_cost_usd:.6f}."
+            ),
+            details={
+                "agent_id": spec.id.canonical,
+                "limit": "max_cost_usd",
+                "threshold": request.max_cost_usd,
+                "observed": cost_usd,
+            },
+        )
 
 
 @dataclass
@@ -650,8 +689,9 @@ async def _execute_stream_step(
 
         response = await _complete(spec, messages, run_attrs)
         state.aggregated_usage = _merge_usage(state.aggregated_usage, response.usage)
+        cost_usd = _estimate_cost(spec, state.aggregated_usage)
 
-        _check_budget(spec, request, state.aggregated_usage)
+        _check_budget(spec, request, state.aggregated_usage, cost_usd)
 
         await _dispatch_hook(spec.hooks.on_iteration, iteration)
 
@@ -665,11 +705,16 @@ async def _execute_stream_step(
         if not requested_calls:
             result = Result(
                 run_id=run_id,
-                output=response.text,
+                output=coerce_output(
+                    spec.output_type,
+                    response.text,
+                    agent_id=spec.id.canonical,
+                ),
                 tokens=state.aggregated_usage,
                 iterations=iteration,
                 tool_calls=tuple(state.aggregated_tool_calls),
                 messages=state.history,
+                cost_usd=cost_usd,
             )
             await _dispatch_hook(spec.hooks.on_run_complete, result)
             yield RunCompleted(result=result)
