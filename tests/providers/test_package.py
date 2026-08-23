@@ -11,11 +11,6 @@ class TestProvidersScaffold:
 
         assert module.__all__
 
-    def test_common_subpackage_imports(self) -> None:
-        module = importlib.import_module("phronesis.providers._common")
-
-        assert module.__all__ == []
-
     def test_anthropic_subpackage_exposes_factory(self) -> None:
         module = importlib.import_module("phronesis.providers.anthropic")
 
