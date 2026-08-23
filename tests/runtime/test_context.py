@@ -16,6 +16,19 @@ class TestExecutionContext:
 
         assert ctx1.run_id != ctx2.run_id
 
+    def test_run_ids_stay_unique_under_tight_allocation(self) -> None:
+        contexts = [ExecutionContext.new() for _ in range(100)]
+
+        assert len({c.run_id.canonical for c in contexts}) == 100
+
+    def test_child_run_ids_stay_unique_and_differ_from_parent(self) -> None:
+        root = ExecutionContext.new()
+        children = [root.child() for _ in range(100)]
+        canonicals = {c.run_id.canonical for c in children}
+
+        assert len(canonicals) == 100
+        assert root.run_id.canonical not in canonicals
+
     def test_new_defaults(self) -> None:
         ctx = ExecutionContext.new()
 

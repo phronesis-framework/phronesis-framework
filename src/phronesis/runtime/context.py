@@ -22,6 +22,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import time
+import uuid
 from collections.abc import Mapping
 from dataclasses import dataclass
 from types import MappingProxyType
@@ -48,7 +49,7 @@ run_id_generator: IdGenerator[RunId] = IdGenerator(RunId)
 
 
 def _new_run_id() -> RunId:
-    canonical = f"phronesis.runtime.run.r{id(object()):x}"
+    canonical = f"phronesis.runtime.run.r{uuid.uuid4().hex[:12]}"
 
     return run_id_generator.from_canonical(canonical)
 
