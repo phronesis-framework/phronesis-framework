@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import pytest
 
+from phronesis.agents import AgentSpec, build_agent
+from phronesis.agents.id import AgentId
 from phronesis.providers.protocol import LLMProvider, ProviderFeature
 from phronesis.providers.types import LLMRequest, LLMResponse
 from phronesis.testing import FakeProvider, ScriptedProvider
@@ -128,3 +130,51 @@ class TestScriptedProviderProtocol:
         provider = ScriptedProvider([LLMResponse(text="a")])
 
         assert provider.count_tokens(()) == 0
+
+
+class TestProvidersDriveAnAgent:
+    """The public stubs must pass ``validate_spec`` and run a real agent."""
+
+    @pytest.mark.parametrize(
+        "provider",
+        [
+            FakeProvider(LLMResponse(text="done", finish_reason="stop")),
+            ScriptedProvider([LLMResponse(text="done", finish_reason="stop")]),
+        ],
+        ids=["fake", "scripted"],
+    )
+    def test_satisfies_protocol_at_runtime(self, provider: LLMProvider) -> None:
+        assert isinstance(provider, LLMProvider)
+
+    async def test_fake_provider_runs_an_agent(self) -> None:
+        provider = FakeProvider(LLMResponse(text="done", finish_reason="stop"))
+        built = build_agent(
+            AgentSpec(
+                id=AgentId("phronesis.testing.probe_fake"),
+                name="probe_fake",
+                model=provider,
+                system_prompt="stub",
+            ),
+            register=False,
+        )
+
+        result = await built.run("hola")
+
+        assert result.output == "done"
+
+    async def test_scripted_provider_runs_an_agent(self) -> None:
+        provider = ScriptedProvider([LLMResponse(text="done", finish_reason="stop")])
+        built = build_agent(
+            AgentSpec(
+                id=AgentId("phronesis.testing.probe_scripted"),
+                name="probe_scripted",
+                model=provider,
+                system_prompt="stub",
+            ),
+            register=False,
+        )
+
+        result = await built.run("hola")
+
+        assert result.output == "done"
+        assert provider.remaining == 0
