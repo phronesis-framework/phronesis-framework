@@ -77,7 +77,9 @@ class TestExecutionContext:
         ctx = ExecutionContext.new(deadline_s=1.0)
 
         first = ctx.remaining()
-        assert first is not None and first > 0
+
+        assert first is not None
+        assert first > 0
 
     def test_cancel_signals_cancellation(self) -> None:
         ctx = ExecutionContext.new()
