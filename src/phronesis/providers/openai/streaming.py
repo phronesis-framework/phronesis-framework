@@ -216,17 +216,14 @@ def _absorb_tool_delta(
     raw_id = raw.get("id")
 
     if buffer is None:
-        call_id = str(raw_id) if raw_id else ""
-        tool_name = str(raw_name) if raw_name else ""
-        buffer = _ToolBuffer(call_id=call_id, tool_name=tool_name)
+        buffer = _ToolBuffer(
+            call_id=str(raw_id) if raw_id else "",
+            tool_name=str(raw_name) if raw_name else "",
+        )
         tool_buffers[index] = buffer
-        started = ToolCallStart(call_id=call_id, tool_name=tool_name)
+        started = ToolCallStart(call_id=buffer.call_id, tool_name=buffer.tool_name)
     else:
-        if not buffer.call_id and raw_id:
-            buffer.call_id = str(raw_id)
-
-        if not buffer.tool_name and raw_name:
-            buffer.tool_name = str(raw_name)
+        _backfill_tool_buffer(buffer, raw_id, raw_name)
 
     arguments_part = function.get("arguments")
 
@@ -234,6 +231,15 @@ def _absorb_tool_delta(
         buffer.json_parts.append(arguments_part)
 
     return started
+
+
+def _backfill_tool_buffer(buffer: _ToolBuffer, raw_id: Any, raw_name: Any) -> None:
+    """Fill in a buffer's id and name if earlier deltas left them empty."""
+    if not buffer.call_id and raw_id:
+        buffer.call_id = str(raw_id)
+
+    if not buffer.tool_name and raw_name:
+        buffer.tool_name = str(raw_name)
 
 
 def _flush_tool_buffers(tool_buffers: dict[int, _ToolBuffer]) -> list[LLMChunk]:

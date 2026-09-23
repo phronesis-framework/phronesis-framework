@@ -14,7 +14,7 @@ re-issuing the request from scratch and is out of scope.
 from __future__ import annotations
 
 import json
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Callable
 from typing import Any
 
 import httpx
@@ -92,13 +92,10 @@ async def _parse_sse(response: httpx.Response) -> AsyncIterator[dict[str, Any]]:
     async for line in response.aiter_lines():
         if line == "":
             if data_lines:
-                payload = "\n".join(data_lines)
+                payload = _decode_sse_payload(data_lines)
                 data_lines = []
 
-                try:
-                    yield json.loads(payload)
-                except json.JSONDecodeError as exc:
-                    raise StreamError(f"Invalid SSE JSON payload: {payload!r}") from exc
+                yield payload
 
             continue
 
@@ -109,12 +106,17 @@ async def _parse_sse(response: httpx.Response) -> AsyncIterator[dict[str, Any]]:
             data_lines.append(line[5:].lstrip())
 
     if data_lines:
-        payload = "\n".join(data_lines)
+        yield _decode_sse_payload(data_lines)
 
-        try:
-            yield json.loads(payload)
-        except json.JSONDecodeError as exc:
-            raise StreamError(f"Invalid SSE JSON payload: {payload!r}") from exc
+
+def _decode_sse_payload(data_lines: list[str]) -> Any:
+    """Join buffered ``data:`` lines and decode them as JSON."""
+    payload = "\n".join(data_lines)
+
+    try:
+        return json.loads(payload)
+    except json.JSONDecodeError as exc:
+        raise StreamError(f"Invalid SSE JSON payload: {payload!r}") from exc
 
 
 async def _translate_events(
@@ -131,24 +133,10 @@ async def _translate_events(
         if event_type == "error":
             raise _build_stream_error(event)
 
-        if event_type == "content_block_start":
-            chunk = _handle_block_start(event, tool_buffers)
+        handler = _BLOCK_HANDLERS.get(event_type)
 
-            if chunk is not None:
-                yield chunk
-
-            continue
-
-        if event_type == "content_block_delta":
-            chunk = _handle_block_delta(event, tool_buffers)
-
-            if chunk is not None:
-                yield chunk
-
-            continue
-
-        if event_type == "content_block_stop":
-            chunk = _handle_block_stop(event, tool_buffers)
+        if handler is not None:
+            chunk = handler(event, tool_buffers)
 
             if chunk is not None:
                 yield chunk
@@ -254,6 +242,15 @@ def _handle_block_stop(
         arguments = {"value": arguments}
 
     return ToolCallEnd(call_id=buffer.call_id, arguments=arguments)
+
+
+_BlockHandler = Callable[[dict[str, Any], dict[int, _ToolBuffer]], LLMChunk | None]
+
+_BLOCK_HANDLERS: dict[Any, _BlockHandler] = {
+    "content_block_start": _handle_block_start,
+    "content_block_delta": _handle_block_delta,
+    "content_block_stop": _handle_block_stop,
+}
 
 
 def _absorb_message_delta(
