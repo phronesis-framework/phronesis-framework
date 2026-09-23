@@ -22,12 +22,7 @@
 </div>
 
 <div align="center">
-
-[![Status](https://img.shields.io/badge/status-v0.1.1_alpha-orange)]()
-[![Coverage](https://img.shields.io/badge/coverage-90%25+-brightgreen)]()
-[![Python](https://img.shields.io/badge/python-3.11+-blue?logo=python&logoColor=white)]()
-[![Tests](https://img.shields.io/badge/tests-1650+-blue)]()
-
+  <img src="https://skillicons.dev/icons?i=py,docker,grafana,prometheus,githubactions" alt="Tech stack" />
 </div>
 
 ---
