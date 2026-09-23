@@ -36,9 +36,10 @@ class TestReplay:
         provider = ReplayProvider(cassette)
 
         await provider.complete(LLMRequest(model="x", messages=()))
+        request = LLMRequest(model="x", messages=())
 
         with pytest.raises(CassetteExhaustedError):
-            await provider.complete(LLMRequest(model="x", messages=()))
+            await provider.complete(request)
 
     def test_missing_cassette_raises(self, tmp_path: Path) -> None:
         with pytest.raises(CassetteFormatError):
@@ -88,9 +89,10 @@ class TestReplayCapabilities:
         write_cassette(cassette, [])
 
         provider = ReplayProvider(cassette)
+        stream = provider.stream(LLMRequest(model="x", messages=()))
 
         with pytest.raises(CassetteExhaustedError):
-            async for _ in provider.stream(LLMRequest(model="x", messages=())):
+            async for _ in stream:
                 pass  # pragma: no cover
 
 
