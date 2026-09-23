@@ -129,7 +129,9 @@ def _bounded_by(request: RunRequest, ctx: ExecutionContext) -> RunRequest:
     if request.timeout_seconds is not None:
         remaining = min(remaining, request.timeout_seconds)
 
-    return dataclasses.replace(request, timeout_seconds=max(remaining, 0.0))
+    bounded: RunRequest = dataclasses.replace(request, timeout_seconds=max(remaining, 0.0))
+
+    return bounded
 
 
 class _CallableNode:
