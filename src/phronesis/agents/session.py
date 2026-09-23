@@ -110,7 +110,9 @@ class Session:
 
     def _coerce_request(self, input_or_request: str | RunRequest) -> RunRequest:
         if isinstance(input_or_request, RunRequest):
-            return dataclasses.replace(input_or_request, session_id=self.id)
+            coerced: RunRequest = dataclasses.replace(input_or_request, session_id=self.id)
+
+            return coerced
 
         return RunRequest(input=input_or_request, session_id=self.id)
 
