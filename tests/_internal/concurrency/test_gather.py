@@ -30,8 +30,12 @@ async def _fail(message: str, delay: float = 0.0) -> int:
 
 class TestGatherAllDefault:
     async def test_default_policy_is_fail_fast(self) -> None:
+        first = _value(1)
+        failing = _fail("boom")
+        third = _value(3)
+
         with pytest.raises(RuntimeError, match="boom"):
-            await gather_all(_value(1), _fail("boom"), _value(3))
+            await gather_all(first, failing, third)
 
     async def test_returns_results_in_order(self) -> None:
         out = await gather_all(_value(1), _value(2), _value(3))
@@ -47,13 +51,11 @@ class TestGatherAllDefault:
 class TestGatherAllFailFast:
     async def test_propagates_first_exception(self) -> None:
         policy = FailFastPolicy()
+        first = _value(1)
+        failing = _fail("x")
 
         with pytest.raises(RuntimeError, match="x"):
-            await gather_all(
-                _value(1),
-                _fail("x"),
-                policy=policy,
-            )
+            await gather_all(first, failing, policy=policy)
 
     async def test_returns_results_when_all_succeed(self) -> None:
         policy = FailFastPolicy()
@@ -73,14 +75,12 @@ class TestGatherAllBestEffort:
 
     async def test_raises_partial_failure_when_any_failed(self) -> None:
         policy = BestEffortPolicy()
+        first = _value(1)
+        failing = _fail("oops")
+        third = _value(3)
 
         with pytest.raises(PartialFailureError) as info:
-            await gather_all(
-                _value(1),
-                _fail("oops"),
-                _value(3),
-                policy=policy,
-            )
+            await gather_all(first, failing, third, policy=policy)
 
         exc = info.value
 
@@ -105,8 +105,11 @@ class TestGatherAllBestEffort:
             completed.append("fast")
             raise RuntimeError("fast-boom")
 
+        slow = slow_ok()
+        fast = fast_fail()
+
         with pytest.raises(PartialFailureError):
-            await gather_all(slow_ok(), fast_fail(), policy=policy)
+            await gather_all(slow, fast, policy=policy)
 
         assert "slow" in completed
         assert "fast" in completed
