@@ -92,7 +92,8 @@ class TestHumanReadableFormatter:
     def test_no_brackets_without_extras(self) -> None:
         output = HumanReadableFormatter().format(_make_record())
 
-        assert "[" not in output and "]" not in output
+        assert "[" not in output
+        assert "]" not in output
 
     def test_exception_appended_on_following_line(self) -> None:
         try:
