@@ -95,7 +95,7 @@ class PhronesisMcpServer:
         server_id_canonical = self.server_id.canonical
         server_name = self.name
 
-        async def _list_tools() -> list[mcp_types.Tool]:
+        async def _list_tools() -> list[mcp_types.Tool]:  # NOSONAR(S7503)
             return [phronesis_tool_to_mcp_definition(tool) for tool in self.tools]
 
         async def _call_tool(
