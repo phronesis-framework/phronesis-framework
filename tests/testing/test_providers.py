@@ -100,9 +100,10 @@ class TestScriptedProviderComplete:
     async def test_raises_when_exhausted(self) -> None:
         provider = ScriptedProvider([LLMResponse(text="a")])
         await provider.complete(_req())
+        request = _req()
 
         with pytest.raises(IndexError, match="exhausted"):
-            await provider.complete(_req())
+            await provider.complete(request)
 
     @pytest.mark.asyncio
     async def test_records_calls(self) -> None:
