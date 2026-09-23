@@ -33,8 +33,12 @@ class TestId:
         assert str(fid) == "my.entity"
 
     def test_equality_by_value(self) -> None:
-        assert _FakeId("a.b") == _FakeId("a.b")
-        assert _FakeId("a.b") != _FakeId("a.c")
+        first = _FakeId("a.b")
+        same = _FakeId("a.b")
+        other = _FakeId("a.c")
+
+        assert first == same
+        assert first != other
 
     def test_is_hashable(self) -> None:
         fid = _FakeId("a.b")
