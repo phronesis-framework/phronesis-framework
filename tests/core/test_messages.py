@@ -36,8 +36,12 @@ class TestTextBlock:
             block.text = "other"  # type: ignore[misc]
 
     def test_equality_is_value_based(self) -> None:
-        assert TextBlock(text="a") == TextBlock(text="a")
-        assert TextBlock(text="a") != TextBlock(text="b")
+        first = TextBlock(text="a")
+        same = TextBlock(text="a")
+        other = TextBlock(text="b")
+
+        assert first == same
+        assert first != other
 
     def test_cache_defaults_to_false(self) -> None:
         block = TextBlock(text="hi")
