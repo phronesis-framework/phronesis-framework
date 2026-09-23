@@ -37,11 +37,10 @@ class TestDefaultServerId:
         assert spec.server_id.canonical == "phronesis.mcp.servers._123tools"
 
     def test_empty_after_sanitisation_raises(self) -> None:
+        transport = StdioTransport(command="python")
+
         with pytest.raises(ValueError):
-            McpServerSpec(
-                name="!!!",
-                transport=StdioTransport(command="python"),
-            )
+            McpServerSpec(name="!!!", transport=transport)
 
 
 class TestExplicitServerId:
