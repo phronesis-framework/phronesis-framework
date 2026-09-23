@@ -11,7 +11,7 @@
 </div>
 
 <div align="center">
-  Cadena de middlewares estilo "cebolla" sobre <code>LLMProvider.complete</code>: transforma requests, intercepta responses, corta el flujo, sin tocar el resto del protocolo.
+  "Onion"-style middleware chain over <code>LLMProvider.complete</code>: transforms requests, intercepts responses, short-circuits the flow, without touching the rest of the protocol.
 </div>
 
 <div align="center">
@@ -36,14 +36,14 @@
 
 </div>
 
-Los middlewares dan un punto de extensión limpio sobre la operación más cara y más útil de un proveedor LLM: `complete`. Cubren casos como:
+Middlewares provide a clean extension point over the most expensive and most useful operation of an LLM provider: `complete`. They cover cases such as:
 
-- **Cache** - cortar la cadena devolviendo una respuesta sin invocar al LLM.
-- **Re-escritura** - mutar el `LLMRequest` antes de mandarlo (cambiar modelo, normalizar mensajes, añadir cabeceras).
-- **Auditoría / observabilidad** - inspeccionar request + response, emitir spans propios, persistir trazas.
-- **Transformación de la salida** - post-procesar `LLMResponse.text` (sanitización, formato).
+- **Cache** - short-circuit the chain by returning a response without invoking the LLM.
+- **Rewriting** - mutate the `LLMRequest` before sending it (change model, normalize messages, add headers).
+- **Auditing / observability** - inspect request + response, emit custom spans, persist traces.
+- **Output transformation** - post-process `LLMResponse.text` (sanitization, formatting).
 
-El módulo es deliberadamente minimal: un `Protocol` y una función `apply_middleware`. No hay registro global, no hay clases base obligatorias, no hay state.
+The module is deliberately minimal: a `Protocol` and an `apply_middleware` function. No global registry, no mandatory base classes, no state.
 
 <div align="center">
 
@@ -51,14 +51,16 @@ El módulo es deliberadamente minimal: un `Protocol` y una función `apply_middl
 
 </div>
 
-Modelo onion-layer: el primer middleware envuelve al segundo, que envuelve al tercero, ..., el último llama al provider real.
+Onion-layer model: the first middleware wraps the second, which wraps the third, ..., and the last one calls the real provider.
 
-```
-apply_middleware(provider, [mw_a, mw_b]).complete(req)
-   ──► mw_a(req, call_next=λ r: mw_b(r, call_next=λ r2: provider.complete(r2)))
+```mermaid
+flowchart LR
+    Call["apply_middleware(provider, [mw_a, mw_b]).complete(req)"] --> A["mw_a(req, call_next)"]
+    A -->|"call_next = λ r"| B["mw_b(r, call_next)"]
+    B -->|"call_next = λ r2"| P["provider.complete(r2)"]
 ```
 
-Solo `complete` se intercepta. `stream`, `supports`, `context_window_size`, `count_tokens`, `count_tokens_exact` se delegan tal cual al provider envuelto. Eso garantiza que las capacidades de cancelación, feature-detection y token-accounting siguen funcionando sin que la cadena tenga que enterarse.
+Only `complete` is intercepted. `stream`, `supports`, `context_window_size`, `count_tokens`, `count_tokens_exact` are delegated as-is to the wrapped provider. This guarantees that cancellation, feature detection and token accounting keep working without the chain having to know about them.
 
 <div align="center">
 
@@ -66,11 +68,11 @@ Solo `complete` se intercepta. `stream`, `supports`, `context_window_size`, `cou
 
 </div>
 
-| Fichero | Responsabilidad |
+| File | Responsibility |
 |---|---|
-| `__init__.py` | Re-exports de la API pública (`__all__`). |
-| `protocol.py` | `Middleware` (`Protocol`, `runtime_checkable`) y alias `NextCall`. |
-| `chain.py` | `apply_middleware(...)` + wrapper interno `_MiddlewareProvider`. |
+| `__init__.py` | Re-exports of the public API (`__all__`). |
+| `protocol.py` | `Middleware` (`Protocol`, `runtime_checkable`) and the `NextCall` alias. |
+| `chain.py` | `apply_middleware(...)` + internal wrapper `_MiddlewareProvider`. |
 | `errors.py` | `MiddlewareError(PhronesisError)`. |
 
 <div align="center">
@@ -88,7 +90,7 @@ from phronesis.middleware import (
 )
 ```
 
-Signaturas clave:
+Key signatures:
 
 ```python
 NextCall = Callable[[LLMRequest], Awaitable[LLMResponse]]
@@ -113,12 +115,12 @@ def apply_middleware(
 
 </div>
 
-- **D-01 `Protocol` runtime-checkable.** No hay clase base; cualquier callable con la firma `(request, call_next) -> LLMResponse` cumple. Sirve tanto una función async como un objeto con `__call__` async. `isinstance(obj, Middleware)` funciona.
-- **D-02 Solo intercepta `complete`.** El streaming, las cuentas de tokens y las feature-flags pasan directas al provider envuelto. Razones: (a) la cadena onion no añade valor sobre streams chunk a chunk, (b) la cancelación cooperativa funciona sin contaminación, (c) los contadores deben reflejar lo que el provider real reporta.
-- **D-03 Sin mutación.** `apply_middleware` no modifica el provider ni la lista de middlewares. Devuelve siempre un wrapper nuevo. Permite componer libremente sin temer aliasing.
-- **D-04 Orden = "outer first".** El primer middleware de la lista es el más externo; el último, el más cercano al provider. El bucle invierte la lista internamente para construir las closures.
-- **D-05 Sin observabilidad propia.** El módulo no emite spans. Cada middleware decide si traza. Mantiene la pieza minimal y compone con `phronesis.obs` cuando el usuario lo pide explícitamente.
-- **D-06 Sin validación de request.** Un middleware puede devolver un `LLMRequest` con cualquier forma. La responsabilidad de mantener invariantes recae en el autor del middleware.
+- **D-01 Runtime-checkable `Protocol`.** There is no base class; any callable with the signature `(request, call_next) -> LLMResponse` qualifies. Both an async function and an object with an async `__call__` work. `isinstance(obj, Middleware)` works.
+- **D-02 Only intercepts `complete`.** Streaming, token counts and feature flags go straight to the wrapped provider. Reasons: (a) the onion chain adds no value over chunk-by-chunk streams, (b) cooperative cancellation works without contamination, (c) counters must reflect what the real provider reports.
+- **D-03 No mutation.** `apply_middleware` does not modify the provider or the middleware list. It always returns a new wrapper. Allows free composition without fear of aliasing.
+- **D-04 Order = "outer first".** The first middleware in the list is the outermost; the last, the closest to the provider. The loop reverses the list internally to build the closures.
+- **D-05 No built-in observability.** The module emits no spans. Each middleware decides whether to trace. Keeps the piece minimal and composes with `phronesis.obs` when the user explicitly asks for it.
+- **D-06 No request validation.** A middleware can return an `LLMRequest` of any shape. Responsibility for maintaining invariants falls on the middleware author.
 
 <div align="center">
 
@@ -126,7 +128,7 @@ def apply_middleware(
 
 </div>
 
-Cadena con dos middlewares: orden de ejecución.
+Chain with two middlewares: execution order.
 
 ```mermaid
 sequenceDiagram
@@ -139,11 +141,11 @@ sequenceDiagram
     Outer->>Inner: call_next(req or req')
     Inner->>Provider: call_next(req or req'')
     Provider-->>Inner: LLMResponse
-    Inner-->>Outer: LLMResponse (puede reemplazarla)
-    Outer-->>Caller: LLMResponse (puede reemplazarla)
+    Inner-->>Outer: LLMResponse (may replace it)
+    Outer-->>Caller: LLMResponse (may replace it)
 ```
 
-Short-circuit: un middleware que no llama a `call_next`.
+Short-circuit: a middleware that does not call `call_next`.
 
 ```mermaid
 sequenceDiagram
@@ -153,7 +155,7 @@ sequenceDiagram
 
     Caller->>Cache: complete(req)
     Cache-->>Caller: LLMResponse(text="cached")
-    Note over Provider: provider.complete nunca se llama
+    Note over Provider: provider.complete is never called
 ```
 
 <div align="center">
@@ -164,11 +166,11 @@ sequenceDiagram
 
 - `phronesis.providers.protocol` - `LLMProvider`, `ProviderFeature`.
 - `phronesis.providers.types` - `LLMRequest`, `LLMResponse`.
-- `phronesis.providers.chunks` - `LLMChunk` (sólo para el passthrough de `stream`).
-- `phronesis.core.messages` - `Message` (sólo para el passthrough de `count_tokens`).
-- `phronesis.errors.PhronesisError` - jerarquía raíz.
+- `phronesis.providers.chunks` - `LLMChunk` (only for the `stream` passthrough).
+- `phronesis.core.messages` - `Message` (only for the `count_tokens` passthrough).
+- `phronesis.errors.PhronesisError` - root hierarchy.
 
-Quien depende: cualquier composición de provider que quiera capas extra antes de inyectarlo a un agente. Patrón típico:
+Dependents: any provider composition that wants extra layers before injecting it into an agent. Typical pattern:
 
 ```python
 provider = apply_middleware(base_provider, [cache, audit])
@@ -181,11 +183,11 @@ agent = my_agent.with_provider(provider)
 
 </div>
 
-Tests en `tests/middleware/`. Estrategia:
+Tests in `tests/middleware/`. Strategy:
 
-- Provider stub minimal in-memory.
-- Casos cubiertos: passthrough, transformación de response, mutación de request, short-circuit, orden de varios middlewares, passthrough de los métodos no interceptados (`stream`, `count_tokens`, ...).
-- Cobertura objetivo: 100%.
+- Minimal in-memory provider stub.
+- Covered cases: passthrough, response transformation, request mutation, short-circuit, ordering of multiple middlewares, passthrough of non-intercepted methods (`stream`, `count_tokens`, ...).
+- Target coverage: 100%.
 
 <div align="center">
 
@@ -193,7 +195,7 @@ Tests en `tests/middleware/`. Estrategia:
 
 </div>
 
-Cache rudimentaria que corta la cadena si la última pregunta ya estaba vista:
+Rudimentary cache that short-circuits the chain if the last question was already seen:
 
 ```python
 from phronesis.middleware import apply_middleware, Middleware, NextCall
@@ -215,7 +217,7 @@ async def cache(request: LLMRequest, call_next: NextCall) -> LLMResponse:
 cached_provider = apply_middleware(base_provider, [cache])
 ```
 
-Auditoría que registra todas las llamadas:
+Auditing that logs every call:
 
 ```python
 import logging
@@ -238,11 +240,11 @@ async def audit(request: LLMRequest, call_next: NextCall) -> LLMResponse:
 audited_provider = apply_middleware(base_provider, [audit])
 ```
 
-Composición de varios (el primero es el más externo):
+Composing several (the first is the outermost):
 
 ```python
 provider = apply_middleware(base_provider, [audit, cache])
-# audit corre primero al entrar y último al salir; cache corre por dentro
+# audit runs first on the way in and last on the way out; cache runs inside
 ```
 
 <div align="center">
@@ -251,11 +253,11 @@ provider = apply_middleware(base_provider, [audit, cache])
 
 </div>
 
-- **El orden importa**. El primer middleware envuelve al segundo. Una cache puesta fuera de un audit registrará todos los hits; puesta dentro, sólo los misses.
-- **No olvidar `call_next`**. Un middleware que no llame a `call_next` y no devuelva un `LLMResponse` rompe el contrato. Si quieres cortar, devuelve una `LLMResponse` válida.
-- **El middleware sólo ve `complete`**. Si esperas interceptar `stream`, este módulo no es el sitio: añade el wrapping a mano o construye un decorador de provider completo.
-- **Sin re-entrancia segura por diseño**. Si tu middleware mantiene estado mutable (cache, contador), tú gestionas la concurrencia.
-- **`apply_middleware` no copia el provider**. Devuelve un wrapper que delega; si mutas el provider original desde fuera, el wrapper lo verá.
+- **Order matters**. The first middleware wraps the second. A cache placed outside an audit will log all hits; placed inside, only the misses.
+- **Do not forget `call_next`**. A middleware that neither calls `call_next` nor returns an `LLMResponse` breaks the contract. If you want to short-circuit, return a valid `LLMResponse`.
+- **The middleware only sees `complete`**. If you expect to intercept `stream`, this module is not the place: add the wrapping by hand or build a full provider decorator.
+- **No safe re-entrancy by design**. If your middleware keeps mutable state (cache, counter), you manage concurrency.
+- **`apply_middleware` does not copy the provider**. It returns a delegating wrapper; if you mutate the original provider from outside, the wrapper will see it.
 
 <div align="center">
 
@@ -279,7 +281,7 @@ uv run pytest -q
 
 - Python 3.11+.
 - `typing.Protocol` + `runtime_checkable`.
-- Sólo stdlib.
+- Stdlib only.
 
 <div align="center">
 
@@ -287,7 +289,7 @@ uv run pytest -q
 
 </div>
 
-- **Middlewares oficiales** - `cache`, `retry`, `audit`, `redact` como helpers listos para usar.
-- **Hook sobre `stream`** - si surgen casos reales (contar chunks, fusionar streams), añadir un `apply_stream_middleware` análogo.
-- **Telemetría opcional** - flag para envolver cada middleware en un span sin obligar al autor a llamar a `obs` manualmente.
-- **Composición declarativa** - `MiddlewareStack(...)` reutilizable y reordenable en runtime.
+- **Official middlewares** - `cache`, `retry`, `audit`, `redact` as ready-to-use helpers.
+- **Hook on `stream`** - if real cases arise (counting chunks, merging streams), add an analogous `apply_stream_middleware`.
+- **Optional telemetry** - flag to wrap each middleware in a span without forcing the author to call `obs` manually.
+- **Declarative composition** - reusable `MiddlewareStack(...)` that can be reordered at runtime.

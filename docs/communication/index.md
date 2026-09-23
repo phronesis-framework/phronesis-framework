@@ -11,7 +11,7 @@
 </div>
 
 <div align="center">
-  Identidad estable para sesiones de conversación: <code>SessionId</code>. Una pieza diminuta que hila agents, runs, contexto y memoria.
+  Stable identity for conversation sessions: <code>SessionId</code>. A tiny piece that ties together agents, runs, context and memory.
 </div>
 
 <div align="center">
@@ -36,12 +36,12 @@
 
 </div>
 
-Toda conversación multi-turno necesita un identificador estable: para mantener historial, para namespace de memoria, para correlación en logs y spans, para reanudar una sesión interrumpida. `phronesis.communication` provee exactamente eso, y nada más:
+Every multi-turn conversation needs a stable identifier: to keep history, to namespace memory, for correlation in logs and spans, to resume an interrupted session. `phronesis.communication` provides exactly that, and nothing more:
 
-- Un tipo `SessionId` (subclase de `Id`, prefijo `SID`).
-- Un generador singleton `session_id_generator`.
+- A `SessionId` type (subclass of `Id`, prefix `SID`).
+- A singleton generator `session_id_generator`.
 
-El módulo es deliberadamente pequeño. Cualquier metadata adicional de la sesión (creado_en, agent_id, propietario, etc.) vive en `phronesis.agents.Session`, no aquí. Esto preserva cohesión: identidad y datos viven separados.
+The module is deliberately small. Any additional session metadata (created_at, agent_id, owner, etc.) lives in `phronesis.agents.Session`, not here. This preserves cohesion: identity and data live apart.
 
 <div align="center">
 
@@ -49,23 +49,23 @@ El módulo es deliberadamente pequeño. Cualquier metadata adicional de la sesi�
 
 </div>
 
-`SessionId` extiende `phronesis._internal.ids.Id` con el prefijo `"SID"`. La clase base aporta:
+`SessionId` extends `phronesis._internal.ids.Id` with the prefix `"SID"`. The base class provides:
 
-- Forma canónica con namespace (ej. `phronesis.sessions.abc123`).
-- Forma corta para logs (ej. `SID-abc12345`).
-- Validación estricta del canonical en el constructor.
+- Namespaced canonical form (e.g. `phronesis.sessions.abc123`).
+- Short form for logs (e.g. `SID-abc12345`).
+- Strict validation of the canonical form in the constructor.
 
+```mermaid
+flowchart LR
+    G["session_id_generator.from_canonical(#quot;phronesis.sessions.demo#quot;)"] --> C["SessionId.canonical = #quot;phronesis.sessions.demo#quot;"]
+    G --> S["SessionId.short = #quot;SID-#lt;hash#gt;#quot;"]
 ```
-session_id_generator.from_canonical("phronesis.sessions.demo")
-   ──► SessionId.canonical = "phronesis.sessions.demo"
-   ──► SessionId.short     = "SID-<hash>"
-```
 
-Tres puntos de consumo en el framework:
+Three consumption points in the framework:
 
-1. **`agents/session.py`** - cada `Session()` nueva genera un `SessionId` y lo guarda en `self.id`.
-2. **`agents/run.py`** - `RunRequest.session_id: SessionId | None` permite atar un run a una sesión existente.
-3. **`memory/scope.py`** - `MemoryLevel.SESSION` usa el `short` del `SessionId` para namespace de las stores de memoria.
+1. **`agents/session.py`** - every new `Session()` generates a `SessionId` and stores it in `self.id`.
+2. **`agents/run.py`** - `RunRequest.session_id: SessionId | None` lets you bind a run to an existing session.
+3. **`memory/scope.py`** - `MemoryLevel.SESSION` uses the `short` form of the `SessionId` to namespace the memory stores.
 
 <div align="center">
 
@@ -73,10 +73,10 @@ Tres puntos de consumo en el framework:
 
 </div>
 
-| Fichero | Responsabilidad |
+| File | Responsibility |
 |---|---|
-| `__init__.py` | Docstring del paquete (sin re-exports; el módulo es lo bastante pequeño para importar desde `session_id` directamente). |
-| `session_id.py` | `SessionId(Id)` con `prefix = "SID"` y `session_id_generator: IdGenerator[SessionId]`. |
+| `__init__.py` | Package docstring (no re-exports; the module is small enough to import from `session_id` directly). |
+| `session_id.py` | `SessionId(Id)` with `prefix = "SID"` and `session_id_generator: IdGenerator[SessionId]`. |
 
 <div align="center">
 
@@ -92,13 +92,13 @@ Shapes:
 
 ```python
 class SessionId(Id):
-    """Identificador estable para una sesión multi-turno."""
+    """Stable identifier for a multi-turn session."""
     prefix = "SID"
 
 session_id_generator: IdGenerator[SessionId]
 ```
 
-API heredada de `Id`:
+API inherited from `Id`:
 
 ```python
 sid = session_id_generator.from_canonical("phronesis.sessions.demo")
@@ -115,11 +115,11 @@ SessionId("phronesis.sessions.demo") == sid
 
 </div>
 
-- **D-01 Una sola responsabilidad.** El módulo expone identidad y nada más. Metadata, lifecycle hooks y persistencia viven en `Session`, no aquí.
-- **D-02 Subclase de `Id` (no string).** Aprovecha la validación canonical / short del módulo `_internal.ids`, evita typos y permite type-checking estricto (`def foo(sid: SessionId)` distinto de `def foo(sid: str)`).
-- **D-03 Prefijo corto y explícito.** `SID` aparece en logs cuando se usa la forma `short`. Tres letras bastan, son inequívocas y casan con la convención del resto de IDs (`TID`, `AID`, `MID`, `MSID`, ...).
-- **D-04 Generador singleton.** `session_id_generator` se importa, no se construye. Reduce ruido en agents/runtime y centraliza el punto de creación.
-- **D-05 Sin `__all__` explícito en `__init__.py`.** El paquete es tan pequeño que la convención es importar directamente desde `session_id`. Mantiene el `__init__.py` minimal a propósito.
+- **D-01 Single responsibility.** The module exposes identity and nothing else. Metadata, lifecycle hooks and persistence live in `Session`, not here.
+- **D-02 Subclass of `Id` (not a string).** Leverages the canonical / short validation of the `_internal.ids` module, avoids typos and enables strict type-checking (`def foo(sid: SessionId)` is distinct from `def foo(sid: str)`).
+- **D-03 Short, explicit prefix.** `SID` appears in logs when the `short` form is used. Three letters are enough, unambiguous and consistent with the convention of the other IDs (`TID`, `AID`, `MID`, `MSID`, ...).
+- **D-04 Singleton generator.** `session_id_generator` is imported, not constructed. Reduces noise in agents/runtime and centralizes the creation point.
+- **D-05 No explicit `__all__` in `__init__.py`.** The package is so small that the convention is to import directly from `session_id`. Keeps `__init__.py` minimal on purpose.
 
 <div align="center">
 
@@ -127,7 +127,7 @@ SessionId("phronesis.sessions.demo") == sid
 
 </div>
 
-Ciclo de vida típico de un `SessionId`:
+Typical lifecycle of a `SessionId`:
 
 ```mermaid
 sequenceDiagram
@@ -141,9 +141,9 @@ sequenceDiagram
     Session->>Session: session_id_generator.from_canonical(...)
     Session-->>Agent: Session(id=SessionId(...))
     Agent-->>User: Session
-    User->>Session: session.run("hola")
+    User->>Session: session.run("hello")
     Session->>Memory: scope(level=SESSION, id=session.id.short)
-    Memory-->>Session: historial / context
+    Memory-->>Session: history / context
 ```
 
 <div align="center">
@@ -152,16 +152,16 @@ sequenceDiagram
 
 </div>
 
-- `phronesis._internal.ids.id.Id` - clase base.
-- `phronesis._internal.ids.generator.IdGenerator` - factory genérica.
+- `phronesis._internal.ids.id.Id` - base class.
+- `phronesis._internal.ids.generator.IdGenerator` - generic factory.
 
-Quien depende:
+Dependents:
 
-- `phronesis.agents.agent` - type-hint y creación de `Session`.
-- `phronesis.agents.session` - generación y almacenamiento del id.
-- `phronesis.agents.run` - campo opcional en `RunRequest`.
-- `phronesis.context.context` - type-hint en `Context` (import lazy).
-- `phronesis.memory.scope` - referencia documental en `MemoryLevel.SESSION`.
+- `phronesis.agents.agent` - type hint and creation of `Session`.
+- `phronesis.agents.session` - id generation and storage.
+- `phronesis.agents.run` - optional field in `RunRequest`.
+- `phronesis.context.context` - type hint in `Context` (lazy import).
+- `phronesis.memory.scope` - documentation reference in `MemoryLevel.SESSION`.
 
 <div align="center">
 
@@ -169,16 +169,16 @@ Quien depende:
 
 </div>
 
-Tests en `tests/communication/test_session_id.py`:
+Tests in `tests/communication/test_session_id.py`:
 
 - `SessionId.prefix == "SID"`.
-- `SessionId` es subclase de `Id`.
-- Validación de canonical (formato correcto / incorrecto).
-- Forma corta sigue el patrón `SID-<hash>`.
-- `session_id_generator.from_canonical` construye instancias válidas.
-- Errores apropiados ante canonical inválido.
+- `SessionId` is a subclass of `Id`.
+- Canonical validation (valid / invalid format).
+- Short form follows the `SID-<hash>` pattern.
+- `session_id_generator.from_canonical` builds valid instances.
+- Appropriate errors on invalid canonical input.
 
-Cobertura: 100%.
+Coverage: 100%.
 
 <div align="center">
 
@@ -186,7 +186,7 @@ Cobertura: 100%.
 
 </div>
 
-Crear un id explícito:
+Create an explicit id:
 
 ```python
 from phronesis.communication.session_id import session_id_generator
@@ -196,21 +196,21 @@ print(sid.canonical)  # "phronesis.sessions.demo"
 print(sid.short)      # "SID-<hash>"
 ```
 
-Usar el id como namespace de memoria:
+Use the id as a memory namespace:
 
 ```python
 from phronesis.memory.scope import MemoryLevel, MemoryScope
 
 scope = MemoryScope(level=MemoryLevel.SESSION, id=sid.short)
-# las stores de memoria namespacean por scope, aislando datos por sesión
+# memory stores namespace by scope, isolating data per session
 ```
 
-Reanudar una sesión pasada a un run:
+Resume a past session in a run:
 
 ```python
 from phronesis.agents.run import RunRequest
 
-req = RunRequest(input="continúa donde lo dejamos", session_id=sid)
+req = RunRequest(input="continue where we left off", session_id=sid)
 ```
 
 <div align="center">
@@ -219,11 +219,11 @@ req = RunRequest(input="continúa donde lo dejamos", session_id=sid)
 
 </div>
 
-- **No mezclar `SessionId` con `str`** en firmas. `def run(sid: SessionId)` es estricto y captura bugs en mypy; `def run(sid: str)` los esconde.
-- **`SessionId(...)` valida el canonical**. Pasar un string que no respete el formato `phronesis.<namespace>.<segment>` lanza un error en construcción.
-- **`session_id_generator` es singleton**. No construyas `IdGenerator(SessionId)` a mano salvo en tests muy específicos; reutiliza el existente.
-- **`Id` está en `_internal`**. No importes `Id` directamente para chequeos de tipo desde código de usuario; usa siempre `SessionId`.
-- **El módulo no persiste nada**. Si necesitas que un `SessionId` sobreviva entre procesos, guárdate `sid.canonical` y reconstruye con `session_id_generator.from_canonical(...)`.
+- **Do not mix `SessionId` with `str`** in signatures. `def run(sid: SessionId)` is strict and catches bugs in mypy; `def run(sid: str)` hides them.
+- **`SessionId(...)` validates the canonical form**. Passing a string that does not follow the `phronesis.<namespace>.<segment>` format raises an error at construction.
+- **`session_id_generator` is a singleton**. Do not build `IdGenerator(SessionId)` by hand except in very specific tests; reuse the existing one.
+- **`Id` lives in `_internal`**. Do not import `Id` directly for type checks from user code; always use `SessionId`.
+- **The module persists nothing**. If you need a `SessionId` to survive across processes, keep `sid.canonical` and rebuild it with `session_id_generator.from_canonical(...)`.
 
 <div align="center">
 
@@ -246,7 +246,7 @@ uv run pytest -q
 </div>
 
 - Python 3.11+.
-- Sólo `phronesis._internal.ids` y stdlib.
+- Only `phronesis._internal.ids` and stdlib.
 
 <div align="center">
 
@@ -254,6 +254,6 @@ uv run pytest -q
 
 </div>
 
-- **Subtipos** - `ConversationId`, `WorkflowId` si surgen casos donde una "sesión" no captura bien la unidad.
-- **Adapters** - helpers para mapear `SessionId` desde IDs externos (Slack thread, ticket id, ...) preservando estabilidad.
-- **Más routing** - el package incluye "message routing" en su docstring pero sólo aloja identidad; si en el futuro el framework necesita dispatch multi-canal, este es el sitio natural.
+- **Subtypes** - `ConversationId`, `WorkflowId` if cases arise where a "session" does not capture the unit well.
+- **Adapters** - helpers to map `SessionId` from external IDs (Slack thread, ticket id, ...) while preserving stability.
+- **More routing** - the package mentions "message routing" in its docstring but only hosts identity; if the framework ever needs multi-channel dispatch, this is the natural place.

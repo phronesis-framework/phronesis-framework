@@ -201,23 +201,23 @@ Sequence of a compacting iteration:
 ```mermaid
 sequenceDiagram
     autonumber
-    participant Loop as agents/loop.py
+    participant AgentLoop as agents/loop.py
     participant Builder as CompactingContextBuilder
     participant Provider as LLMProvider
     participant Compactor as Compactor LLM
 
-    Loop->>Builder: build(BuildInput)
+    AgentLoop->>Builder: build(BuildInput)
     Builder->>Provider: count_tokens(history)
     Provider-->>Builder: used
     Builder->>Provider: context_window_size()
     Provider-->>Builder: limit
 
     alt used / limit < threshold
-        Builder-->>Loop: [system, *history, new_input?]
+        Builder-->>AgentLoop: [system, *history, new_input?]
     else above threshold
         Builder->>Compactor: complete(summarisation request)
         Compactor-->>Builder: summary text
-        Builder-->>Loop: [system, *prior_summaries, new_summary, *preserved, new_input?]
+        Builder-->>AgentLoop: [system, *prior_summaries, new_summary, *preserved, new_input?]
     end
 ```
 
@@ -414,9 +414,9 @@ uv run pytest tests/context -q
 
 | Library | Version | Used for |
 |---|---|---|
-| Python | `>= 3.11` | `Protocol`, frozen dataclasses con `slots=True`, `MappingProxyType`. |
+| Python | `>= 3.11` | `Protocol`, frozen dataclasses with `slots=True`, `MappingProxyType`. |
 | stdlib | - | `asyncio`, `dataclasses`, `types.MappingProxyType`. |
-| OpenTelemetry | optional (`obs` extra) | Spans `phronesis.context.build` emitidos por el loop de agents (no por este modulo). |
+| OpenTelemetry | optional (`obs` extra) | `phronesis.context.build` spans emitted by the agents loop (not by this module). |
 
 <div align="center">
 

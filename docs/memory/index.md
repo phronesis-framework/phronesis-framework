@@ -251,17 +251,17 @@ sequenceDiagram
 
 ```mermaid
 sequenceDiagram
-  participant Loop
+  participant AgentLoop as Loop
   participant Builder as MemoryAwareContextBuilder
   participant Emb as EmbeddingProvider
   participant Vec as VectorStore
 
-  Loop->>Builder: build(input)
+  AgentLoop->>Builder: build(input)
   Builder->>Emb: embed([query])
   Emb-->>Builder: [vector]
   Builder->>Vec: search(scope, vector, k, min_score)
   Vec-->>Builder: [(item, score), ...]
-  Builder-->>Loop: [system?, retrieved*, *history, new_input?]
+  Builder-->>AgentLoop: [system?, retrieved*, *history, new_input?]
 ```
 
 <div align="center">

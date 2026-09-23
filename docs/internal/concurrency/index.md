@@ -50,13 +50,12 @@ Both operations emit structured logs under `phronesis.concurrency`.
 
 </div>
 
-```
-   exceptions.py ----> policies.py ----+
-        |                                \
-        |                                 v
-        +----------------------------> gather.py
-
-   executor.py    (independent)
+```mermaid
+flowchart LR
+    exceptions["exceptions.py"] --> policies["policies.py"]
+    policies --> gather["gather.py"]
+    exceptions --> gather
+    executor["executor.py<br/>(independent)"]
 ```
 
 - `executor.py` is standalone; it wraps `asyncio.to_thread`.
@@ -112,55 +111,45 @@ from phronesis._internal.concurrency import (
 
 Policy hierarchy:
 
-```
-                +---------------------------+
-                |       GatherPolicy        |  <<abstract>>
-                +---------------------------+
-                | + return_exceptions: bool |
-                | + reconcile(results) list |
-                +-------+--------------+----+
-                        ^              ^
-                        |              |
-              +---------+----+    +----+-------------+
-              | FailFast     |    | BestEffort       |
-              | Policy       |    | Policy           |
-              | (False)      |    | (True)           |
-              +--------------+    +------------------+
+```mermaid
+classDiagram
+    class GatherPolicy {
+        <<abstract>>
+        +return_exceptions: bool
+        +reconcile(results) list
+    }
+    class FailFastPolicy {
+        return_exceptions = False
+    }
+    class BestEffortPolicy {
+        return_exceptions = True
+    }
+    GatherPolicy <|-- FailFastPolicy
+    GatherPolicy <|-- BestEffortPolicy
 
-                +---------------------+
-                |  ConcurrencyError   |
-                +----------+----------+
-                           ^
-                           |
-                +----------+-------------+
-                | PartialFailureError    |
-                |  + results: list       |
-                |  + exceptions: list    |
-                |  + failed_count        |
-                |  + successful_count    |
-                +------------------------+
+    class ConcurrencyError
+    class PartialFailureError {
+        +results: list
+        +exceptions: list
+        +failed_count
+        +successful_count
+    }
+    ConcurrencyError <|-- PartialFailureError
 ```
 
 `gather_all` with `BestEffortPolicy`:
 
-```
-   Caller       gather_all          Policy             asyncio
-     |              |                  |                  |
-     | gather_all(a,b,c,               |                  |
-     |   policy=BestEffort())          |                  |
-     |------------->|                  |                  |
-     |              | gather(a,b,c,                       |
-     |              |   return_exceptions=True)           |
-     |              |------------------------------------>|
-     |              |                  | [v_a, exc_b, v_c]|
-     |              |<------------------------------------|
-     |              | reconcile([v_a, exc_b, v_c])        |
-     |              |----------------->|                  |
-     |              |                  |                  |
-     |   raise PartialFailureError(                       |
-     |     results=[v_a, None, v_c],                      |
-     |     exceptions=[None, exc_b, None])                |
-     |<--------------------------------                   |
+```mermaid
+sequenceDiagram
+    participant Caller
+    participant gather_all
+    participant Policy
+    participant asyncio
+    Caller->>gather_all: gather_all(a, b, c, policy=BestEffort())
+    gather_all->>asyncio: gather(a, b, c, return_exceptions=True)
+    asyncio-->>gather_all: [v_a, exc_b, v_c]
+    gather_all->>Policy: reconcile([v_a, exc_b, v_c])
+    Policy-->>Caller: raise PartialFailureError(results=[v_a, None, v_c], exceptions=[None, exc_b, None])
 ```
 
 <div align="center">

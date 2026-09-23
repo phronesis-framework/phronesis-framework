@@ -11,7 +11,7 @@
 </div>
 
 <div align="center">
-  Índice raíz de la documentación. Refleja la estructura de <code>src/phronesis/</code>.
+  Root documentation index. Mirrors the structure of <code>src/phronesis/</code>.
 </div>
 
 <div align="center">
@@ -31,25 +31,25 @@
 
 </div>
 
-| Área | Estado | Documentación |
+| Area | Status | Documentation |
 |---|---|---|
-| `_internal` - infraestructura compartida | en construcción | [internal/](./internal/index.md) |
-| `tools` - declaración y registro de tools | estable | [tools/](./tools/index.md) |
-| `agents` - `@agent`, runtime, sessions, tool-calling loop | estable | [agents/](./agents/index.md) |
-| `runtime` - orquestación de agentes (19 modos) | estable | [runtime/](./runtime/index.md) |
-| `providers` - adaptadores por proveedor LLM | estable | [providers/](./providers/index.md) |
-| `obs` - observabilidad (spans, metrics, log correlation) | estable | [obs/](./obs/index.md) |
-| `context` - ContextBuilder + Context inyectado a tools | estable | [context/](./context/index.md) |
-| `memory` - working/kv/vector/episodic stores + checkpoints | estable | [memory/](./memory/index.md) |
-| `pipelines` - composición declarativa de Executables nombrados | estable | [pipelines/](./pipelines/index.md) |
-| `mcp` - cliente y servidor Model Context Protocol | estable | [mcp/](./mcp/index.md) |
-| `middleware` - cadena onion sobre `LLMProvider.complete` | estable | [middleware/](./middleware/index.md) |
-| `replay` - record/replay de respuestas LLM en cassettes JSONL | estable | [replay/](./replay/index.md) |
-| `core` - tipos de dominio (`Message`, `ContentBlock`) | estable | [core/](./core/index.md) |
-| `communication` - identidad de sesión (`SessionId`) | estable | [communication/](./communication/index.md) |
+| `_internal` - shared infrastructure | in progress | [internal/](./internal/index.md) |
+| `tools` - tool declaration and registry | stable | [tools/](./tools/index.md) |
+| `agents` - `@agent`, runtime, sessions, tool-calling loop | stable | [agents/](./agents/index.md) |
+| `runtime` - agent orchestration (19 modes) | stable | [runtime/](./runtime/index.md) |
+| `providers` - per-LLM-vendor adapters | stable | [providers/](./providers/index.md) |
+| `obs` - observability (spans, metrics, log correlation) | stable | [obs/](./obs/index.md) |
+| `context` - ContextBuilder + Context injected into tools | stable | [context/](./context/index.md) |
+| `memory` - working/kv/vector/episodic stores + checkpoints | stable | [memory/](./memory/index.md) |
+| `pipelines` - declarative composition of named Executables | stable | [pipelines/](./pipelines/index.md) |
+| `mcp` - Model Context Protocol client and server | stable | [mcp/](./mcp/index.md) |
+| `middleware` - onion chain over `LLMProvider.complete` | stable | [middleware/](./middleware/index.md) |
+| `replay` - record/replay of LLM responses in JSONL cassettes | stable | [replay/](./replay/index.md) |
+| `core` - domain types (`Message`, `ContentBlock`) | stable | [core/](./core/index.md) |
+| `communication` - session identity (`SessionId`) | stable | [communication/](./communication/index.md) |
 
 <div align="center">
 
-## 📐 Decisiones y planes
+## 📐 Decisions and plans
 
 </div>

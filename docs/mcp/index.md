@@ -11,7 +11,7 @@
 </div>
 
 <div align="center">
-  Integración bidireccional con el Model Context Protocol: consume servidores MCP externos como tools y publica tools phronesis como servidor MCP.
+  Bidirectional integration with the Model Context Protocol: consumes external MCP servers as tools and publishes phronesis tools as an MCP server.
 </div>
 
 <div align="center">
@@ -36,12 +36,12 @@
 
 </div>
 
-El Model Context Protocol (MCP) es el estándar abierto para conectar agentes a servidores de tools. Este módulo lo integra en phronesis en las dos direcciones:
+The Model Context Protocol (MCP) is the open standard for connecting agents to tool servers. This module integrates it into phronesis in both directions:
 
-- **Cliente** - abre una sesión contra un servidor MCP externo (filesystem, búsqueda, IDE, lo que sea) y adapta cada tool remota en un `Tool` de phronesis listo para inyectarse en un `Agent`.
-- **Servidor** - publica un conjunto de `Tool` declarados con `@tool` como servidor MCP, consumible desde Claude Desktop, otros agentes phronesis, o cualquier cliente MCP.
+- **Client** - opens a session against an external MCP server (filesystem, search, IDE, whatever) and adapts each remote tool into a phronesis `Tool` ready to be injected into an `Agent`.
+- **Server** - publishes a set of `Tool`s declared with `@tool` as an MCP server, consumable from Claude Desktop, other phronesis agents, or any MCP client.
 
-En v1 solo se cubren **Tools**, que es donde está el grueso del valor con el menor coste de integración. Resources, prompts y sampling quedan para v2.
+v1 only covers **Tools**, which is where most of the value lies at the lowest integration cost. Resources, prompts and sampling are left for v2.
 
 <div align="center">
 
@@ -49,15 +49,26 @@ En v1 solo se cubren **Tools**, que es donde está el grueso del valor con el me
 
 </div>
 
-Dos sub-superficies que comparten el mismo SDK por debajo:
+Two sub-surfaces sharing the same SDK underneath:
 
+```mermaid
+flowchart LR
+    subgraph client_side["Client"]
+        direction LR
+        Agent["phronesis.Agent"] -->|with_added_tools| AdaptedTool["Tool (adapted)"]
+        AdaptedTool -->|invoke| Session["McpClient.session"]
+        Session -->|call_tool| Remote["external MCP server"]
+    end
+
+    subgraph server_side["Server"]
+        direction LR
+        ExtClient["external MCP client"] -->|"tools/call"| PServer["PhronesisMcpServer"]
+        PServer -->|invoke| LocalTool["Tool (local)"]
+        LocalTool -->|result| Result["CallToolResult"]
+    end
 ```
-phronesis.Agent --with_added_tools--> Tool (adaptado) --invoke--> McpClient.session --call_tool--> servidor MCP externo
 
-cliente MCP externo --tools/call--> PhronesisMcpServer --invoke--> Tool (local) --resultado--> CallToolResult
-```
-
-Ambas caras se apoyan en el SDK oficial `mcp` para JSON-RPC, framing y handshake. Phronesis solo adapta los tipos en los bordes.
+Both sides rely on the official `mcp` SDK for JSON-RPC, framing and handshake. Phronesis only adapts the types at the edges.
 
 <div align="center">
 
@@ -65,17 +76,17 @@ Ambas caras se apoyan en el SDK oficial `mcp` para JSON-RPC, framing y handshake
 
 </div>
 
-| Fichero | Responsabilidad |
+| File | Responsibility |
 |---|---|
-| `__init__.py` | Re-exports de la API pública (`__all__`). |
-| `errors.py` | Jerarquía `McpError` -> `McpConnectionError`, `McpProtocolError`, `McpTimeoutError`, `McpToolNotFoundError`. |
-| `ids.py` | `McpServerId` (prefijo `MSID`), `McpClientId` (prefijo `MCID`) + generators singleton. |
-| `obs.py` | `mcp_span(operation, extra=...)` async ctx manager con prefijo `phronesis.mcp.<op>`. |
-| `transport.py` | `StdioTransport`, `HttpTransport`, alias `Transport`. |
-| `server_spec.py` | `McpServerSpec` (frozen): describe cómo conectar a un servidor remoto. |
-| `client.py` | `McpClient` async context manager con `list_tools()` adaptado. |
-| `server.py` | `PhronesisMcpServer` + factory `mcp_server(...)` con `run_stdio()` / `run_http()`. |
-| `_adapt.py` | Adaptadores `MCP tool <-> phronesis Tool` en ambas direcciones. |
+| `__init__.py` | Re-exports of the public API (`__all__`). |
+| `errors.py` | Hierarchy `McpError` -> `McpConnectionError`, `McpProtocolError`, `McpTimeoutError`, `McpToolNotFoundError`. |
+| `ids.py` | `McpServerId` (prefix `MSID`), `McpClientId` (prefix `MCID`) + singleton generators. |
+| `obs.py` | `mcp_span(operation, extra=...)` async ctx manager with prefix `phronesis.mcp.<op>`. |
+| `transport.py` | `StdioTransport`, `HttpTransport`, `Transport` alias. |
+| `server_spec.py` | `McpServerSpec` (frozen): describes how to connect to a remote server. |
+| `client.py` | `McpClient` async context manager with adapted `list_tools()`. |
+| `server.py` | `PhronesisMcpServer` + factory `mcp_server(...)` with `run_stdio()` / `run_http()`. |
+| `_adapt.py` | `MCP tool <-> phronesis Tool` adapters in both directions. |
 
 <div align="center">
 
@@ -105,7 +116,7 @@ from phronesis.mcp import (
 )
 ```
 
-Signaturas clave:
+Key signatures:
 
 ```python
 class McpClient:
@@ -132,12 +143,12 @@ class PhronesisMcpServer:
 
 </div>
 
-- **D-01 SDK oficial como dependencia.** Se añade `mcp>=1.27` a `pyproject.toml`. No reimplementamos JSON-RPC ni framing: dejamos que el SDK haga lo que mejor sabe hacer y phronesis solo adapta tipos en los bordes.
-- **D-02 Solo Tools en v1.** Resources, prompts y sampling tienen ratio valor/esfuerzo menor para los casos de uso reales; se difieren a v2 explícitamente.
-- **D-03 stdio + Streamable HTTP.** Son los dos transports que el spec actual considera estables. SSE legacy queda descartado.
-- **D-04 Cliente: bypass del decorador `@tool`.** No hay función Python tipada detrás de una tool MCP remota. El adapter construye un `Tool` directo con un stub `async def _remote_call(**kwargs)`, sobrescribe el `schema` con el `inputSchema` remoto y el `_validator` con un passthrough (el servidor valida).
-- **D-05 Cliente = un servidor por sesión.** Componer varios servidores se hace fuera: `agent.with_added_tools(*tools_a, *tools_b)`. Mantiene la clase mínima.
-- **D-06 Errores MCP -> ToolError.** Una tool MCP que falla no debe abortar el run del agente: el adapter mapea timeouts a `ToolTimeoutError`, `tool not found` a `ToolNotFoundError` y el resto a `ToolError` genérico.
+- **D-01 Official SDK as a dependency.** `mcp>=1.27` is added to `pyproject.toml`. We do not reimplement JSON-RPC or framing: we let the SDK do what it does best and phronesis only adapts types at the edges.
+- **D-02 Tools only in v1.** Resources, prompts and sampling have a lower value/effort ratio for real use cases; they are explicitly deferred to v2.
+- **D-03 stdio + Streamable HTTP.** These are the two transports the current spec considers stable. Legacy SSE is discarded.
+- **D-04 Client: bypass of the `@tool` decorator.** There is no typed Python function behind a remote MCP tool. The adapter builds a `Tool` directly with an `async def _remote_call(**kwargs)` stub, overrides the `schema` with the remote `inputSchema` and the `_validator` with a passthrough (the server validates).
+- **D-05 Client = one server per session.** Composing several servers is done outside: `agent.with_added_tools(*tools_a, *tools_b)`. Keeps the class minimal.
+- **D-06 MCP errors -> ToolError.** A failing MCP tool must not abort the agent run: the adapter maps timeouts to `ToolTimeoutError`, `tool not found` to `ToolNotFoundError` and everything else to a generic `ToolError`.
 
 <div align="center">
 
@@ -145,14 +156,14 @@ class PhronesisMcpServer:
 
 </div>
 
-Cliente phronesis consumiendo un servidor MCP externo:
+Phronesis client consuming an external MCP server:
 
 ```mermaid
 sequenceDiagram
     participant Agent
     participant McpClient
     participant ClientSession
-    participant Server as MCP server (remoto)
+    participant Server as MCP server (remote)
 
     Agent->>McpClient: connect(spec)
     McpClient->>ClientSession: initialize()
@@ -172,11 +183,11 @@ sequenceDiagram
     McpClient-->>Agent: payload | ToolError
 ```
 
-Servidor phronesis publicando tools locales:
+Phronesis server publishing local tools:
 
 ```mermaid
 sequenceDiagram
-    participant Client as cliente MCP externo
+    participant Client as external MCP client
     participant Server as PhronesisMcpServer
     participant Tool as Tool (local)
 
@@ -184,7 +195,7 @@ sequenceDiagram
     Server-->>Client: capabilities
 
     Client->>Server: tools/list
-    Server-->>Client: list[mcp.Tool] (uno por Tool local)
+    Server-->>Client: list[mcp.Tool] (one per local Tool)
 
     Client->>Server: tools/call(name, args)
     Server->>Tool: invoke(args)
@@ -198,14 +209,14 @@ sequenceDiagram
 
 </div>
 
-- `mcp>=1.27` (nueva dependencia).
+- `mcp>=1.27` (new dependency).
 - `phronesis.tools` - `Tool`, `ToolSpec`, `ToolError`, ids.
 - `phronesis._internal.ids` - `Id`, `IdGenerator`.
-- `phronesis.errors.PhronesisError` - jerarquía raíz.
+- `phronesis.errors.PhronesisError` - root hierarchy.
 - `phronesis.obs.spans.start_span_async` - tracing wrapper.
-- `phronesis.obs.attributes` - constantes `MCP_*`.
+- `phronesis.obs.attributes` - `MCP_*` constants.
 
-Quien depende: `phronesis.agents` puede inyectar las tools obtenidas vía `Agent.with_added_tools(*tools)`. No hay acoplamiento inverso.
+Dependents: `phronesis.agents` can inject the obtained tools via `Agent.with_added_tools(*tools)`. There is no reverse coupling.
 
 <div align="center">
 
@@ -213,11 +224,11 @@ Quien depende: `phronesis.agents` puede inyectar las tools obtenidas vía `Agent
 
 </div>
 
-Tests en `tests/mcp/`. Estrategia:
+Tests in `tests/mcp/`. Strategy:
 
-- **Unitarios** con mocks (`unittest.mock.AsyncMock`) sobre `ClientSession.call_tool` para cubrir adaptación y mapeo de errores sin abrir transports.
-- **Loopback in-memory** usando `mcp.shared.memory.create_connected_server_and_client_session` para tests de integración cliente <-> servidor sin red ni procesos.
-- Cobertura objetivo: 100% sobre el código nuevo.
+- **Unit tests** with mocks (`unittest.mock.AsyncMock`) on `ClientSession.call_tool` to cover adaptation and error mapping without opening transports.
+- **In-memory loopback** using `mcp.shared.memory.create_connected_server_and_client_session` for client <-> server integration tests without network or processes.
+- Target coverage: 100% on the new code.
 
 <div align="center">
 
@@ -225,7 +236,7 @@ Tests en `tests/mcp/`. Estrategia:
 
 </div>
 
-Conectar a un servidor MCP externo e inyectar sus tools en un agente:
+Connect to an external MCP server and inject its tools into an agent:
 
 ```python
 import asyncio
@@ -244,12 +255,12 @@ async def main():
         remote_tools = await client.list_tools()
 
         # agent = my_agent.with_added_tools(*remote_tools)
-        # await agent.run("lista los ficheros de /tmp")
+        # await agent.run("list the files in /tmp")
 
 asyncio.run(main())
 ```
 
-Servir tools phronesis como servidor MCP:
+Serve phronesis tools as an MCP server:
 
 ```python
 import asyncio
@@ -274,11 +285,11 @@ asyncio.run(main())
 
 </div>
 
-- **El validador local no se aplica a tools remotas.** Las tools adaptadas reciben los args tal cual; la validación es responsabilidad del servidor remoto contra su `inputSchema`. Esto es deliberado (D-04).
-- **Cerrar siempre la sesión.** `McpClient` solo se construye vía `McpClient.connect(spec)` como `async with`. Construirlo "a mano" sin el context manager deja procesos/streams sin cerrar.
-- **`list_tools()` no es perezoso.** Cada llamada va al servidor; cachealo en cliente si lo necesitas más de una vez.
-- **Esquemas remotos pueden ser parciales.** Si un servidor MCP devuelve un `inputSchema` sin `type`, el adapter lo pasa tal cual al `ToolSpec.input_schema`; el LLM cliente decide qué hacer con él.
-- **Tools que cuelgan cuelgan al agente.** En v1 confiamos en la cancelación cooperativa de `ExecutionContext`. Wrap con `RetryPolicy` cuando exista soporte cliente.
+- **The local validator is not applied to remote tools.** Adapted tools receive the args as-is; validation is the responsibility of the remote server against its `inputSchema`. This is deliberate (D-04).
+- **Always close the session.** `McpClient` is only built via `McpClient.connect(spec)` as `async with`. Building it "by hand" without the context manager leaves processes/streams open.
+- **`list_tools()` is not lazy.** Every call goes to the server; cache it on the client side if you need it more than once.
+- **Remote schemas may be partial.** If an MCP server returns an `inputSchema` without `type`, the adapter passes it as-is to `ToolSpec.input_schema`; the client LLM decides what to do with it.
+- **Hanging tools hang the agent.** In v1 we rely on the cooperative cancellation of `ExecutionContext`. Wrap with `RetryPolicy` once client support exists.
 
 <div align="center">
 
@@ -301,8 +312,8 @@ uv run pytest -q
 </div>
 
 - Python 3.11+.
-- `mcp` SDK oficial (Anthropic) - JSON-RPC, framing, handshake, stdio + Streamable HTTP transports.
-- `anyio` (vía `mcp`) para el modelo async.
+- Official `mcp` SDK (Anthropic) - JSON-RPC, framing, handshake, stdio + Streamable HTTP transports.
+- `anyio` (via `mcp`) for the async model.
 
 <div align="center">
 
@@ -312,9 +323,9 @@ uv run pytest -q
 
 - **Resources** (`resources/list`, `resources/read`).
 - **Prompts** (`prompts/list`, `prompts/get`).
-- **Sampling** - el servidor pide al cliente que invoque su LLM.
-- **OAuth / autenticación** sobre Streamable HTTP.
-- **Exponer un `Agent` entero como una tool MCP** (delegación de tool-calling).
-- **`McpRegistry`** - agregador multi-servidor con discovery.
-- **Reconexión automática** + back-pressure.
-- **SSE legacy** queda fuera (deprecated).
+- **Sampling** - the server asks the client to invoke its LLM.
+- **OAuth / authentication** over Streamable HTTP.
+- **Expose a whole `Agent` as an MCP tool** (tool-calling delegation).
+- **`McpRegistry`** - multi-server aggregator with discovery.
+- **Automatic reconnection** + back-pressure.
+- **Legacy SSE** stays out (deprecated).

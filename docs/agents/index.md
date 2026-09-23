@@ -78,42 +78,32 @@ Non-goals (deliberately):
 
 The module is split into a **pure-data side** (frozen specs, ids, results, events, errors) and an **executable side** (the loop, the agent wrapper, the session). The decorator stitches them together; the registry keeps them addressable.
 
-```
-                            +------------------+
-                            |   decorator.py   |  @agent / @agent(...)
-                            +------------------+
-                                     |
-              +----------------------+----------------------+
-              |                      |                      |
-              v                      v                      v
-      +---------------+      +---------------+      +---------------+
-      |   spec.py     |      |   agent.py    |      |  registry.py  |
-      |   AgentSpec   |      |    Agent      |      |  agent_scope  |
-      +---------------+      +---------------+      +---------------+
-              ^                      |                      ^
-              |                      |                      |
-              |      +---------------+---------------+      |
-              |      |               |               |      |
-              |      v               v               v      |
-              | +-----------+ +-----------+ +-----------+   |
-              | |validation | |  loop.py  | | session.py|   |
-              | |   .py     | | run_loop  | |  Session  |   |
-              | +-----------+ +-----------+ +-----------+   |
-              |       ^             |              |        |
-              |       |             v              |        |
-              |       |       +-----------+        |        |
-              |       |       | events.py |        |        |
-              |       |       +-----------+        |        |
-              |       |                            |        |
-      +---------------+   +---------------+   +-----------+ |
-      |   errors      |   |   run.py      |   |   id.py   | |
-      |     .py       |   | Result, etc.  |   | AgentId   | |
-      +---------------+   +---------------+   +-----------+ |
-                                                            |
-                                +---------+-----------------+
-                                | __init__|
-                                |  .py    |
-                                +---------+
+```mermaid
+flowchart TD
+    decorator["decorator.py<br/>@agent / @agent(...)"]
+    spec["spec.py<br/>AgentSpec"]
+    agentpy["agent.py<br/>Agent"]
+    registry["registry.py<br/>agent_scope"]
+    validation["validation.py"]
+    loop["loop.py<br/>run_loop"]
+    session["session.py<br/>Session"]
+    events["events.py"]
+    errors["errors.py"]
+    run["run.py<br/>Result, etc."]
+    id["id.py<br/>AgentId"]
+    init["__init__.py"]
+
+    decorator --> spec
+    decorator --> agentpy
+    decorator --> registry
+    agentpy --> validation
+    agentpy --> loop
+    agentpy --> session
+    loop --> events
+    errors --> validation
+    errors --> spec
+    session --- id
+    init --> registry
 ```
 
 **Pure-data side** (frozen, JSON-friendly):

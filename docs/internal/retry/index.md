@@ -51,13 +51,12 @@ External calls (LLMs, vector stores, APIs) are **transient by nature**. This mod
 
 </div>
 
-```
-   attempt.py ----+----> exceptions.py
-                  |              \
-                  |               \
-                  +----> decorator.py
-                                ^
-   backoff.py -------------------+
+```mermaid
+flowchart LR
+    attempt["attempt.py"] --> exceptions["exceptions.py"]
+    attempt --> decorator["decorator.py"]
+    exceptions --> decorator
+    backoff["backoff.py"] --> decorator
 ```
 
 - `attempt.py` defines the per-attempt accounting.
@@ -130,43 +129,29 @@ def retry(
 
 Retry state machine:
 
-```
-            +---------+
-            |         |
-            v         |  await sleep(delay)
-       +---------+    |
-   --> | Attempt |----+
-       +---------+
-        |   |   |
-   ok   |   |   | raises
-        v   |   |
-    Success |   v
-        |   | (exc not in on or should_retry == False) --> Propagate
-        |   |
-        |   v
-        | (attempt >= max_attempts) --> raise RetryExhaustedError
-        |
-        v
-       end
+```mermaid
+stateDiagram-v2
+    [*] --> Attempt
+    Attempt --> Success: ok
+    Attempt --> Raised: raises
+    Raised --> Propagate: exc not in on or should_retry == False
+    Raised --> Exhausted: attempt >= max_attempts
+    Raised --> Attempt: await sleep(delay)
+    Success --> [*]
+    Propagate --> [*]
+    Exhausted --> [*]
+    note right of Exhausted: raise RetryExhaustedError
 ```
 
 Delay selection:
 
-```
-   exception
-       |
-       v
-   delay_hook is not None and returns non-None ?
-       |                                |
-      yes                               no
-       |                                |
-       v                                v
-   use hook value           honor_retry_after and exc.retry_after_seconds ?
-                                |                                  |
-                               yes                                 no
-                                |                                  |
-                                v                                  v
-                           use retry_after                backoff.get_delay(attempt)
+```mermaid
+flowchart TD
+    exc["exception"] --> hook{"delay_hook is not None<br/>and returns non-None?"}
+    hook -- yes --> useHook["use hook value"]
+    hook -- no --> ra{"honor_retry_after and<br/>exc.retry_after_seconds?"}
+    ra -- yes --> useRA["use retry_after"]
+    ra -- no --> bo["backoff.get_delay(attempt)"]
 ```
 
 <div align="center">

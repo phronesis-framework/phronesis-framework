@@ -52,12 +52,11 @@ Concrete subclasses (`ToolId`, `AgentId`, …) live in their own packages and on
 
 </div>
 
-```
-   validator.py ----> id.py ----+
-                                 \
-                                  +---> generator.py
-                                 /
-   derivation.py ---------------+
+```mermaid
+flowchart LR
+    validator["validator.py"] --> id["id.py"]
+    id --> generator["generator.py"]
+    derivation["derivation.py"] --> generator
 ```
 
 - `validator.py` depends on nothing; pure string validation.
@@ -127,31 +126,29 @@ tool_ids = IdGenerator(ToolId)
 
 Type hierarchy:
 
-```
-                   +-----------------------+
-                   |          Id           |   <<frozen dataclass>>
-                   +-----------------------+
-                   | + canonical: str      |
-                   | + prefix: ClassVar    |
-                   | + short: str          |
-                   | + __post_init__()     |
-                   +-----+-----------+-----+
-                         ^           ^
-                         |           |
-                   +-----+----+   +--+-----+
-                   |  ToolId  |   | AgentId |
-                   |  TID     |   |  AID    |
-                   +----------+   +---------+
+```mermaid
+classDiagram
+    class Id {
+        <<frozen dataclass>>
+        +canonical: str
+        +prefix: ClassVar
+        +short: str
+        +__post_init__()
+    }
+    class ToolId {
+        prefix = "TID"
+    }
+    class AgentId {
+        prefix = "AID"
+    }
+    Id <|-- ToolId
+    Id <|-- AgentId
 
-                +---------------------------+
-                |   IdGenerator[IdT]        |
-                +---------------------------+
-                | + from_function(fn) IdT   |
-                | + from_canonical(s)  IdT  |
-                +-------------+-------------+
-                              |
-                              v  creates
-                              Id subclasses
+    class IdGenerator~IdT~ {
+        +from_function(fn) IdT
+        +from_canonical(s) IdT
+    }
+    IdGenerator ..> Id : creates Id subclasses
 ```
 
 <div align="center">

@@ -11,7 +11,7 @@
 </div>
 
 <div align="center">
-  Grabación y reproducción determinista de respuestas LLM en cassettes JSONL: tests reproducibles sin red, sin coste y sin no-determinismo.
+  Deterministic recording and replay of LLM responses in JSONL cassettes: reproducible tests with no network, no cost and no non-determinism.
 </div>
 
 <div align="center">
@@ -36,12 +36,12 @@
 
 </div>
 
-Los providers LLM son la fuente principal de no-determinismo en una suite de tests: cuestan dinero, dependen de la red, tienen latencia variable y devuelven respuestas distintas en cada llamada. `replay` resuelve esto con un patrón record/replay clásico aplicado al `LLMProvider`:
+LLM providers are the main source of non-determinism in a test suite: they cost money, depend on the network, have variable latency and return different responses on every call. `replay` solves this with a classic record/replay pattern applied to `LLMProvider`:
 
-- **Grabar una vez** contra el provider real (`RecordingProvider`).
-- **Reproducir N veces** sin tocar la red (`ReplayProvider`).
+- **Record once** against the real provider (`RecordingProvider`).
+- **Replay N times** without touching the network (`ReplayProvider`).
 
-El cassette es un fichero JSONL legible, diffable y editable a mano. Ideal para tests de integración de agents, runtime y pipelines.
+The cassette is a readable, diffable, hand-editable JSONL file. Ideal for integration tests of agents, runtime and pipelines.
 
 <div align="center">
 
@@ -49,19 +49,23 @@ El cassette es un fichero JSONL legible, diffable y editable a mano. Ideal para 
 
 </div>
 
-Dos proxies que implementan el protocolo `LLMProvider`:
+Two proxies that implement the `LLMProvider` protocol:
 
+```mermaid
+flowchart LR
+    subgraph real["real test"]
+        A1[Agent] --> RP[RecordingProvider] --> LLM[real LLMProvider] --> NET[network]
+        RP --> C1[cassette.jsonl]
+    end
+
+    subgraph replay["replay test"]
+        A2[Agent] --> RPL[ReplayProvider] -- reads --> C2[cassette.jsonl]
+    end
 ```
-real test:    Agent --> RecordingProvider --> LLMProvider real --> network
-                              ↓
-                       cassette.jsonl
 
-replay test:  Agent --> ReplayProvider --reads--> cassette.jsonl
-```
+Both go through the same APIs as any provider; the agent does not notice.
 
-Ambos pasan por las mismas APIs que cualquier provider; el agent no se entera.
-
-La forma del cassette es un `LLMResponse` por línea, codificado en JSON:
+The cassette shape is one `LLMResponse` per line, encoded as JSON:
 
 ```json
 {"text": "...", "tool_calls": [...], "finish_reason": "...", "usage": {...}}
@@ -74,13 +78,13 @@ La forma del cassette es un `LLMResponse` por línea, codificado en JSON:
 
 </div>
 
-| Fichero | Responsabilidad |
+| File | Responsibility |
 |---|---|
-| `__init__.py` | Re-exports de la API pública (`__all__`). |
+| `__init__.py` | Public API re-exports (`__all__`). |
 | `errors.py` | `ReplayError` -> `CassetteFormatError`, `CassetteExhaustedError`. |
-| `cassette.py` | I/O JSONL + `encode_response` / `decode_response` (incluye `ToolCall`, `TokenUsage`). |
-| `recording.py` | `RecordingProvider`: wrapper que delega + `append_cassette` por cada `complete`. |
-| `replay.py` | `ReplayProvider`: cassette en memoria + cursor secuencial. |
+| `cassette.py` | JSONL I/O + `encode_response` / `decode_response` (includes `ToolCall`, `TokenUsage`). |
+| `recording.py` | `RecordingProvider`: delegating wrapper + `append_cassette` on every `complete`. |
+| `replay.py` | `ReplayProvider`: in-memory cassette + sequential cursor. |
 
 <div align="center">
 
@@ -103,7 +107,7 @@ from phronesis.replay import (
 )
 ```
 
-Signaturas clave:
+Key signatures:
 
 ```python
 class RecordingProvider:
@@ -141,13 +145,13 @@ def append_cassette(path: Path, response: LLMResponse) -> None: ...
 
 </div>
 
-- **D-01 JSONL.** Formato textual, una entrada por línea. Diffable en git, editable a mano, language-neutral. Sin pickles, sin binarios opacos.
-- **D-02 Record-then-replay puro.** El `ReplayProvider` no matchea por request: sirve respuestas en orden vía un cursor interno. Simplifica el modelo y deja la responsabilidad de "matching" al test que decide qué grabar. Si necesitas matching estricto, lo envuelves tú.
-- **D-03 Cassette completo en memoria.** `ReplayProvider` carga todo el fichero al construirse. Cassettes son pequeños (decenas o cientos de entradas) y así los errores de formato salen en la construcción, no en medio del test.
-- **D-04 Append por llamada.** `RecordingProvider` abre el fichero en append en cada `complete`. Si el test peta a mitad, lo grabado hasta el punto sigue siendo válido y reutilizable.
-- **D-05 `truncate=True` por defecto.** Una nueva sesión de grabación no debe contaminarse con runs anteriores. `truncate=False` habilita explícitamente el modo append cross-session.
-- **D-06 Streaming fuera de v1.** Sólo `complete` se graba. `RecordingProvider.stream` delega tal cual al provider real (sin grabar chunks); `ReplayProvider.stream` lanza `CassetteExhaustedError` siempre. Reproducir streams es complejidad innecesaria para el caso de uso central.
-- **D-07 Capacidades sintéticas en replay.** `ReplayProvider.supports(...)` siempre `False`; `context_window_size()` devuelve el valor pasado al constructor (default 200 000); `count_tokens` usa heurística `len(text) // 4`; `count_tokens_exact` siempre `None`. Es un test double, no un modelo.
+- **D-01 JSONL.** Text format, one entry per line. Diffable in git, hand-editable, language-neutral. No pickles, no opaque binaries.
+- **D-02 Pure record-then-replay.** `ReplayProvider` does not match by request: it serves responses in order via an internal cursor. This simplifies the model and leaves "matching" to the test that decides what to record. If you need strict matching, wrap it yourself.
+- **D-03 Whole cassette in memory.** `ReplayProvider` loads the entire file on construction. Cassettes are small (tens or hundreds of entries), and this way format errors surface at construction, not mid-test.
+- **D-04 Append per call.** `RecordingProvider` opens the file in append mode on every `complete`. If the test crashes halfway, everything recorded up to that point remains valid and reusable.
+- **D-05 `truncate=True` by default.** A new recording session must not be polluted by previous runs. `truncate=False` explicitly enables cross-session append mode.
+- **D-06 Streaming out of v1.** Only `complete` is recorded. `RecordingProvider.stream` delegates as-is to the real provider (without recording chunks); `ReplayProvider.stream` always raises `CassetteExhaustedError`. Replaying streams is unnecessary complexity for the core use case.
+- **D-07 Synthetic capabilities in replay.** `ReplayProvider.supports(...)` is always `False`; `context_window_size()` returns the value passed to the constructor (default 200 000); `count_tokens` uses the `len(text) // 4` heuristic; `count_tokens_exact` is always `None`. It is a test double, not a model.
 
 <div align="center">
 
@@ -155,13 +159,13 @@ def append_cassette(path: Path, response: LLMResponse) -> None: ...
 
 </div>
 
-Flujo de grabación:
+Recording flow:
 
 ```mermaid
 sequenceDiagram
     participant Test
     participant Recording as RecordingProvider
-    participant Real as LLMProvider real
+    participant Real as real LLMProvider
     participant Cassette as cassette.jsonl
 
     Test->>Recording: complete(req)
@@ -171,7 +175,7 @@ sequenceDiagram
     Recording-->>Test: LLMResponse
 ```
 
-Flujo de reproducción:
+Replay flow:
 
 ```mermaid
 sequenceDiagram
@@ -179,7 +183,7 @@ sequenceDiagram
     participant Replay as ReplayProvider
     participant Cassette as cassette.jsonl
 
-    Note over Replay,Cassette: read_cassette en el __init__
+    Note over Replay,Cassette: read_cassette in __init__
     Test->>Replay: complete(req)
     Replay-->>Test: LLMResponse[cursor=0]
     Test->>Replay: complete(req)
@@ -197,9 +201,9 @@ sequenceDiagram
 - `phronesis.providers.protocol` - `LLMProvider`, `ProviderFeature`.
 - `phronesis.providers.types` - `LLMRequest`, `LLMResponse`, `ToolCall`.
 - `phronesis.providers.usage` - `TokenUsage`.
-- `phronesis.providers.chunks` - `LLMChunk` (sólo para tipos de stream).
-- `phronesis.core.messages` - `Message` (sólo para tipos de count_tokens).
-- `phronesis.errors.PhronesisError` - jerarquía raíz.
+- `phronesis.providers.chunks` - `LLMChunk` (only for stream types).
+- `phronesis.core.messages` - `Message` (only for count_tokens types).
+- `phronesis.errors.PhronesisError` - root hierarchy.
 - Stdlib: `json`, `pathlib`, `asyncio`.
 
 <div align="center">
@@ -208,11 +212,11 @@ sequenceDiagram
 
 </div>
 
-Tests en `tests/replay/`. Estrategia:
+Tests in `tests/replay/`. Strategy:
 
-- Provider stub minimal in-memory para no atar el cassette a un provider real.
-- Casos cubiertos: encode/decode round-trip (incluye `tool_calls` y `usage`), grabación, replay secuencial, cassette mal formado, cassette agotado, `truncate=True/False`, passthrough de los métodos no grabados.
-- Cobertura objetivo: 100%.
+- Minimal in-memory provider stub so the cassette is not tied to a real provider.
+- Covered cases: encode/decode round-trip (including `tool_calls` and `usage`), recording, sequential replay, malformed cassette, exhausted cassette, `truncate=True/False`, passthrough of non-recorded methods.
+- Target coverage: 100%.
 
 <div align="center">
 
@@ -220,24 +224,24 @@ Tests en `tests/replay/`. Estrategia:
 
 </div>
 
-Grabar la primera vez:
+Record the first time:
 
 ```python
 import asyncio
 from phronesis.replay import RecordingProvider
 
 async def main():
-    # real_provider es tu provider real (Anthropic, OpenAI, etc.)
+    # real_provider is your real provider (Anthropic, OpenAI, etc.)
     recorder = RecordingProvider(real_provider, "tests/fixtures/agent_run.jsonl")
 
     agent = my_agent.with_provider(recorder)
-    await agent.run("explica el teorema de Pitágoras")
-    # tests/fixtures/agent_run.jsonl contiene ahora todas las responses
+    await agent.run("explain the Pythagorean theorem")
+    # tests/fixtures/agent_run.jsonl now contains all the responses
 
 asyncio.run(main())
 ```
 
-Reproducir en CI sin red:
+Replay in CI without network:
 
 ```python
 import asyncio
@@ -247,13 +251,13 @@ async def main():
     replay = ReplayProvider("tests/fixtures/agent_run.jsonl")
     agent = my_agent.with_provider(replay)
 
-    result = await agent.run("explica el teorema de Pitágoras")
-    # Mismo input -> exactamente las mismas responses que en la grabación
+    result = await agent.run("explain the Pythagorean theorem")
+    # Same input -> exactly the same responses as in the recording
 
 asyncio.run(main())
 ```
 
-Cassette manual (sin grabar):
+Manual cassette (no recording):
 
 ```python
 from phronesis.providers.types import LLMResponse
@@ -262,21 +266,21 @@ from phronesis.replay import write_cassette, ReplayProvider
 write_cassette(
     "tests/fixtures/stubbed.jsonl",
     [
-        LLMResponse(text="primera respuesta"),
-        LLMResponse(text="segunda respuesta"),
+        LLMResponse(text="first response"),
+        LLMResponse(text="second response"),
     ],
 )
 
 replay = ReplayProvider("tests/fixtures/stubbed.jsonl")
 ```
 
-Append entre runs distintos:
+Append across separate runs:
 
 ```python
 from phronesis.replay import RecordingProvider
 
 recorder = RecordingProvider(real_provider, cassette_path, truncate=False)
-# Cada run añade al final del cassette sin borrar lo previo
+# Each run appends to the end of the cassette without erasing previous content
 ```
 
 <div align="center">
@@ -285,12 +289,12 @@ recorder = RecordingProvider(real_provider, cassette_path, truncate=False)
 
 </div>
 
-- **El replay no valida el request**. Sirve respuestas en orden ciegamente. Si tu test cambia el flujo (nuevo prompt, nueva tool call), el orden ya no encaja y el cassette deja de ser válido. Re-graba.
-- **Streaming no se graba**. Si tu agente usa `stream`, el cassette ignora esas llamadas y `ReplayProvider.stream` lanza `CassetteExhaustedError`. Cambia el test a `complete` o documenta la limitación.
-- **`truncate=True` borra al construir**. Si reusas el cassette path en varios tests del mismo proceso sin pensarlo, el segundo test borra lo del primero. Usa paths distintos por test o `truncate=False` con cuidado.
-- **`context_window_size()` es sintético**. Si tu agente toma decisiones basadas en el tamaño del contexto, fija explícitamente `context_window=N` al construir el `ReplayProvider` para reflejar el modelo original.
-- **`count_tokens` es una heurística**. `len(text) // 4`. Sirve para tests; no para billing ni para tomar decisiones de truncado serias.
-- **Los cassettes son test fixtures**. Trátalos como datos checked-in en `tests/fixtures/`. Si una API cambia y rompe el formato decodificado, actualiza el cassette o re-graba.
+- **Replay does not validate the request**. It blindly serves responses in order. If your test changes the flow (new prompt, new tool call), the order no longer matches and the cassette becomes invalid. Re-record.
+- **Streaming is not recorded**. If your agent uses `stream`, the cassette ignores those calls and `ReplayProvider.stream` raises `CassetteExhaustedError`. Switch the test to `complete` or document the limitation.
+- **`truncate=True` erases on construction**. If you carelessly reuse the cassette path across several tests in the same process, the second test erases the first one's recording. Use distinct paths per test, or `truncate=False` with care.
+- **`context_window_size()` is synthetic**. If your agent makes decisions based on context size, explicitly set `context_window=N` when building the `ReplayProvider` to reflect the original model.
+- **`count_tokens` is a heuristic**. `len(text) // 4`. Fine for tests; not for billing or serious truncation decisions.
+- **Cassettes are test fixtures**. Treat them as checked-in data under `tests/fixtures/`. If an API changes and breaks the decoded format, update the cassette or re-record.
 
 <div align="center">
 
@@ -313,7 +317,7 @@ uv run pytest -q
 </div>
 
 - Python 3.11+.
-- Sólo stdlib (`json`, `pathlib`, `asyncio`).
+- Stdlib only (`json`, `pathlib`, `asyncio`).
 
 <div align="center">
 
@@ -321,9 +325,9 @@ uv run pytest -q
 
 </div>
 
-- **Matching por request** - una variante `MatchingReplayProvider` que busque la entrada por hash del request en lugar de cursor secuencial.
-- **Grabación de streams** - serializar la secuencia de chunks (delta acumulado o lista) y reproducirla.
-- **Compresión** - opcional gzip para cassettes grandes manteniendo el formato JSONL por dentro.
-- **Sanitización en la grabación** - hook para redactar PII antes de escribir al cassette.
-- **Versionado del esquema** - cabecera de cassette con `format_version` para migraciones futuras.
-- **Integración con `phronesis.testing`** - fixtures de pytest que construyan automáticamente el provider grabador/reproductor según un flag.
+- **Request matching** - a `MatchingReplayProvider` variant that looks up the entry by request hash instead of a sequential cursor.
+- **Stream recording** - serialize the chunk sequence (accumulated delta or list) and replay it.
+- **Compression** - optional gzip for large cassettes, keeping the JSONL format inside.
+- **Sanitization during recording** - hook to redact PII before writing to the cassette.
+- **Schema versioning** - cassette header with `format_version` for future migrations.
+- **Integration with `phronesis.testing`** - pytest fixtures that automatically build the recording/replaying provider based on a flag.

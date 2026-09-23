@@ -82,7 +82,7 @@ Public entry point is the [`openai`](../../../src/phronesis/providers/openai/fac
 
 ```mermaid
 flowchart LR
-    Sse[SSE data frame] --> Done{is [DONE]?}
+    Sse[SSE data frame] --> Done{"is [DONE]?"}
     Done -- yes --> Stop[stop iteration]
     Done -- no --> Choices[parse choices/usage]
     Choices --> Delta{delta?}

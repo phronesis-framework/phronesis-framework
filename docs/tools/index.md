@@ -81,51 +81,34 @@ Non-goals (deliberately):
 
 The module is split into a **pure-data side** (frozen, serializable types) and a **callable side** (the `Tool` wrapper and its helpers). The decorator stitches them together; everything else is composable.
 
-```
-                              +------------------+
-                              |   decorator.py   |  @tool / @tool(...)
-                              +------------------+
-                                       |
-                +----------------------+----------------------+
-                |                      |                      |
-                v                      v                      v
-        +---------------+      +---------------+      +---------------+
-        |   spec.py     |      |    tool.py    |      |  registry.py  |
-        |   ToolSpec    |      |    Tool       |      |  tool_scope   |
-        +---------------+      +---------------+      +---------------+
-                ^                      |                      ^
-                |                      |                      |
-                |        +-------------+-------------+        |
-                |        |             |             |        |
-                |        v             v             v        |
-                |  +-----------+ +-----------+ +-----------+  |
-                |  |validation | | schema    | | providers/|  |
-                |  |   .py     | |   .py     | |  base     |  |
-                |  +-----------+ +-----------+ |  anthropic|  |
-                |        |             |       |  openai   |  |
-                |        v             v       +-----------+  |
-                |  +-----------+ +-----------+                |
-                |  |single_    | |markers.py |                |
-                |  |model.py   | +-----------+                |
-                |  +-----------+                              |
-                |        |                                    |
-                |        v                                    |
-                |  +-----------+                              |
-                |  |injection  |                              |
-                |  |   .py     |                              |
-                |  +-----------+                              |
-                |                                             |
-        +---------------+   +---------------+   +-----------+ |
-        |   effects     |   |   errors      |   | tool_id   | |
-        |     .py       |   |     .py       |   |    .py    | |
-        +---------------+   +---------------+   +-----------+ |
-                                                              |
-                              +------------------+            |
-                              |   discover.py    |------------+
-                              | (imports submods |
-                              |  to trigger      |
-                              |  registrations)  |
-                              +------------------+
+```mermaid
+flowchart TD
+    decorator["decorator.py<br/>@tool / @tool(...)"]
+    spec["spec.py<br/>ToolSpec"]
+    tool["tool.py<br/>Tool"]
+    registry["registry.py<br/>tool_scope"]
+    validation["validation.py"]
+    schema["schema.py"]
+    providers["providers/<br/>base, anthropic, openai"]
+    single_model["single_model.py"]
+    markers["markers.py"]
+    injection["injection.py"]
+    effects["effects.py"]
+    errors["errors.py"]
+    tool_id["tool_id.py"]
+    discover["discover.py<br/>(imports submods to<br/>trigger registrations)"]
+
+    decorator --> spec
+    decorator --> tool
+    decorator --> registry
+    tool --> validation
+    tool --> schema
+    tool --> providers
+    validation --> single_model
+    schema --> markers
+    single_model --> injection
+    effects --> spec
+    discover --> registry
 ```
 
 **Pure-data side** (no executable behavior, JSON-serializable):
@@ -367,263 +350,165 @@ Full rationale is in [`../TOOLS-DECISIONS.md`](../TOOLS-DECISIONS.md). Headline-
 
 ### `ToolError` hierarchy
 
-```
-                          BaseException
-                                |
-                          Exception
-                                |
-                           ToolError                       [code = "tool_error"]
-                                |
-   +--------+--------+--------+-+------+--------+--------+--------+
-   |        |        |        |        |        |        |        |
-   v        v        v        v        v        v        v        v
-Validation NotFound Timeout Permission HTTP   Duplicate Definition Unsupported
- Error      Error    Error    Error    Error    Tool      Error    Provider
-                                                Error              Error
+```mermaid
+classDiagram
+    BaseException <|-- Exception
+    Exception <|-- ToolError
+    ToolError <|-- ToolValidationError
+    ToolError <|-- ToolNotFoundError
+    ToolError <|-- ToolTimeoutError
+    ToolError <|-- ToolPermissionError
+    ToolError <|-- ToolHTTPError
+    ToolError <|-- DuplicateToolError
+    ToolError <|-- ToolDefinitionError
+    ToolError <|-- UnsupportedProviderError
+    UserWarning <|-- SchemaDegradationWarning
 
-   |        |        |        |        |        |        |        |
-   v        v        v        v        v        v        v        v
-"tool_   "tool_   "tool_   "tool_   "tool_   "duplicate "tool_   "unsupported
- validation not_     timeout"  permission http_     _tool"    definition  _provider"
- _error"   found"            _denied"   error"             _error"
+    class ToolError {
+        code = "tool_error"
+    }
+    class ToolValidationError {
+        code = "tool_validation_error"
+    }
+    class ToolNotFoundError {
+        code = "tool_not_found"
+    }
+    class ToolTimeoutError {
+        code = "tool_timeout"
+    }
+    class ToolPermissionError {
+        code = "tool_permission_denied"
+    }
+    class ToolHTTPError {
+        code = "tool_http_error"
+    }
+    class DuplicateToolError {
+        code = "duplicate_tool"
+    }
+    class ToolDefinitionError {
+        code = "tool_definition_error"
+    }
+    class UnsupportedProviderError {
+        code = "unsupported_provider"
+    }
 
-(Independent: SchemaDegradationWarning inherits from UserWarning, not ToolError.)
+    note for SchemaDegradationWarning "Independent: inherits from UserWarning, not ToolError"
 ```
 
 ### Tool invocation flow (sync, runtime entry via `invoke`)
 
-```
-   Runtime                       Tool                       Wrapped fn
-      |                            |                             |
-      |---- invoke(args, ctx) ---->|                             |
-      |                            |                             |
-      |                  +---------+---------+                   |
-      |                  | single-model?     |                   |
-      |                  |  yes -> wrap args |                   |
-      |                  |  no  -> pass thru |                   |
-      |                  +---------+---------+                   |
-      |                            |                             |
-      |                  +---------v---------+                   |
-      |                  |  validator(args)  |                   |
-      |                  +---------+---------+                   |
-      |                            |                             |
-      |          invalid  +--------+--------+   valid            |
-      |  <-- ToolValidationError    |                            |
-      |                            v                             |
-      |                  +-------------------+                   |
-      |                  | inject Context    |  by type, if any  |
-      |                  | (D-15..D-18)      |                   |
-      |                  +---------+---------+                   |
-      |                            |                             |
-      |                            |--- fn(**validated) -------> |
-      |                            |                             |
-      |                            |    +------+------+------+   |
-      |                            |    |return| raise| raise |  |
-      |                            |    |value |ToolE | other |  |
-      |                            |    +---+--+---+--+---+---+  |
-      |                            |        |      |      |      |
-      |                            | <------+------+------+------|
-      |                            |        |      |      |      |
-      |                            |        |      |      v      |
-      |                            |        |      |  auto_map?  |
-      |                            |        |      |    /     \  |
-      |                            |        |      |  yes      no|
-      |                            |        |      v   v       v |
-      |                            |       value ToolE Mapped Raw |
-      |                            |             pass  ToolE  exc |
-      |                            |             thru          |  |
-      |  <-------------------------|                              |
-      |       value or exception                                  |
+```mermaid
+sequenceDiagram
+    participant Runtime
+    participant Tool
+    participant Fn as Wrapped fn
+
+    Runtime->>Tool: invoke(args, ctx)
+
+    alt single-model
+        Tool->>Tool: wrap args
+    else not single-model
+        Tool->>Tool: pass through
+    end
+
+    Tool->>Tool: validator(args)
+
+    alt invalid
+        Tool-->>Runtime: raise ToolValidationError
+    else valid
+        Tool->>Tool: inject Context by type, if any (D-15..D-18)
+        Tool->>Fn: fn(**validated)
+
+        alt returns value
+            Fn-->>Tool: value
+            Tool-->>Runtime: value
+        else raises ToolError
+            Fn-->>Tool: ToolError
+            Tool-->>Runtime: ToolError passed through
+        else raises other exception
+            Fn-->>Tool: exception
+            Tool->>Tool: auto_map?
+
+            alt yes
+                Tool-->>Runtime: mapped ToolError
+            else no
+                Tool-->>Runtime: raw exception
+            end
+        end
+    end
 ```
 
 Async tools follow the exact same path; the only difference is `invoke` returns a coroutine. `asyncio.CancelledError` is **never** caught: it always propagates.
 
 ### Schema generation pipeline
 
-```
-   function signature
-          |
-          v
-   +------------------+
-   | get_single_model |---- yes ----+
-   +------------------+             |
-          | no                      v
-          v                +---------------+
-   +---------------+       | model         |
-   | inspect       |       | .model_json_  |
-   | .signature +  |       |  schema()     |
-   | get_type_hints|       +-------+-------+
-   +-------+-------+               |
-           |                       |
-           v                       |
-   +-------------------+           |
-   | filter Context    |           |
-   | param (D-15..18)  |           |
-   +---------+---------+           |
-             |                     |
-             v                     |
-   +-------------------+           |
-   | pydantic.         |           |
-   | create_model +    |           |
-   | Field(desc=...)   |           |
-   +---------+---------+           |
-             |                     |
-             v                     |
-   +-------------------+           |
-   | model.model_json_ |           |
-   | schema()          |           |
-   +---------+---------+           |
-             |                     |
-             +----------+----------+
-                        |
-                        v
-                +-------------------+
-                | _inline_refs      |
-                +---------+---------+
-                          |
-                          v
-                +-------------------+
-                | _strip_null_from_ |
-                | optional          |
-                +---------+---------+
-                          |
-                          v
-                  canonical schema
-                          |
-        +-----------------+-----------------+
-        |                 |                 |
-        v                 v                 v
-   get_schema       get_schema(           get_schema(
-   (None) -->       provider="           provider="
-   canonical        anthropic")          openai")
-                         |                    |
-                         v                    v
-                   AnthropicAdapter     OpenAIAdapter
-                         |                    |
-                         v                    v
-                   {name, description,  {type: "function",
-                    input_schema}        function: {...}}
-                         |                    |
-                         v                    v
-                    cached on Tool      cached on Tool
+```mermaid
+flowchart TD
+    sig["function signature"] --> gsm{"get_single_model"}
+    gsm -- yes --> mjs1["model.model_json_schema()"]
+    gsm -- no --> insp["inspect.signature +<br/>get_type_hints"]
+    insp --> filt["filter Context param<br/>(D-15..18)"]
+    filt --> cm["pydantic.create_model +<br/>Field(desc=...)"]
+    cm --> mjs2["model.model_json_schema()"]
+    mjs1 --> inl["_inline_refs"]
+    mjs2 --> inl
+    inl --> strip["_strip_null_from_optional"]
+    strip --> canon["canonical schema"]
+    canon --> gsNone["get_schema(None)<br/>→ canonical"]
+    canon --> gsA["get_schema(provider=#quot;anthropic#quot;)"]
+    canon --> gsO["get_schema(provider=#quot;openai#quot;)"]
+    gsA --> aa["AnthropicAdapter"]
+    gsO --> oa["OpenAIAdapter"]
+    aa --> ashape["{name, description,<br/>input_schema}"]
+    oa --> oshape["{type: #quot;function#quot;,<br/>function: {...}}"]
+    ashape --> ac["cached on Tool"]
+    oshape --> oc["cached on Tool"]
 ```
 
 ### Registry scoping via `ContextVar`
 
-```
-                 +------------------+
-                 |  _global_        |   default _ToolRegistry
-                 |   registry       |
-                 +--------+---------+
-                          ^
-                          | active by default
-                          |
-                 +--------+---------+
-                 | _active_registry |   ContextVar
-                 |   (ContextVar)   |
-                 +--------+---------+
-                          |
-                          | swapped on enter
-                          v
-       +------------------+------------------+
-       |                                     |
-       v                                     v
-   tool_scope() enter                tool_scope() exit
-   (push scoped registry)            (reset token)
-       |                                     ^
-       |                                     |
-       +-------------+-----------+-----------+
-                     |
-                     v
-         async block sees the scoped
-         registry; sibling async tasks
-         outside the with block keep
-         seeing the previous one.
+```mermaid
+flowchart TD
+    glob["_global_registry<br/>(default _ToolRegistry)"]
+    active["_active_registry<br/>(ContextVar)"]
+    enter["tool_scope() enter<br/>(push scoped registry)"]
+    exit_["tool_scope() exit<br/>(reset token)"]
+    block["async block sees the scoped registry;<br/>sibling async tasks outside the with block<br/>keep seeing the previous one"]
+
+    active -- "active by default" --> glob
+    active -- "swapped on enter" --> enter
+    enter --> block
+    block --> exit_
+    exit_ -- "restores previous" --> active
 ```
 
 ### Decorator flow
 
-```
-   @tool                  @tool(...)
-      |                       |
-      v                       v
-   tool(fn)              tool(name=..., ...)
-      |                       |
-      |                       v
-      |                  returns decorator
-      |                       |
-      |                       v
-      |                  decorator(fn)
-      |                       |
-      +-----------+-----------+
-                  |
-                  v
-        +-------------------+
-        | derive id, name,  |
-        | description,      |
-        | effects, version  |
-        +---------+---------+
-                  |
-                  v
-        +-------------------+
-        | build canonical   |
-        | schema unless     |
-        | lazy=True         |
-        +---------+---------+
-                  |
-                  v
-        +-------------------+
-        | construct         |
-        | ToolSpec (frozen) |
-        +---------+---------+
-                  |
-                  v
-        +-------------------+
-        | wrap fn in Tool   |
-        +---------+---------+
-                  |
-                  v
-        +-------------------+
-        | current_registry  |
-        | .register(tool)   |
-        +---------+---------+
-                  |
-                  v
-              returns Tool
+```mermaid
+flowchart TD
+    bare["@tool"] --> call1["tool(fn)"]
+    param["@tool(...)"] --> call2["tool(name=..., ...)"]
+    call2 --> retdec["returns decorator"]
+    retdec --> dec["decorator(fn)"]
+    call1 --> derive["derive id, name,<br/>description,<br/>effects, version"]
+    dec --> derive
+    derive --> build["build canonical schema<br/>unless lazy=True"]
+    build --> spec["construct<br/>ToolSpec (frozen)"]
+    spec --> wrap["wrap fn in Tool"]
+    wrap --> reg["current_registry()<br/>.register(tool)"]
+    reg --> ret["returns Tool"]
 ```
 
 ### Two-channel error semantics
 
-```
-   wrapped fn raises X
-            |
-            v
-   +-------------------+
-   | isinstance(X,     |
-   |   ToolError)?     |
-   +---------+---------+
-       /     |     \
-     yes     |      no
-      |      |       |
-      |      |       v
-      |      |   +-------------------+
-      |      |   | auto_map_exception|
-      |      |   |   returns?        |
-      |      |   +-+---------------+-+
-      |      |     |               |
-      |      |   ToolError       None
-      |      |     |               |
-      |      |     v               v
-      |      |  re-raise as     re-raise raw
-      |      |  mapped error    exception
-      |      |  (D-14)          (runtime sees it)
-      |      |
-      |      v
-      |  re-raise unchanged
-      |  (LLM-bound channel)
-      |
-      +-> CancelledError, KeyboardInterrupt, SystemExit:
-          never enter this path; they propagate raw.
+```mermaid
+flowchart TD
+    raise["wrapped fn raises X"] --> isTE{"isinstance(X, ToolError)?"}
+    isTE -- yes --> unchanged["re-raise unchanged<br/>(LLM-bound channel)"]
+    isTE -- no --> am{"auto_map_exception<br/>returns?"}
+    am -- ToolError --> mapped["re-raise as mapped error<br/>(D-14)"]
+    am -- None --> raw["re-raise raw exception<br/>(runtime sees it)"]
+    bypass["CancelledError, KeyboardInterrupt,<br/>SystemExit"] -. "never enter this path" .-> propagate["propagate raw"]
 ```
 
 <div align="center">

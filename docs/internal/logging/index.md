@@ -52,14 +52,13 @@ The user's global `logging` configuration is never touched: only the `phronesis`
 
 </div>
 
-```
-   constants.py ----+------> config.py
-                    |          ^
-   formatters.py ---+----------+
-                    |
-                    +------> factory.py
-                                ^
-   adapter.py --------------+---+
+```mermaid
+flowchart LR
+    constants["constants.py"] --> config["config.py"]
+    constants --> factory["factory.py"]
+    formatters["formatters.py"] --> config
+    formatters --> factory
+    adapter["adapter.py"] --> factory
 ```
 
 - `constants.py` defines the root namespace and default level.
@@ -121,35 +120,30 @@ from phronesis._internal.logging import (
 
 Idempotent setup:
 
-```
-   App                  configure_logging          phronesis logger             Handler
-    |                          |                          |                       |
-    | configure_logging(level) |                          |                       |
-    |------------------------->|                          |                       |
-    |                          | setLevel(level)          |                       |
-    |                          |------------------------->|                       |
-    |                          | remove old managed       |                       |
-    |                          |------------------------->|                       |
-    |                          | build StreamHandler      |                       |
-    |                          |--------------------------------------+---------->|
-    |                          | addHandler(Handler)      |                       |
-    |                          |------------------------->|                       |
-    |                          |                          |                       |
-    | --- subsequent calls are idempotent ----------------                        |
+```mermaid
+sequenceDiagram
+    participant App
+    participant configure_logging
+    participant Logger as phronesis logger
+    participant Handler
+    App->>configure_logging: configure_logging(level)
+    configure_logging->>Logger: setLevel(level)
+    configure_logging->>Logger: remove old managed
+    configure_logging->>Handler: build StreamHandler
+    configure_logging->>Logger: addHandler(Handler)
+    Note over App,Logger: subsequent calls are idempotent
 ```
 
 Context merge (call-site wins):
 
-```
-   Caller            ContextLoggerAdapter         Logger
-     |                       |                       |
-     | log.info("msg",       |                       |
-     |   extra={k2: v2})     |                       |
-     |---------------------->|                       |
-     |                       | merge fixed {k1:v1}   |
-     |                       |   with {k2:v2}        |
-     |                       | (call-site overrides) |
-     |                       |---------------------->|
+```mermaid
+sequenceDiagram
+    participant Caller
+    participant ContextLoggerAdapter
+    participant Logger
+    Caller->>ContextLoggerAdapter: log.info("msg", extra={k2: v2})
+    Note over ContextLoggerAdapter: merge fixed {k1: v1} with {k2: v2}<br/>(call-site overrides)
+    ContextLoggerAdapter->>Logger: merged record
 ```
 
 <div align="center">

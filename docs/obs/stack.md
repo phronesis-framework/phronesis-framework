@@ -11,7 +11,7 @@
 </div>
 
 <div align="center">
-  Stack OTLP estandar (Grafana + Tempo + Loki + Prometheus) que consume lo que <code>phronesis.obs</code> emite, en dos perfiles: dev all-in-one y produccion con servicios separados.
+  Standard OTLP stack (Grafana + Tempo + Loki + Prometheus) that consumes what <code>phronesis.obs</code> emits, in two profiles: all-in-one dev and production with separate services.
 </div>
 
 <div align="center">
@@ -36,9 +36,9 @@
 
 </div>
 
-Cualquier despliegue real de Phronesis necesita un sitio donde aterricen los traces, las metricas y los logs que `phronesis.obs` emite via OTLP. Este stack proporciona ese destino sin pedirle al usuario que junte Grafana, Tempo, Loki y Prometheus a mano.
+Any real Phronesis deployment needs a place where the traces, metrics and logs that `phronesis.obs` emits via OTLP can land. This stack provides that destination without asking the user to wire Grafana, Tempo, Loki and Prometheus together by hand.
 
-Phronesis sigue siendo solo emisor: no almacena nada, no escucha en ningun puerto. El stack vive en `deploy/observability/` y se levanta con `docker compose`.
+Phronesis remains an emitter only: it stores nothing and listens on no port. The stack lives in `deploy/observability/` and is started with `docker compose`.
 
 <div align="center">
 
@@ -65,7 +65,7 @@ flowchart LR
   prom --> graf
 ```
 
-En perfil dev la imagen `grafana/otel-lgtm` colapsa todos los servicios en un container; en prod cada componente corre aislado en networks separadas.
+In the dev profile the `grafana/otel-lgtm` image collapses all services into one container; in prod each component runs isolated on separate networks.
 
 <div align="center">
 
@@ -113,7 +113,7 @@ docker compose -f docker-compose.prod.yml up -d
 docker compose -f docker-compose.prod.yml ps
 ```
 
-Configuracion del emisor:
+Emitter configuration:
 
 ```python
 from phronesis.obs import configure_obs
@@ -131,7 +131,7 @@ configure_obs(
 
 </div>
 
-| Componente | Imagen | Version |
+| Component | Image | Version |
 |---|---|---|
 | All-in-one (dev) | `grafana/otel-lgtm` | 0.8.6 |
 | OTel Collector | `otel/opentelemetry-collector-contrib` | 0.115.0 |
@@ -146,14 +146,14 @@ configure_obs(
 
 </div>
 
-- **Prometheus OTLP receiver**: a partir de v3.0 esta estable; en versiones anteriores requiere `--enable-feature=otlp-write-receiver`. Pinneamos v3.0.1.
-- **Temporalidad OTLP**: Prometheus solo acepta `CUMULATIVE` por defecto. Si la app exporta `DELTA` (por ejemplo via `OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE=delta` en el entorno), Prometheus devuelve `HTTP 500: invalid temporality and type combination` y la metrica no se persiste. Forzar `CUMULATIVE` en el exporter (ver `scripts/obs_demo.py`) o arrancar Prometheus con `--enable-feature=otlp-deltatocumulative`.
-- **Loki OTLP endpoint**: usa `/otlp` desde Loki 3.0+. El collector apunta a `http://loki:3100/otlp`.
-- **Tempo metrics-generator**: la metrica derivada `cost.usd` requiere habilitar el generator (ya activado en `tempo.yaml` con `span-metrics`).
-- **Log shipping desde phronesis**: `install_trace_correlation_filter` inyecta `trace_id` en logs, pero no hay `OTLPLogHandler` por defecto. Hasta que se anada, los logs no llegan a Loki desde apps Python.
-- **Provisioning en `otel-lgtm`**: el path montado es `/otel-lgtm/grafana/conf/provisioning/`. Confirmar antes de personalizar.
-- **Cardinalidad**: `provider.model` y `tool.id` son alta-cardinalidad. Las queries en dashboards filtran antes de agregar.
-- **Volumenes en Windows**: bind-mounts con espacios en la ruta del host pueden fallar. Usar paths absolutos sin espacios.
+- **Prometheus OTLP receiver**: stable since v3.0; earlier versions require `--enable-feature=otlp-write-receiver`. We pin v3.0.1.
+- **OTLP temporality**: Prometheus only accepts `CUMULATIVE` by default. If the app exports `DELTA` (for example via `OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE=delta` in the environment), Prometheus returns `HTTP 500: invalid temporality and type combination` and the metric is not persisted. Force `CUMULATIVE` in the exporter (see `scripts/obs_demo.py`) or start Prometheus with `--enable-feature=otlp-deltatocumulative`.
+- **Loki OTLP endpoint**: uses `/otlp` since Loki 3.0+. The collector points to `http://loki:3100/otlp`.
+- **Tempo metrics-generator**: the derived `cost.usd` metric requires enabling the generator (already enabled in `tempo.yaml` with `span-metrics`).
+- **Log shipping from phronesis**: `install_trace_correlation_filter` injects `trace_id` into logs, but there is no `OTLPLogHandler` by default. Until one is added, logs from Python apps do not reach Loki.
+- **Provisioning in `otel-lgtm`**: the mounted path is `/otel-lgtm/grafana/conf/provisioning/`. Confirm before customizing.
+- **Cardinality**: `provider.model` and `tool.id` are high-cardinality. Dashboard queries filter before aggregating.
+- **Volumes on Windows**: bind mounts with spaces in the host path may fail. Use absolute paths without spaces.
 
 <div align="center">
 
@@ -161,8 +161,8 @@ configure_obs(
 
 </div>
 
-- `OTLPLogHandler` en `phronesis.obs.config` para enviar logs sin handler manual.
-- Reglas de alertas Prometheus (alertmanager) versionadas en el repo.
-- Helm chart para despliegue en Kubernetes.
-- Recording rules para pre-agregados de metricas alta-cardinalidad.
-- Calculo automatico de `cost.usd` a partir de catalogo de precios por provider/model.
+- `OTLPLogHandler` in `phronesis.obs.config` to ship logs without a manual handler.
+- Prometheus alerting rules (alertmanager) versioned in the repo.
+- Helm chart for Kubernetes deployment.
+- Recording rules for pre-aggregating high-cardinality metrics.
+- Automatic `cost.usd` computation from a per-provider/model pricing catalog.

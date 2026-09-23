@@ -11,7 +11,7 @@
 </div>
 
 <div align="center">
-  Capa declarativa que envuelve un grafo lineal de <code>Executable</code> con identidad, observabilidad propia y un punto de entrada <code>.run()</code>, sin reimplementar la orquestación del runtime.
+  Declarative layer that wraps a linear graph of <code>Executable</code> with identity, its own observability and a <code>.run()</code> entry point, without reimplementing runtime orchestration.
 </div>
 
 <div align="center">
@@ -36,13 +36,13 @@
 
 </div>
 
-`phronesis.pipelines` añade tres cosas sobre `phronesis.runtime`:
+`phronesis.pipelines` adds three things on top of `phronesis.runtime`:
 
-1. **Identidad**: cada pipeline es un objeto nombrado con un `PipelineId` estable derivado del nombre. Aparece en spans como `pipeline.id` / `pipeline.name`.
-2. **Punto de entrada**: `Pipeline.run(input, deadline_s=..., metadata=...)` construye un `ExecutionContext` raíz por el usuario, sin obligar a importar el runtime para ejecutar.
-3. **Composición declarativa**: la factory `pipeline(*steps, name=...)` adapta agentes y callables al protocolo `Executable` vía `as_node`, igual que cualquier modo del runtime.
+1. **Identity**: each pipeline is a named object with a stable `PipelineId` derived from its name. It appears in spans as `pipeline.id` / `pipeline.name`.
+2. **Entry point**: `Pipeline.run(input, deadline_s=..., metadata=...)` builds a root `ExecutionContext` on the user's behalf, without requiring the runtime to be imported to execute.
+3. **Declarative composition**: the `pipeline(*steps, name=...)` factory adapts agents and callables to the `Executable` protocol via `as_node`, just like any runtime mode.
 
-Lo que el usuario escribe (factory imperativa):
+What the user writes (imperative factory):
 
 ```python
 from phronesis.pipelines import pipeline
@@ -62,7 +62,7 @@ ingestion = pipeline(
 result = await ingestion.run("https://example.com")
 ```
 
-O, alineado con la filosofía decorador-como-metadata del resto del framework (`@agent`, `@tool`):
+Or, aligned with the decorator-as-metadata philosophy of the rest of the framework (`@agent`, `@tool`):
 
 ```python
 from phronesis.pipelines import pipeline
@@ -74,14 +74,14 @@ def ingestion() -> None:
 result = await ingestion.run("https://example.com")
 ```
 
-En modo decorador la función es un mero portador de metadatos: `__name__` provee el `name`, `__doc__` el `description` y `module.qualname` deriva el `PipelineId`, igual que en `@agent`.
+In decorator mode the function is a mere metadata carrier: `__name__` provides the `name`, `__doc__` the `description`, and `module.qualname` derives the `PipelineId`, just like in `@agent`.
 
-Lo que el framework garantiza:
+What the framework guarantees:
 
-- **Forma uniforme de resultado** (`RunOutcome`), con `tokens` y `cost_usd` agregados vía `merge_children`.
-- **Cancelación cooperativa** vía el `ExecutionContext` compartido entre el pipeline y sus steps.
-- **Observabilidad** - span `phronesis.runtime.pipeline` con atributos canónicos `pipeline.id`, `pipeline.name`, `runtime.children.count`.
-- **Composición** - un step puede ser cualquier modo del runtime (`Parallel`, `Router`, `Retry`, ...).
+- **Uniform result shape** (`RunOutcome`), with `tokens` and `cost_usd` aggregated via `merge_children`.
+- **Cooperative cancellation** via the `ExecutionContext` shared between the pipeline and its steps.
+- **Observability** - `phronesis.runtime.pipeline` span with canonical attributes `pipeline.id`, `pipeline.name`, `runtime.children.count`.
+- **Composition** - a step can be any runtime mode (`Parallel`, `Router`, `Retry`, ...).
 
 <div align="center">
 
@@ -89,14 +89,14 @@ Lo que el framework garantiza:
 
 </div>
 
-`Pipeline` es un `frozen dataclass` que satisface el protocolo `Executable`:
+`Pipeline` is a `frozen dataclass` that satisfies the `Executable` protocol:
 
-- **Identidad**: campo `name` + `pipeline_id: PipelineId`.
-- **Topología**: tupla ordenada `steps: tuple[Executable, ...]`. La salida del step `N` es la entrada del step `N+1`.
-- **Errores tipados**: `PipelineEmptyError` cuando se invoca sin steps. El resto de fallos se propaga del modo/agent subyacente.
-- **Sin estado**: el pipeline no guarda nada entre invocaciones. Checkpointing se compone con `phronesis.memory.Checkpointer` cuando se necesita.
+- **Identity**: `name` field + `pipeline_id: PipelineId`.
+- **Topology**: ordered tuple `steps: tuple[Executable, ...]`. The output of step `N` is the input of step `N+1`.
+- **Typed errors**: `PipelineEmptyError` when invoked without steps. All other failures propagate from the underlying mode/agent.
+- **Stateless**: the pipeline keeps nothing between invocations. Checkpointing is composed with `phronesis.memory.Checkpointer` when needed.
 
-DAGs no lineales se expresan **anidando** cualquier modo del runtime como step:
+Non-linear DAGs are expressed by **nesting** any runtime mode as a step:
 
 ```python
 from phronesis.runtime import Parallel, callable_node
@@ -116,12 +116,12 @@ p = pipeline(
 
 </div>
 
-| Fichero | Responsabilidad |
+| File | Responsibility |
 |---|---|
-| `__init__.py` | Re-exports públicos (`Pipeline`, `pipeline`, `PipelineId`, errores). |
-| `ids.py` | `PipelineId(Id)` y `pipeline_id_generator`; deriva ids estables a partir del nombre. |
-| `errors.py` | `PipelineError` y `PipelineEmptyError`. |
-| `pipeline.py` | `Pipeline` dataclass + `pipeline()` con doble modo factory/decorador. |
+| `__init__.py` | Public re-exports (`Pipeline`, `pipeline`, `PipelineId`, errors). |
+| `ids.py` | `PipelineId(Id)` and `pipeline_id_generator`; derives stable ids from the name. |
+| `errors.py` | `PipelineError` and `PipelineEmptyError`. |
+| `pipeline.py` | `Pipeline` dataclass + `pipeline()` with dual factory/decorator mode. |
 
 <div align="center">
 
@@ -140,7 +140,7 @@ from phronesis.pipelines import (
 )
 ```
 
-Firmas:
+Signatures:
 
 ```python
 @dataclass(frozen=True, slots=True)
@@ -188,11 +188,11 @@ class PipelineId(Id):
 
 </div>
 
-- **D-01 - Lineal + composición anidada** (v1). Un pipeline es una tupla ordenada de steps. Topologías no lineales se cubren anidando modos del runtime, evitando duplicar el motor de DAGs hasta tener señales claras de demanda.
-- **D-02 - Solo `.run()` en v1**. Streaming (`.stream()`) y sessions multi-turno se difieren hasta que los eventos correspondientes (`BranchTaken`, `AgentTransition`, `ApprovalRequested`) estén cerrados en el runtime.
-- **D-03 - Stateless**. Un `Pipeline` no persiste nada. Si una aplicación necesita resume/checkpointing, lo compone explícitamente con `phronesis.memory.Checkpointer` antes y después de cada step.
-- **D-04 - Reusar modos del runtime**. Se considera y descarta reimplementar `Sequence` dentro de `pipelines`. El valor del módulo es **identidad + observabilidad + entrypoint**, no orquestación; cualquier comportamiento avanzado (retry, paralelismo, routing) se compone con los 19 modos ya existentes.
-- **D-05 - Factory + decorador bajo el mismo nombre**. `pipeline()` despacha por modo: positionals → factory imperativa; `steps=` keyword → decorador aplicado a una función portadora de metadatos. Mezclar ambos eleva `TypeError`. El decorador alinea la API con `@agent`/`@tool` (función como metadata carrier, identidad derivada de `module.qualname`).
+- **D-01 - Linear + nested composition** (v1). A pipeline is an ordered tuple of steps. Non-linear topologies are covered by nesting runtime modes, avoiding a duplicate DAG engine until there are clear demand signals.
+- **D-02 - Only `.run()` in v1**. Streaming (`.stream()`) and multi-turn sessions are deferred until the corresponding events (`BranchTaken`, `AgentTransition`, `ApprovalRequested`) are settled in the runtime.
+- **D-03 - Stateless**. A `Pipeline` persists nothing. If an application needs resume/checkpointing, it composes it explicitly with `phronesis.memory.Checkpointer` before and after each step.
+- **D-04 - Reuse runtime modes**. Reimplementing `Sequence` inside `pipelines` was considered and rejected. The module's value is **identity + observability + entrypoint**, not orchestration; any advanced behavior (retry, parallelism, routing) is composed with the 19 existing modes.
+- **D-05 - Factory + decorator under the same name**. `pipeline()` dispatches by mode: positionals → imperative factory; `steps=` keyword → decorator applied to a metadata-carrier function. Mixing both raises `TypeError`. The decorator aligns the API with `@agent`/`@tool` (function as metadata carrier, identity derived from `module.qualname`).
 
 <div align="center">
 
@@ -248,7 +248,7 @@ stateDiagram-v2
 - `phronesis.obs.attributes`: `PIPELINE_ID`, `PIPELINE_NAME`.
 - `phronesis._internal.ids`: `Id`, `IdGenerator`.
 
-No depende de `phronesis.memory`, `phronesis.providers`, `phronesis.mcp` ni `phronesis.communication`.
+Does not depend on `phronesis.memory`, `phronesis.providers`, `phronesis.mcp` or `phronesis.communication`.
 
 <div align="center">
 
@@ -256,18 +256,18 @@ No depende de `phronesis.memory`, `phronesis.providers`, `phronesis.mcp` ni `phr
 
 </div>
 
-Cobertura organizada en cinco ficheros bajo `tests/pipelines/`:
+Coverage organized in five files under `tests/pipelines/`:
 
-| Fichero | Foco |
+| File | Focus |
 |---|---|
-| `test_pipeline.py` | Semántica del happy path, fallos, cancelación, observabilidad. |
-| `test_factory.py` | `pipeline()` en modo factory, adaptación de steps vía `as_node`, normalización del nombre. |
-| `test_decorator.py` | `@pipeline(steps=...)`, derivación de `name`/`description`/`PipelineId` desde la función portadora. |
-| `test_ids.py` | `PipelineId`, estabilidad y sanitización de segmentos. |
-| `test_run.py` | `.run()` con metadata y deadline. |
-| `test_integration.py` | Pipelines con `Parallel` y `Sequence` anidados. |
+| `test_pipeline.py` | Happy-path semantics, failures, cancellation, observability. |
+| `test_factory.py` | `pipeline()` in factory mode, step adaptation via `as_node`, name normalization. |
+| `test_decorator.py` | `@pipeline(steps=...)`, derivation of `name`/`description`/`PipelineId` from the carrier function. |
+| `test_ids.py` | `PipelineId`, stability and segment sanitization. |
+| `test_run.py` | `.run()` with metadata and deadline. |
+| `test_integration.py` | Pipelines with nested `Parallel` and `Sequence`. |
 
-Patrón: AAA con breathing room, fixtures `root_ctx` y constructores de nodos en `conftest.py`. Para inspeccionar atributos OTEL se parchea `runtime_span` con un fake `asynccontextmanager`.
+Pattern: AAA with breathing room, `root_ctx` fixtures and node builders in `conftest.py`. To inspect OTEL attributes, `runtime_span` is patched with a fake `asynccontextmanager`.
 
 <div align="center">
 
@@ -275,7 +275,7 @@ Patrón: AAA con breathing room, fixtures `root_ctx` y constructores de nodos en
 
 </div>
 
-Pipeline lineal con tres steps (factory imperativa):
+Linear pipeline with three steps (imperative factory):
 
 ```python
 from phronesis.pipelines import pipeline
@@ -301,7 +301,7 @@ outcome = await ingestion.run("https://example.com", deadline_s=10.0)
 assert outcome.success
 ```
 
-Mismo pipeline declarado vía decorador:
+Same pipeline declared via decorator:
 
 ```python
 from phronesis.pipelines import pipeline
@@ -318,7 +318,7 @@ outcome = await ingestion.run("https://example.com", deadline_s=10.0)
 assert outcome.description == "Pull a URL, parse it and produce a summary."
 ```
 
-Pipeline con un `Parallel` anidado:
+Pipeline with a nested `Parallel`:
 
 ```python
 from phronesis.pipelines import pipeline
@@ -353,12 +353,12 @@ assert outcome.success
 
 </div>
 
-- Un pipeline sin steps **falla** con `PipelineEmptyError`. La factory permite construirlo (`pipeline(name="x")`), pero invocarlo devuelve un `RunOutcome.fail(...)`.
-- El tipo de la salida del step `N` debe ser aceptable como entrada del step `N+1`. El pipeline no inserta adaptadores implícitos.
-- **No hay reintentos automáticos**. Si un step puede fallar de forma transitoria, envuélvelo con `Retry` del runtime antes de pasarlo al pipeline.
-- Los nombres con caracteres no canónicos (espacios, guiones, mayúsculas) se normalizan a `[a-z0-9_]` para construir el `PipelineId` en modo factory. `name` se conserva tal cual en spans como `pipeline.name`.
-- En modo decorador, la función portadora debe declararse a nivel de módulo. Funciones anidadas producen `module.qualname` con `<locals>`, que rechaza el validator. Es el mismo requisito que `@agent`.
-- Mezclar argumentos positionales con `steps=` keyword en `pipeline()` eleva `TypeError`. Elige un modo y mantenlo.
+- A pipeline without steps **fails** with `PipelineEmptyError`. The factory allows building it (`pipeline(name="x")`), but invoking it returns a `RunOutcome.fail(...)`.
+- The output type of step `N` must be acceptable as input to step `N+1`. The pipeline inserts no implicit adapters.
+- **No automatic retries**. If a step can fail transiently, wrap it with the runtime's `Retry` before passing it to the pipeline.
+- Names with non-canonical characters (spaces, hyphens, uppercase) are normalized to `[a-z0-9_]` to build the `PipelineId` in factory mode. `name` is kept as-is in spans as `pipeline.name`.
+- In decorator mode, the carrier function must be declared at module level. Nested functions produce a `module.qualname` containing `<locals>`, which the validator rejects. Same requirement as `@agent`.
+- Mixing positional arguments with the `steps=` keyword in `pipeline()` raises `TypeError`. Pick one mode and stick to it.
 
 <div align="center">
 
@@ -380,8 +380,8 @@ uv run pytest tests/pipelines -q
 </div>
 
 - Python 3.11+.
-- Solo stdlib (`dataclasses`, `re`, `asyncio` indirectamente vía runtime).
-- OpenTelemetry **opcional**: el span helper degrada a no-op cuando el extra `obs` no está instalado.
+- Stdlib only (`dataclasses`, `re`, `asyncio` indirectly via runtime).
+- OpenTelemetry **optional**: the span helper degrades to a no-op when the `obs` extra is not installed.
 
 <div align="center">
 
@@ -389,12 +389,12 @@ uv run pytest tests/pipelines -q
 
 </div>
 
-Diferido conscientemente para v2:
+Consciously deferred to v2:
 
-- `Pipeline.stream()` + eventos runtime (`BranchTaken`, `AgentTransition`, `ApprovalRequested`).
-- `Pipeline.session()` multi-turno con `phronesis.communication`.
-- DAGs no lineales con nodos/edges explícitos.
-- Integración nativa con `memory.Checkpointer` para resume.
+- `Pipeline.stream()` + runtime events (`BranchTaken`, `AgentTransition`, `ApprovalRequested`).
+- Multi-turn `Pipeline.session()` with `phronesis.communication`.
+- Non-linear DAGs with explicit nodes/edges.
+- Native integration with `memory.Checkpointer` for resume.
 - Scheduling / triggers / cron.
-- Pipelines distribuidos multi-proceso.
-- Factories lowercase aspiracionales (`sequence`, `router`, ...) vistas en `docs/examples/customer-support-system.md`; viven en runtime y no se introducen en v1 de pipelines.
+- Distributed multi-process pipelines.
+- Aspirational lowercase factories (`sequence`, `router`, ...) seen in `docs/examples/customer-support-system.md`; they live in runtime and are not introduced in pipelines v1.
