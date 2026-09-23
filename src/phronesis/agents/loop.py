@@ -623,10 +623,12 @@ def _initial_history(
     if initial_history is not None:
         return initial_history
 
-    if spec.system_prompt:
-        return (SystemMessage(content=(TextBlock(text=spec.system_prompt),)),)
+    history: list[Message] = []
 
-    return ()
+    if spec.system_prompt:
+        history.append(SystemMessage(content=(TextBlock(text=spec.system_prompt),)))
+
+    return tuple(history)
 
 
 def _timeout_event(
