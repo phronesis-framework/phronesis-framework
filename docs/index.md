@@ -1,7 +1,7 @@
 #
 
 <div align="center">
-  <img src="./assets/banners/phronesis.svg" alt="Phronesis Framework" width="60%" />
+  <img src="../public/assets/lockup/lockup-horizontal-dark.svg" alt="Phronesis Framework" width="60%" />
 </div>
 
 <div align="center">
@@ -20,10 +20,7 @@
 </div>
 
 <div align="center">
-
-[![Status](https://img.shields.io/badge/status-WIP-orange)]()
-[![Python](https://img.shields.io/badge/python-3.11+-blue?logo=python&logoColor=white)]()
-
+  <img src="https://skillicons.dev/icons?i=py,docker,grafana,prometheus,githubactions" alt="Tech stack" />
 </div>
 
 ---
