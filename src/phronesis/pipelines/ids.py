@@ -17,7 +17,7 @@ from phronesis._internal.ids.generator import IdGenerator
 from phronesis._internal.ids.id import Id
 
 _INVALID_CHARS = re.compile(r"[^a-z0-9_]")
-_LEADING_DIGITS = re.compile(r"^[0-9]+")
+_LEADING_DIGITS = re.compile(r"^\d+")
 
 
 class PipelineId(Id):
