@@ -17,8 +17,10 @@ class TestFactory:
         assert make_memory_tools() == ()
 
     def test_vector_without_embedding_raises(self) -> None:
+        vector = InMemoryVectorStore()
+
         with pytest.raises(ValueError):
-            make_memory_tools(vector=InMemoryVectorStore())
+            make_memory_tools(vector=vector)
 
     def test_kv_only_produces_three_tools(self) -> None:
         tools = make_memory_tools(kv=InMemoryKeyValueStore())

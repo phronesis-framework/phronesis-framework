@@ -42,19 +42,25 @@ def _input(
 
 class TestValidation:
     def test_top_k_must_be_positive(self, session_scope: MemoryScope) -> None:
+        vector_store = InMemoryVectorStore()
+        embedding_provider = FakeEmbeddingProvider({}, 2)
+
         with pytest.raises(ValueError):
             MemoryAwareContextBuilder(
-                vector_store=InMemoryVectorStore(),
-                embedding_provider=FakeEmbeddingProvider({}, 2),
+                vector_store=vector_store,
+                embedding_provider=embedding_provider,
                 scope=session_scope,
                 top_k=0,
             )
 
     def test_max_chars_must_be_positive(self, session_scope: MemoryScope) -> None:
+        vector_store = InMemoryVectorStore()
+        embedding_provider = FakeEmbeddingProvider({}, 2)
+
         with pytest.raises(ValueError):
             MemoryAwareContextBuilder(
-                vector_store=InMemoryVectorStore(),
-                embedding_provider=FakeEmbeddingProvider({}, 2),
+                vector_store=vector_store,
+                embedding_provider=embedding_provider,
                 scope=session_scope,
                 max_injected_chars=0,
             )
