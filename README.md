@@ -15,13 +15,6 @@
 </div>
 
 <div align="center">
-  <a href="./docs/index.md">docs</a> ·
-  <a href="./examples/README.md">examples</a> ·
-  <a href="./src/phronesis/">source</a> ·
-  <a href="./tests/">tests</a>
-</div>
-
-<div align="center">
   <img src="https://skillicons.dev/icons?i=py,docker,grafana,prometheus,githubactions" alt="Tech stack" />
 </div>
 

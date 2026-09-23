@@ -10,11 +10,6 @@
   Un agente que encadena tres tools (search -> fetch_url -> summarize) para responder a una pregunta.
 </div>
 
-<div align="center">
-  <a href="../README.md">examples</a> ·
-  <a href="../../src/phronesis/">source</a>
-</div>
-
 ---
 
 <div align="center">

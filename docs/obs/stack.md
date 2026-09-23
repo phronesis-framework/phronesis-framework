@@ -15,12 +15,6 @@
 </div>
 
 <div align="center">
-  <a href="../index.md">docs</a> ·
-  <a href="../../deploy/observability/">source</a> ·
-  <a href="./dashboards.md">dashboards</a>
-</div>
-
-<div align="center">
 
 [![Status](https://img.shields.io/badge/status-stable-green)]()
 [![Profile](https://img.shields.io/badge/profile-dev%20%7C%20prod-blue)]()

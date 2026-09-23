@@ -10,11 +10,6 @@
   El "hola mundo" de Phronesis: un agente que suma dos números usando una tool.
 </div>
 
-<div align="center">
-  <a href="../README.md">examples</a> ·
-  <a href="../../src/phronesis/">source</a>
-</div>
-
 ---
 
 <div align="center">

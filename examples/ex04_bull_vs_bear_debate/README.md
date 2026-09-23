@@ -10,11 +10,6 @@
   Dos agentes (bull y bear) debaten durante dos rondas; un tercero modera y emite veredicto.
 </div>
 
-<div align="center">
-  <a href="../README.md">examples</a> ·
-  <a href="../../src/phronesis/">source</a>
-</div>
-
 ---
 
 <div align="center">

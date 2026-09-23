@@ -11,10 +11,6 @@
 </div>
 
 <div align="center">
-  <a href="../index.md">docs</a>
-</div>
-
-<div align="center">
 
 [![Status](https://img.shields.io/badge/status-vision-orange)]()
 [![Mix](https://img.shields.io/badge/scope-implemented%20%2B%20future-blue)]()

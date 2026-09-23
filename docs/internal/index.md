@@ -15,12 +15,6 @@
 </div>
 
 <div align="center">
-  <a href="../index.md">docs</a> ·
-  <a href="../../src/phronesis/_internal/">source</a> ·
-  <a href="../../tests/_internal/">tests</a>
-</div>
-
-<div align="center">
 
 [![Status](https://img.shields.io/badge/status-WIP-orange)]()
 [![Coverage](https://img.shields.io/badge/coverage-100%25-brightgreen)]()

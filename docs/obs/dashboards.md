@@ -14,12 +14,6 @@
   Panel-by-panel catalog of the seven pre-built Grafana dashboards in <code>deploy/observability/grafana/dashboards/</code>.
 </div>
 
-<div align="center">
-  <a href="../index.md">docs</a> ·
-  <a href="./stack.md">stack</a> ·
-  <a href="../../deploy/observability/grafana/dashboards/">source</a>
-</div>
-
 ---
 
 <div align="center">

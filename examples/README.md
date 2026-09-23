@@ -10,12 +10,6 @@
   Catalogo de mini-sistemas que ejercitan las primitivas de Phronesis. Cada ejemplo es ejecutable, documentado y testeado contra una cassette grabada.
 </div>
 
-<div align="center">
-  <a href="../docs/index.md">docs</a> ·
-  <a href="../src/phronesis/">source</a> ·
-  <a href="../tests/examples/">tests</a>
-</div>
-
 ---
 
 <div align="center">

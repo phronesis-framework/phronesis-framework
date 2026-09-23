@@ -15,13 +15,6 @@
 </div>
 
 <div align="center">
-  <a href="../index.md">internal</a> ·
-  <a href="../../index.md">docs</a> ·
-  <a href="../../../src/phronesis/_internal/retry/">source</a> ·
-  <a href="../../../tests/_internal/retry/">tests</a>
-</div>
-
-<div align="center">
 
 [![Status](https://img.shields.io/badge/status-stable-green)]()
 [![Coverage](https://img.shields.io/badge/coverage-100%25-brightgreen)]()

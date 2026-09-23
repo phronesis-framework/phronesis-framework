@@ -15,11 +15,6 @@
 </div>
 
 <div align="center">
-  <a href="https://github.com/phronesis-framework/phronesis">repo</a> ·
-  <a href="../LICENSE">license</a>
-</div>
-
-<div align="center">
   <img src="https://skillicons.dev/icons?i=py,docker,grafana,prometheus,githubactions" alt="Tech stack" />
 </div>
 

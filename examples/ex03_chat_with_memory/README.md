@@ -10,11 +10,6 @@
   Conversacion multi-turno usando agent.session(): el agente recuerda lo que el usuario dijo antes.
 </div>
 
-<div align="center">
-  <a href="../README.md">examples</a> ·
-  <a href="../../src/phronesis/">source</a>
-</div>
-
 ---
 
 <div align="center">

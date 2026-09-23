@@ -10,11 +10,6 @@
   Pipeline lineal con `runtime.Sequence`: researcher -> writer -> editor.
 </div>
 
-<div align="center">
-  <a href="../README.md">examples</a> ·
-  <a href="../../src/phronesis/runtime/modes/sequence.py">source</a>
-</div>
-
 ---
 
 ## Que demuestra
