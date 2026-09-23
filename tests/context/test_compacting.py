@@ -213,9 +213,10 @@ class TestCompactionErrors:
         provider = ExplodingProvider(context_window=1_000, token_estimate=900)
         builder = CompactingContextBuilder(preserve_recent=2)
         history = tuple(_user(f"m-{i}") for i in range(6))
+        build_input = _input(provider, history=history)
 
         with pytest.raises(CompactionError) as info:
-            await builder.build(_input(provider, history=history))
+            await builder.build(build_input)
 
         assert info.value.details["provider"] == "ExplodingProvider"
         assert info.value.details["history_size"] == 6
