@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import pytest
+
 from phronesis.obs import metrics as metrics_module
 from phronesis.obs.metrics import _NOOP, _NoopInstrument, _reset_registry
 
@@ -56,9 +58,9 @@ class TestNoopRegistryDefaults:
 
 
 class TestResetRegistry:
-    def test_reset_restores_noop_after_build(self) -> None:
+    def test_reset_restores_noop_after_build(self, monkeypatch: pytest.MonkeyPatch) -> None:
         sentinel = object()
-        metrics_module.tool_invocations = sentinel  # type: ignore[assignment]
+        monkeypatch.setattr(metrics_module, "tool_invocations", sentinel)
 
         _reset_registry()
 

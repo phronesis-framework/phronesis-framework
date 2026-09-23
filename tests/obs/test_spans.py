@@ -113,9 +113,10 @@ class TestStartSpanAsyncNoopMode:
 
     async def test_exception_propagates_through_noop(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setattr(spans_module, "OBS_AVAILABLE", False)
+        span_cm = start_span_async("phronesis.test.op")
 
         with pytest.raises(ValueError, match="boom"):
-            async with start_span_async("phronesis.test.op"):
+            async with span_cm:
                 raise ValueError("boom")
 
 
@@ -190,9 +191,10 @@ class TestStartSpanAsyncActiveMode:
 
         spy = _SpyExporter()
         configure_obs(exporter_instance=spy)
+        span_cm = start_span_async("phronesis.test.async.fail")
 
         with pytest.raises(RuntimeError, match="boom"):
-            async with start_span_async("phronesis.test.async.fail"):
+            async with span_cm:
                 raise RuntimeError("boom")
 
         exported = spy.exported[0]
