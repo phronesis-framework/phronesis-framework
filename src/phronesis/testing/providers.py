@@ -88,7 +88,9 @@ class FakeProvider:
     def count_tokens(self, _messages: Sequence[Message]) -> int:
         return 0
 
-    async def count_tokens_exact(self, _messages: Sequence[Message]) -> int | None:
+    async def count_tokens_exact(  # NOSONAR(S7503)
+        self, _messages: Sequence[Message]
+    ) -> int | None:
         """Return ``None``: stub providers never expose an exact count."""
         return None
 
@@ -162,6 +164,8 @@ class ScriptedProvider:
     def count_tokens(self, _messages: Sequence[Message]) -> int:
         return 0
 
-    async def count_tokens_exact(self, _messages: Sequence[Message]) -> int | None:
+    async def count_tokens_exact(  # NOSONAR(S7503)
+        self, _messages: Sequence[Message]
+    ) -> int | None:
         """Return ``None``: stub providers never expose an exact count."""
         return None
