@@ -28,21 +28,25 @@ class _NoopSpan:
 
     __slots__ = ()
 
-    def set_attribute(self, key: str, value: Any) -> None:
+    def set_attribute(self, key: str, value: Any) -> None:  # NOSONAR(S1172)
         return None
 
-    def set_attributes(self, attributes: dict[str, Any]) -> None:
+    def set_attributes(self, attributes: dict[str, Any]) -> None:  # NOSONAR(S1172)
         return None
 
-    def record_exception(
+    def record_exception(  # NOSONAR(S1172)
         self, exception: BaseException, attributes: dict[str, Any] | None = None
     ) -> None:
         return None
 
-    def set_status(self, status: Any, description: str | None = None) -> None:
+    def set_status(  # NOSONAR(S1172)
+        self, status: Any, description: str | None = None
+    ) -> None:
         return None
 
-    def add_event(self, name: str, attributes: dict[str, Any] | None = None) -> None:
+    def add_event(  # NOSONAR(S1172)
+        self, name: str, attributes: dict[str, Any] | None = None
+    ) -> None:
         return None
 
     def end(self) -> None:

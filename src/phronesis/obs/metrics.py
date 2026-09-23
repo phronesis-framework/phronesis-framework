@@ -54,10 +54,14 @@ class _NoopInstrument:
 
     __slots__ = ()
 
-    def add(self, amount: float, attributes: dict[str, Any] | None = None) -> None:
+    def add(  # NOSONAR(S1172)
+        self, amount: float, attributes: dict[str, Any] | None = None
+    ) -> None:
         return None
 
-    def record(self, amount: float, attributes: dict[str, Any] | None = None) -> None:
+    def record(  # NOSONAR(S1172)
+        self, amount: float, attributes: dict[str, Any] | None = None
+    ) -> None:
         return None
 
 
