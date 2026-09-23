@@ -96,12 +96,17 @@ class TestDecoratorMode:
 
 class TestModeDispatch:
     def test_mixing_positional_and_steps_kw_raises(self) -> None:
+        inc_node = callable_node(_inc)
+        double_node = callable_node(_double)
+
         with pytest.raises(TypeError):
-            pipeline(callable_node(_inc), steps=(callable_node(_double),), name="bad")
+            pipeline(inc_node, steps=(double_node,), name="bad")
 
     def test_factory_mode_still_requires_name(self) -> None:
+        inc_node = callable_node(_inc)
+
         with pytest.raises(TypeError):
-            pipeline(callable_node(_inc))  # type: ignore[call-overload]
+            pipeline(inc_node)  # type: ignore[call-overload]
 
     def test_decorator_mode_does_not_require_name(self) -> None:
         decorator = pipeline(steps=(callable_node(_inc),))
