@@ -92,8 +92,10 @@ class TestLiteralAndEnum:
     def test_literal_rejects_non_member(self) -> None:
         def fn(x: Literal["a", "b"]) -> None: ...
 
+        validate = _validator(fn)
+
         with pytest.raises(ToolValidationError):
-            _validator(fn)({"x": "z"})
+            validate({"x": "z"})
 
     def test_enum_accepts_string_value(self) -> None:
         result = _validator(_takes_color)({"x": "red"})
@@ -105,8 +107,10 @@ class TestValidationErrors:
     def test_wrong_type_raises_with_field_and_schema(self) -> None:
         def fn(age: int) -> None: ...
 
+        validate = _validator(fn)
+
         with pytest.raises(ToolValidationError) as exc:
-            _validator(fn)({"age": "not a number"})
+            validate({"age": "not a number"})
 
         assert exc.value.details["field"] == "age"
         assert exc.value.details["got_value"] == "not a number"
@@ -115,16 +119,20 @@ class TestValidationErrors:
     def test_missing_required_raises(self) -> None:
         def fn(a: int, b: int) -> None: ...
 
+        validate = _validator(fn)
+
         with pytest.raises(ToolValidationError) as exc:
-            _validator(fn)({"a": 1})
+            validate({"a": 1})
 
         assert exc.value.details["field"] == "b"
 
     def test_details_expected_schema_is_only_for_affected_field(self) -> None:
         def fn(a: int, b: str) -> None: ...
 
+        validate = _validator(fn)
+
         with pytest.raises(ToolValidationError) as exc:
-            _validator(fn)({"a": "bad", "b": "ok"})
+            validate({"a": "bad", "b": "ok"})
 
         assert exc.value.details["field"] == "a"
         assert exc.value.details["expected_schema"].get("type") == "integer"

@@ -254,10 +254,13 @@ class TestToolSpecVersionValidation:
     def test_rejects_malformed_version(self) -> None:
         from phronesis.tools.version import InvalidVersionError
 
+        tool_id = _make_id()
+        name = _make_name()
+
         with pytest.raises(InvalidVersionError):
             ToolSpec(
-                id=_make_id(),
-                name=_make_name(),
+                id=tool_id,
+                name=name,
                 description="d",
                 version="not-a-version",
             )

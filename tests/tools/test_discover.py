@@ -17,7 +17,7 @@ def _write(path: Path, content: str = "") -> None:
     path.write_text(content, encoding="utf-8")
 
 
-@pytest.fixture()
+@pytest.fixture
 def synthetic_package(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> str:
     """Create a synthetic package on disk and put it on ``sys.path``."""
     name = "phr_discover_synth"
@@ -37,7 +37,7 @@ def synthetic_package(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> str:
             del sys.modules[mod]
 
 
-@pytest.fixture()
+@pytest.fixture
 def broken_package(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> str:
     name = "phr_discover_broken"
     root = tmp_path / name

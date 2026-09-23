@@ -41,8 +41,10 @@ class TestRegistration:
         assert current_registry().lookup(ToolId("phronesis.tools.beta")) is beta
 
     def test_lookup_unknown_raises_tool_not_found(self) -> None:
+        registry = current_registry()
+
         with pytest.raises(ToolNotFoundError) as exc:
-            current_registry().lookup("phronesis.tools.missing")
+            registry.lookup("phronesis.tools.missing")
 
         assert exc.value.details["id"] == "phronesis.tools.missing"
 

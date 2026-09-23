@@ -358,9 +358,10 @@ class TestToolErrorChannel:
             raise ToolError("async boom")
 
         wrapped = Tool(raises_tool_error, _spec())
+        coro = wrapped()
 
         with pytest.raises(ToolError) as exc_info:
-            asyncio.run(wrapped())
+            asyncio.run(coro)
 
         assert exc_info.value.message == "async boom"
 
@@ -369,27 +370,30 @@ class TestToolErrorChannel:
             raise FileNotFoundError(2, "missing", "/tmp/y.txt")
 
         wrapped = Tool(raises_fnf, _spec())
+        coro = wrapped()
 
         with pytest.raises(ToolNotFoundError):
-            asyncio.run(wrapped())
+            asyncio.run(coro)
 
     def test_async_cancellation_always_propagates(self) -> None:
         async def gets_cancelled() -> None:
             raise asyncio.CancelledError
 
         wrapped = Tool(gets_cancelled, _spec())
+        coro = wrapped()
 
         with pytest.raises(asyncio.CancelledError):
-            asyncio.run(wrapped())
+            asyncio.run(coro)
 
     def test_async_unlisted_exception_propagates(self) -> None:
         async def raises_value() -> None:
             raise ValueError("nope")
 
         wrapped = Tool(raises_value, _spec())
+        coro = wrapped()
 
         with pytest.raises(ValueError):
-            asyncio.run(wrapped())
+            asyncio.run(coro)
 
 
 def _greet(name: str, ctx: Context) -> str:
