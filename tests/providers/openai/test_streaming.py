@@ -212,8 +212,10 @@ class TestStreamOpenaiChatToolCalls:
         ]
         client = _make_client(_sse(events))
 
+        iterator = _stream(client)
+
         with pytest.raises(StreamError):
-            await _collect(_stream(client))
+            await _collect(iterator)
 
 
 class TestStreamOpenaiChatErrors:
@@ -222,24 +224,30 @@ class TestStreamOpenaiChatErrors:
         body = json.dumps({"error": {"message": "bad key"}}).encode("utf-8")
         client = _make_client(body, status=401)
 
+        iterator = _stream(client)
+
         with pytest.raises(AuthenticationError):
-            await _collect(_stream(client))
+            await _collect(iterator)
 
     @pytest.mark.asyncio
     async def test_429_response_raises_rate_limit_error(self) -> None:
         body = json.dumps({"error": {"message": "slow"}}).encode("utf-8")
         client = _make_client(body, status=429)
 
+        iterator = _stream(client)
+
         with pytest.raises(RateLimitError):
-            await _collect(_stream(client))
+            await _collect(iterator)
 
     @pytest.mark.asyncio
     async def test_malformed_json_payload_raises_stream_error(self) -> None:
         body = b"data: not-json\n\n"
         client = _make_client(body)
 
+        iterator = _stream(client)
+
         with pytest.raises(StreamError):
-            await _collect(_stream(client))
+            await _collect(iterator)
 
 
 class TestStreamOpenaiChatRequestShape:

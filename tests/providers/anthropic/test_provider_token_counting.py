@@ -111,7 +111,7 @@ class TestCountTokensExact:
             ),
         )
 
+        messages = [UserMessage(content=(TextBlock(text="hi"),))]
+
         with pytest.raises(RateLimitError):
-            await provider.count_tokens_exact(
-                [UserMessage(content=(TextBlock(text="hi"),))],
-            )
+            await provider.count_tokens_exact(messages)

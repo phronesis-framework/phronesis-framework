@@ -154,11 +154,13 @@ class TestOpenWebUIFactory:
     def test_missing_key_raises(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.delenv("OPENWEBUI_API_KEY", raising=False)
 
+        client = _mock_client("http://owui/api")
+
         with pytest.raises(AuthenticationError):
             openwebui(
                 "gpt-4o",
                 base_url="http://owui/api",
-                http_client=_mock_client("http://owui/api"),
+                http_client=client,
             )
 
     def test_reads_key_from_env(self, monkeypatch: pytest.MonkeyPatch) -> None:

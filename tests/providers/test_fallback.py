@@ -122,8 +122,10 @@ class TestCompleteFallback:
 
         wrapper = FallbackProvider([first, second])
 
+        request = LLMRequest(model="m", messages=())
+
         with pytest.raises(FallbackExhaustedError) as exc_info:
-            await wrapper.complete(LLMRequest(model="m", messages=()))
+            await wrapper.complete(request)
 
         assert isinstance(exc_info.value.__cause__, ProviderError)
         assert str(exc_info.value.__cause__) == "second"
@@ -135,8 +137,10 @@ class TestCompleteFallback:
 
         wrapper = FallbackProvider([first, second])
 
+        request = LLMRequest(model="m", messages=())
+
         with pytest.raises(RuntimeError):
-            await wrapper.complete(LLMRequest(model="m", messages=()))
+            await wrapper.complete(request)
 
         assert second.complete_calls == []
 
@@ -190,8 +194,10 @@ class TestStreamFallback:
 
         wrapper = FallbackProvider([first, second])
 
+        iterator = wrapper.stream(LLMRequest(model="m", messages=()))
+
         with pytest.raises(FallbackExhaustedError):
-            async for _ in wrapper.stream(LLMRequest(model="m", messages=())):
+            async for _ in iterator:
                 pass  # pragma: no cover
 
 

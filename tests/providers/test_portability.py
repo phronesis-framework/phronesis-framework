@@ -339,15 +339,19 @@ class TestUniformErrorMapping:
     async def test_401_raises_authentication_error(self, case: _ProviderCase) -> None:
         provider = case.build(lambda r: case.error_response(401))
 
+        request = _simple_request()
+
         with pytest.raises(AuthenticationError):
-            await provider.complete(_simple_request())
+            await provider.complete(request)
 
     @pytest.mark.asyncio
     async def test_429_raises_rate_limit_error(self, case: _ProviderCase) -> None:
         provider = case.build(lambda r: case.error_response(429))
 
+        request = _simple_request()
+
         with pytest.raises(RetryExhaustedError) as exc_info:
-            await provider.complete(_simple_request())
+            await provider.complete(request)
 
         assert isinstance(exc_info.value.last_exception, RateLimitError)
 
@@ -355,8 +359,10 @@ class TestUniformErrorMapping:
     async def test_400_raises_bad_request(self, case: _ProviderCase) -> None:
         provider = case.build(lambda r: case.error_response(400))
 
+        request = _simple_request()
+
         with pytest.raises(BadRequestError):
-            await provider.complete(_simple_request())
+            await provider.complete(request)
 
     @pytest.mark.asyncio
     async def test_5xx_is_retried_then_succeeds(self, case: _ProviderCase) -> None:
@@ -380,7 +386,9 @@ class TestUniformErrorMapping:
     async def test_5xx_propagates_after_exhaustion(self, case: _ProviderCase) -> None:
         provider = case.build(lambda r: case.error_response(500))
 
+        request = _simple_request()
+
         with pytest.raises(RetryExhaustedError) as exc_info:
-            await provider.complete(_simple_request())
+            await provider.complete(request)
 
         assert isinstance(exc_info.value.last_exception, ServerError)

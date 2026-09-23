@@ -47,8 +47,10 @@ class TestOpenAIFactory:
     def test_missing_key_raises(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.delenv("OPENAI_API_KEY", raising=False)
 
+        client = _mock_client()
+
         with pytest.raises(AuthenticationError):
-            openai("gpt-test", http_client=_mock_client())
+            openai("gpt-test", http_client=client)
 
     def test_propagates_default_temperature_and_max_tokens(self) -> None:
         provider = openai(

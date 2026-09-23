@@ -283,10 +283,10 @@ class TestAnthropicProviderErrors:
             ),
         )
 
+        request = LLMRequest(model="", messages=(Message(role=Role.USER, content="hi"),))
+
         with pytest.raises(AuthenticationError):
-            await provider.complete(
-                LLMRequest(model="", messages=(Message(role=Role.USER, content="hi"),)),
-            )
+            await provider.complete(request)
 
     @pytest.mark.asyncio
     async def test_500_is_retried(self) -> None:
@@ -321,10 +321,10 @@ class TestAnthropicProviderErrors:
             retry_config=RetryConfig(max_attempts=2, backoff=FixedBackoff(0)),
         )
 
+        request = LLMRequest(model="", messages=(Message(role=Role.USER, content="hi"),))
+
         with pytest.raises((RateLimitError, ServerError, Exception)):
-            await provider.complete(
-                LLMRequest(model="", messages=(Message(role=Role.USER, content="hi"),)),
-            )
+            await provider.complete(request)
 
 
 class TestAnthropicProviderStream:

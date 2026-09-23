@@ -187,8 +187,10 @@ class TestStreamAnthropicMessagesToolUse:
         ]
         client = _make_client(_sse(events))
 
+        iterator = _stream(client)
+
         with pytest.raises(StreamError):
-            await _collect(_stream(client))
+            await _collect(iterator)
 
 
 class TestStreamAnthropicMessagesMixedContent:
@@ -238,8 +240,10 @@ class TestStreamAnthropicMessagesErrors:
         ]
         client = _make_client(_sse(events))
 
+        iterator = _stream(client)
+
         with pytest.raises(StreamError) as exc_info:
-            await _collect(_stream(client))
+            await _collect(iterator)
 
         assert "try again" in str(exc_info.value)
 
@@ -250,8 +254,10 @@ class TestStreamAnthropicMessagesErrors:
         ).encode("utf-8")
         client = _make_client(body, status=401)
 
+        iterator = _stream(client)
+
         with pytest.raises(AuthenticationError):
-            await _collect(_stream(client))
+            await _collect(iterator)
 
     @pytest.mark.asyncio
     async def test_429_response_raises_rate_limit_error(self) -> None:
@@ -260,16 +266,20 @@ class TestStreamAnthropicMessagesErrors:
         ).encode("utf-8")
         client = _make_client(body, status=429)
 
+        iterator = _stream(client)
+
         with pytest.raises(RateLimitError):
-            await _collect(_stream(client))
+            await _collect(iterator)
 
     @pytest.mark.asyncio
     async def test_malformed_json_payload_raises_stream_error(self) -> None:
         body = b"event: message_start\ndata: not-json\n\n"
         client = _make_client(body)
 
+        iterator = _stream(client)
+
         with pytest.raises(StreamError):
-            await _collect(_stream(client))
+            await _collect(iterator)
 
 
 class TestStreamAnthropicMessagesRequestShape:
