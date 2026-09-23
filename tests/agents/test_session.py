@@ -191,9 +191,10 @@ class TestRequestCoercion:
     async def test_timeout_is_enforced_through_the_session(self) -> None:
         provider = _SlowProvider(delay=0.2)
         sess = _agent(provider).session()
+        request = RunRequest(input="hi", timeout_seconds=0.01)
 
         with pytest.raises(AgentTimeoutError):
-            await sess.run(RunRequest(input="hi", timeout_seconds=0.01))
+            await sess.run(request)
 
 
 class TestReset:

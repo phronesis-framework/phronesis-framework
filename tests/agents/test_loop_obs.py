@@ -292,9 +292,10 @@ class TestMetrics:
             ],
         )
         spec = _spec(provider, tools=(_ping,))
+        request = RunRequest(input="go", max_iterations=1)
 
         with pytest.raises(AgentMaxIterationsError):
-            await run_loop(spec, RunRequest(input="go", max_iterations=1))
+            await run_loop(spec, request)
 
         kinds = [(r.kind, r.name) for r in metric_recorder]
 

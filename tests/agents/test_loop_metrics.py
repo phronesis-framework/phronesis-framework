@@ -189,9 +189,10 @@ class TestProviderMetrics:
         self, metric_recorder: list[_MetricRecord]
     ) -> None:
         spec = _spec(_FailingProvider())
+        request = RunRequest(input="go")
 
         with pytest.raises(AgentExecutionError):
-            await run_loop(spec, RunRequest(input="go"))
+            await run_loop(spec, request)
 
         adds = [r for r in metric_recorder if r.name == "provider_requests"]
 
@@ -254,9 +255,10 @@ class TestToolMetrics:
             ],
         )
         spec = _spec(provider, tools=(_bad,))
+        request = RunRequest(input="go")
 
         with pytest.raises(AgentExecutionError):
-            await run_loop(spec, RunRequest(input="go"))
+            await run_loop(spec, request)
 
         errors = [r for r in metric_recorder if r.name == "tool_errors"]
 

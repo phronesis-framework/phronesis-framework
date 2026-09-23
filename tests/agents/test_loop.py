@@ -255,9 +255,10 @@ class TestToolCalls:
             ],
         )
         spec = _spec(provider, tools=(_boom,))
+        request = RunRequest(input="go")
 
         with pytest.raises(AgentExecutionError) as info:
-            await run_loop(spec, RunRequest(input="go"))
+            await run_loop(spec, request)
 
         assert info.value.details["tool_name"] == "boom"
 
@@ -266,9 +267,10 @@ class TestProviderErrors:
     @pytest.mark.asyncio
     async def test_provider_failure_wraps_in_agent_execution_error(self) -> None:
         spec = _spec(_ExplodingProvider())
+        request = RunRequest(input="hi")
 
         with pytest.raises(AgentExecutionError) as info:
-            await run_loop(spec, RunRequest(input="hi"))
+            await run_loop(spec, request)
 
         assert info.value.details["agent_id"] == "phronesis.agents.x"
 
@@ -287,9 +289,10 @@ class TestMaxIterations:
             ],
         )
         spec = _spec(provider, tools=(_echo,), max_iterations=3)
+        request = RunRequest(input="go")
 
         with pytest.raises(AgentMaxIterationsError) as info:
-            await run_loop(spec, RunRequest(input="go"))
+            await run_loop(spec, request)
 
         assert info.value.details["max_iterations"] == 3
 
@@ -306,9 +309,10 @@ class TestMaxIterations:
             ],
         )
         spec = _spec(provider, tools=(_echo,), max_iterations=20)
+        request = RunRequest(input="go", max_iterations=2)
 
         with pytest.raises(AgentMaxIterationsError) as info:
-            await run_loop(spec, RunRequest(input="go", max_iterations=2))
+            await run_loop(spec, request)
 
         assert info.value.details["max_iterations"] == 2
 

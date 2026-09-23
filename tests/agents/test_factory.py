@@ -38,16 +38,18 @@ class TestBuildAgent:
     def test_register_false_skips_the_registry(self, provider: LLMProvider) -> None:
         with agent_scope():
             build_agent(_spec(provider), register=False)
+            registry = current_registry()
 
             with pytest.raises(LookupError):
-                current_registry().lookup("phronesis.agents.built")
+                registry.lookup("phronesis.agents.built")
 
     def test_duplicate_id_raises(self, provider: LLMProvider) -> None:
         with agent_scope():
             build_agent(_spec(provider))
+            duplicate = _spec(provider)
 
             with pytest.raises(DuplicateAgentError):
-                build_agent(_spec(provider))
+                build_agent(duplicate)
 
     def test_invalid_spec_raises_before_registering(self) -> None:
         spec = AgentSpec(
@@ -61,5 +63,7 @@ class TestBuildAgent:
             with pytest.raises(AgentConfigurationError):
                 build_agent(spec)
 
+            registry = current_registry()
+
             with pytest.raises(LookupError):
-                current_registry().lookup("phronesis.agents.invalid")
+                registry.lookup("phronesis.agents.invalid")

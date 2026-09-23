@@ -135,19 +135,24 @@ class TestRegistration:
     def test_duplicate_id_raises(self, provider: LLMProvider) -> None:
         with agent_scope():
             agent(model=provider, id="phronesis.agents.dup")(_researcher)
+            decorate = agent(model=provider, id="phronesis.agents.dup")
 
             with pytest.raises(DuplicateAgentError):
-                agent(model=provider, id="phronesis.agents.dup")(_writer)
+                decorate(_writer)
 
 
 class TestValidationIntegration:
     def test_invalid_max_iterations_rejected(self, provider: LLMProvider) -> None:
+        decorate = agent(model=provider, max_iterations=0)
+
         with agent_scope(), pytest.raises(AgentConfigurationError):
-            agent(model=provider, max_iterations=0)(_researcher)
+            decorate(_researcher)
 
     def test_empty_docstring_warns(self, provider: LLMProvider) -> None:
+        decorate = agent(model=provider)
+
         with agent_scope(), pytest.warns(EmptySystemPromptWarning):
-            agent(model=provider)(_empty_doc)
+            decorate(_empty_doc)
 
 
 class TestGlobalRegistrySideEffect:

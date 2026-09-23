@@ -107,9 +107,10 @@ class TestMaxTokens:
     async def test_raises_when_exceeded(self) -> None:
         provider = _UsageProvider(input_tokens=80, output_tokens=80)
         agent = Agent(_spec(provider))
+        request = RunRequest(input="hi", max_tokens=100)
 
         with pytest.raises(AgentBudgetExceededError) as ei:
-            await agent.run(RunRequest(input="hi", max_tokens=100))
+            await agent.run(request)
 
         assert ei.value.details["limit"] == "max_tokens"
         assert ei.value.details["threshold"] == 100
@@ -139,9 +140,10 @@ class TestTimeout:
     async def test_raises_when_slow(self) -> None:
         provider = _SlowProvider(delay=0.2)
         agent = Agent(_spec(provider))
+        request = RunRequest(input="hi", timeout_seconds=0.05)
 
         with pytest.raises(AgentTimeoutError) as ei:
-            await agent.run(RunRequest(input="hi", timeout_seconds=0.05))
+            await agent.run(request)
 
         assert ei.value.details["limit"] == "timeout_seconds"
         assert ei.value.details["threshold"] == 0.05
@@ -150,9 +152,10 @@ class TestTimeout:
     async def test_timeout_error_is_budget_error(self) -> None:
         provider = _SlowProvider(delay=0.2)
         agent = Agent(_spec(provider))
+        request = RunRequest(input="hi", timeout_seconds=0.05)
 
         with pytest.raises(AgentBudgetExceededError):
-            await agent.run(RunRequest(input="hi", timeout_seconds=0.05))
+            await agent.run(request)
 
 
 def _priced_spec(provider: object, pricing: Pricing) -> AgentSpec:
@@ -197,9 +200,10 @@ class TestMaxCostUsd:
     async def test_raises_when_exceeded(self) -> None:
         provider = _UsageProvider(input_tokens=1_000_000, output_tokens=0)
         agent = Agent(_priced_spec(provider, Pricing(input=3.0)))
+        request = RunRequest(input="hi", max_cost_usd=1.0)
 
         with pytest.raises(AgentBudgetExceededError) as exc_info:
-            await agent.run(RunRequest(input="hi", max_cost_usd=1.0))
+            await agent.run(request)
 
         assert exc_info.value.details["limit"] == "max_cost_usd"
         assert exc_info.value.details["observed"] == pytest.approx(3.0)

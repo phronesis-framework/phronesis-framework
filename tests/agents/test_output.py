@@ -157,9 +157,10 @@ class TestLoopIntegration:
 
     async def test_validation_still_runs_without_provider_capability(self) -> None:
         provider = _Provider("sorry, no JSON here", structured=False)
+        agent = _agent(provider, Verdict)
 
         with pytest.raises(AgentOutputValidationError):
-            await _agent(provider, Verdict).run("hi")
+            await agent.run("hi")
 
     async def test_free_form_agent_is_untouched(self) -> None:
         provider = _Provider("just words")

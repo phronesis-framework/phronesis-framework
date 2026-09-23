@@ -57,16 +57,20 @@ class TestTools:
         validate_spec(_spec(provider, tools=(tool_a, tool_b)))
 
     def test_rejects_non_tool_entry(self, provider: LLMProvider) -> None:
+        spec = _spec(provider, tools=("not-a-tool",))
+
         with pytest.raises(AgentConfigurationError):
-            validate_spec(_spec(provider, tools=("not-a-tool",)))
+            validate_spec(spec)
 
     def test_rejects_duplicate_tools(
         self,
         provider: LLMProvider,
         tool_a: Tool,
     ) -> None:
+        spec = _spec(provider, tools=(tool_a, tool_a))
+
         with pytest.raises(AgentConfigurationError) as info:
-            validate_spec(_spec(provider, tools=(tool_a, tool_a)))
+            validate_spec(spec)
 
         assert info.value.details["tool_id"] == tool_a.spec.id.canonical
 
@@ -82,8 +86,10 @@ class TestOutputType:
         validate_spec(_spec(provider, output_type=Answer))
 
     def test_rejects_non_type(self, provider: LLMProvider) -> None:
+        spec = _spec(provider, output_type="str")  # type: ignore[arg-type]
+
         with pytest.raises(AgentConfigurationError):
-            validate_spec(_spec(provider, output_type="str"))  # type: ignore[arg-type]
+            validate_spec(spec)
 
 
 class TestMaxIterations:
@@ -92,8 +98,10 @@ class TestMaxIterations:
 
     @pytest.mark.parametrize("value", [0, -1, -100])
     def test_rejects_non_positive(self, provider: LLMProvider, value: int) -> None:
+        spec = _spec(provider, max_iterations=value)
+
         with pytest.raises(AgentConfigurationError):
-            validate_spec(_spec(provider, max_iterations=value))
+            validate_spec(spec)
 
 
 class TestSystemPrompt:
@@ -105,9 +113,13 @@ class TestSystemPrompt:
         assert not [w for w in captured if isinstance(w.message, EmptySystemPromptWarning)]
 
     def test_empty_prompt_warns(self, provider: LLMProvider) -> None:
+        spec = _spec(provider, system_prompt="")
+
         with pytest.warns(EmptySystemPromptWarning):
-            validate_spec(_spec(provider, system_prompt=""))
+            validate_spec(spec)
 
     def test_whitespace_only_prompt_warns(self, provider: LLMProvider) -> None:
+        spec = _spec(provider, system_prompt="   \n  ")
+
         with pytest.warns(EmptySystemPromptWarning):
-            validate_spec(_spec(provider, system_prompt="   \n  "))
+            validate_spec(spec)

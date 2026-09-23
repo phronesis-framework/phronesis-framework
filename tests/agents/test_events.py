@@ -59,8 +59,12 @@ class TestTextDelta:
         assert event.text == "hello"
 
     def test_equality_is_value_based(self) -> None:
-        assert TextDelta(text="a") == TextDelta(text="a")
-        assert TextDelta(text="a") != TextDelta(text="b")
+        first = TextDelta(text="a")
+        same = TextDelta(text="a")
+        other = TextDelta(text="b")
+
+        assert first == same
+        assert first != other
 
 
 class TestToolCallStarted:
