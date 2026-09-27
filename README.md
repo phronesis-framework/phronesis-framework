@@ -1,7 +1,5 @@
-#
-
 <div align="center">
-  <img src="./public/assets/lockup/lockup-horizontal-dark.svg" alt="Phronesis Framework" width="60%" />
+  <img src="public/assets/lockup/lockup-horizontal-dark.png" alt="Phronesis Framework" width="100%" />
 </div>
 
 <div align="center">
@@ -15,7 +13,15 @@
 </div>
 
 <div align="center">
-  <img src="https://skillicons.dev/icons?i=py,docker,grafana,prometheus,githubactions" alt="Tech stack" />
+  <a href="src/">source</a> · <a href="tests/">tests</a> · <a href="docs/">docs</a> · <a href="examples/">examples</a>
+</div>
+
+<br />
+
+<div align="center">
+  <a href="https://go-skill-icons.vercel.app/">
+    <img src="https://go-skill-icons.vercel.app/api/icons?i=python,typescript,react,nextjs,git&titles=true" alt="Technology stack" />
+  </a>
 </div>
 
 ---
@@ -144,7 +150,7 @@ about. Every mode satisfies the same `Executable` contract and modes nest freely
 
 <div align="center">
 
-## 📦 Module layout
+## 📦 Project layout
 
 </div>
 
@@ -167,7 +173,7 @@ about. Every mode satisfies the same `Executable` contract and modes nest freely
 
 <div align="center">
 
-## 🛠️ Install
+## 🚀 Development setup
 
 </div>
 
@@ -192,7 +198,7 @@ CASSETTE_PATH=examples/ex01_hello_agent/cassette.jsonl \
 
 <div align="center">
 
-## 🧪 Testing
+## 🧪 Testing and quality gates
 
 </div>
 
@@ -200,12 +206,6 @@ Over **1,650 tests** with branch coverage gated at **90%** — the build fails b
 the floor. The `tests/` tree mirrors `src/`. LLM responses are recorded once
 (`RecordingProvider`) and replayed forever (`ReplayProvider`), so agent behavior is
 reproducible in CI without touching the network.
-
-<div align="center">
-
-## 🚦 Quality gates
-
-</div>
 
 Every change passes, in this order and in green:
 
@@ -218,7 +218,16 @@ uv run pytest -q
 
 <div align="center">
 
-## 🔮 Status
+## 📚 Documentation
+
+</div>
+
+- [Docs](docs/)
+- [Examples](examples/)
+
+<div align="center">
+
+## 🔬 Scope and status
 
 </div>
 

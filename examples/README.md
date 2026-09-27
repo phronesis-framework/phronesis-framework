@@ -1,4 +1,6 @@
-#
+<div align="center">
+  <img src="../public/assets/lockup/lockup-horizontal-dark.png" alt="Phronesis Framework - examples" width="100%" />
+</div>
 
 <div align="center">
 
@@ -10,11 +12,31 @@
   Catalogo de mini-sistemas que ejercitan las primitivas de Phronesis. Cada ejemplo es ejecutable, documentado y testeado contra una cassette grabada.
 </div>
 
+<div align="center">
+  <a href="../src/">source</a> · <a href="../tests/">tests</a> · <a href="../docs/">docs</a> · <a href="./">examples</a>
+</div>
+
+<br />
+
+<div align="center">
+  <a href="https://go-skill-icons.vercel.app/">
+    <img src="https://go-skill-icons.vercel.app/api/icons?i=python,typescript,react,nextjs,git&titles=true" alt="Technology stack" />
+  </a>
+</div>
+
 ---
 
 <div align="center">
 
-## Catalogo
+## 🎯 Purpose
+
+</div>
+
+Catalogo de mini-sistemas que ejercitan las primitivas de Phronesis. Cada ejemplo es ejecutable, documentado y testeado contra una cassette grabada.
+
+<div align="center">
+
+## 📋 Examples
 
 </div>
 
@@ -69,7 +91,7 @@ Todos corren con `CASSETTE_PATH=examples/exNN_xxx/cassette.jsonl python -m examp
 
 <div align="center">
 
-## Mini-apps
+## 🔹 Applications
 
 </div>
 
@@ -83,7 +105,38 @@ modular (`agents/`, `prompts.py`, `tools.py`, `data.py`).
 
 <div align="center">
 
-## Como correr
+## 📦 Project layout
+
+</div>
+
+```
+examples/
+├── README.md                          este indice
+├── _shared/
+│   └── provider.py                    build_provider() helper compartido
+├── ex01_hello_agent/
+│   ├── main.py                        entry point
+│   ├── cassette.jsonl                 grabacion JSONL
+│   └── README.md                      que demuestra y como correr
+├── ex02_research_assistant/
+│   ├── main.py
+│   ├── tools.py                       stubs de search/fetch/summarize
+│   ├── cassette.jsonl
+│   └── README.md
+├── ex03_chat_with_memory/
+│   ├── main.py
+│   ├── cassette.jsonl
+│   └── README.md
+└── ex04_bull_vs_bear_debate/
+    ├── main.py
+    ├── prompts.py                     SYSTEM_BULL / BEAR / MODERATOR
+    ├── cassette.jsonl
+    └── README.md
+```
+
+<div align="center">
+
+## 🚀 Development setup
 
 </div>
 
@@ -117,7 +170,7 @@ Variables de entorno opcionales:
 
 <div align="center">
 
-## Como regrabar cassettes
+## 🔹 Recording cassettes
 
 </div>
 
@@ -139,38 +192,7 @@ cada respuesta al fichero indicado en formato JSONL.
 
 <div align="center">
 
-## Estructura
-
-</div>
-
-```
-examples/
-├── README.md                          este indice
-├── _shared/
-│   └── provider.py                    build_provider() helper compartido
-├── ex01_hello_agent/
-│   ├── main.py                        entry point
-│   ├── cassette.jsonl                 grabacion JSONL
-│   └── README.md                      que demuestra y como correr
-├── ex02_research_assistant/
-│   ├── main.py
-│   ├── tools.py                       stubs de search/fetch/summarize
-│   ├── cassette.jsonl
-│   └── README.md
-├── ex03_chat_with_memory/
-│   ├── main.py
-│   ├── cassette.jsonl
-│   └── README.md
-└── ex04_bull_vs_bear_debate/
-    ├── main.py
-    ├── prompts.py                     SYSTEM_BULL / BEAR / MODERATOR
-    ├── cassette.jsonl
-    └── README.md
-```
-
-<div align="center">
-
-## Proximos lotes
+## 🔬 Scope and status
 
 </div>
 

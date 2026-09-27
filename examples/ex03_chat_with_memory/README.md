@@ -1,4 +1,6 @@
-#
+<div align="center">
+  <img src="../../public/assets/lockup/lockup-horizontal-dark.png" alt="ex03 - chat_with_memory" width="100%" />
+</div>
 
 <div align="center">
 
@@ -10,11 +12,23 @@
   Conversacion multi-turno usando agent.session(): el agente recuerda lo que el usuario dijo antes.
 </div>
 
+<div align="center">
+  <a href="../../src/">source</a> · <a href="../../tests/">tests</a> · <a href="../../docs/">docs</a> · <a href="../">examples</a>
+</div>
+
+<br />
+
+<div align="center">
+  <a href="https://go-skill-icons.vercel.app/">
+    <img src="https://go-skill-icons.vercel.app/api/icons?i=python,typescript,react,nextjs,git&titles=true" alt="Technology stack" />
+  </a>
+</div>
+
 ---
 
 <div align="center">
 
-## Que demuestra
+## 🎯 Purpose
 
 </div>
 
@@ -27,7 +41,7 @@
 
 <div align="center">
 
-## Como correr
+## 🚀 Development setup
 
 </div>
 
@@ -42,7 +56,7 @@ CASSETTE_PATH=examples/ex03_chat_with_memory/cassette.jsonl \
 
 <div align="center">
 
-## Que esperar
+## ✅ Expected output
 
 </div>
 
@@ -56,9 +70,18 @@ CASSETTE_PATH=examples/ex03_chat_with_memory/cassette.jsonl \
 
 <div align="center">
 
-## Nota
+## 🔹 Notes
 
 </div>
 
 `Session` mantiene el historial **en memoria del proceso**. Persistencia a
 disco (KV / vector / archivo) se cubre en ejemplos posteriores del catalogo.
+
+<div align="center">
+
+## 📚 Documentation
+
+</div>
+
+- [Example implementation](main.py)
+- [Examples catalog](../README.md)

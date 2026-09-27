@@ -1,6 +1,44 @@
+<div align="center">
+  <img src="lockup/lockup-horizontal-dark.png" alt="phronesis — Brand assets" width="100%" />
+</div>
+
+<div align="center">
+
 # phronesis — Brand assets
 
+</div>
+
+<div align="center">
+  Practical wisdom for AI agent systems.
+</div>
+
+<div align="center">
+  <a href="../../src/">source</a> · <a href="../../tests/">tests</a> · <a href="../../docs/">docs</a> · <a href="../../examples/">examples</a>
+</div>
+
+<br />
+
+<div align="center">
+  <a href="https://go-skill-icons.vercel.app/">
+    <img src="https://go-skill-icons.vercel.app/api/icons?i=python,typescript,react,nextjs,git&titles=true" alt="Technology stack" />
+  </a>
+</div>
+
+---
+
+<div align="center">
+
+## 🎯 Purpose
+
+</div>
+
 Shared variant convention across the four organizations.
+
+<div align="center">
+
+## 🎨 Variants
+
+</div>
 
 | Variant | Background | Artwork |
 |---|---|---|
@@ -11,6 +49,12 @@ Shared variant convention across the four organizations.
 | Wordmark / wordmark-light | Transparent | Dark text |
 | Favicon / avatar | `#2D2D2D` | Solid white symbol |
 | Safari pinned tab | Transparent | Solid black symbol |
+
+<div align="center">
+
+## 🛠️ Regeneration
+
+</div>
 
 PNG sizes: horizontal 2000×480, vertical 1200×1200, symbols 1024×1024, wordmarks 1600×400, favicons 256×256. Typography uses Arial with Helvetica and sans-serif fallbacks; no remote font imports.
 

@@ -1,4 +1,6 @@
-#
+<div align="center">
+  <img src="../../public/assets/lockup/lockup-horizontal-dark.png" alt="ex01 - hello_agent" width="100%" />
+</div>
 
 <div align="center">
 
@@ -10,11 +12,23 @@
   El "hola mundo" de Phronesis: un agente que suma dos números usando una tool.
 </div>
 
+<div align="center">
+  <a href="../../src/">source</a> · <a href="../../tests/">tests</a> · <a href="../../docs/">docs</a> · <a href="../">examples</a>
+</div>
+
+<br />
+
+<div align="center">
+  <a href="https://go-skill-icons.vercel.app/">
+    <img src="https://go-skill-icons.vercel.app/api/icons?i=python,typescript,react,nextjs,git&titles=true" alt="Technology stack" />
+  </a>
+</div>
+
 ---
 
 <div align="center">
 
-## Que demuestra
+## 🎯 Purpose
 
 </div>
 
@@ -28,7 +42,7 @@
 
 <div align="center">
 
-## Como correr
+## 🚀 Development setup
 
 </div>
 
@@ -47,7 +61,7 @@ CASSETTE_PATH=examples/ex01_hello_agent/cassette.jsonl \
 
 <div align="center">
 
-## Que esperar
+## ✅ Expected output
 
 </div>
 
@@ -57,3 +71,12 @@ CASSETTE_PATH=examples/ex01_hello_agent/cassette.jsonl \
 
 (El texto exacto varia con el modelo; la cassette lo fija para que los tests sean
 deterministas.)
+
+<div align="center">
+
+## 📚 Documentation
+
+</div>
+
+- [Example implementation](main.py)
+- [Examples catalog](../README.md)

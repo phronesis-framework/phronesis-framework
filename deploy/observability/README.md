@@ -1,8 +1,56 @@
+<div align="center">
+  <img src="../../public/assets/lockup/lockup-horizontal-dark.png" alt="Phronesis - Observability stack" width="100%" />
+</div>
+
+<div align="center">
+
 # Phronesis - Observability stack
+
+</div>
+
+<div align="center">
+  Practical wisdom for AI agent systems.
+</div>
+
+<div align="center">
+  <a href="../../src/">source</a> · <a href="../../tests/">tests</a> · <a href="../../docs/">docs</a> · <a href="../../examples/">examples</a>
+</div>
+
+<br />
+
+<div align="center">
+  <a href="https://go-skill-icons.vercel.app/">
+    <img src="https://go-skill-icons.vercel.app/api/icons?i=python,typescript,react,nextjs,git&titles=true" alt="Technology stack" />
+  </a>
+</div>
+
+---
+
+<div align="center">
+
+## 🎯 Purpose
+
+</div>
 
 Stack OTLP estandar para consumir lo que `phronesis.obs` emite: traces (Tempo), metricas (Prometheus) y logs (Loki), visualizados en Grafana con dashboards pre-construidos.
 
-## Perfiles
+<div align="center">
+
+## 🧪 Testing and quality gates
+
+</div>
+
+```bash
+uv run python deploy/observability/scripts/obs_demo.py
+```
+
+Genera trafico sintetico (agent runs, tool invocations, provider requests) e imprime el `trace_id` raiz y la URL de Grafana.
+
+<div align="center">
+
+## 🔹 Deployment profiles
+
+</div>
 
 ### Dev (all-in-one)
 
@@ -38,7 +86,11 @@ Servicios:
 - `prometheus` - metricas (OTLP write receiver activado)
 - `grafana` - UI + datasources + dashboards auto-provisionados
 
-## Configurar phronesis
+<div align="center">
+
+## 🔹 Configuration
+
+</div>
 
 ```python
 from phronesis.obs import configure_obs
@@ -50,15 +102,11 @@ configure_obs(
 )
 ```
 
-## Validar end-to-end
+<div align="center">
 
-```bash
-uv run python deploy/observability/scripts/obs_demo.py
-```
+## 🔹 Dashboards
 
-Genera trafico sintetico (agent runs, tool invocations, provider requests) e imprime el `trace_id` raiz y la URL de Grafana.
-
-## Dashboards
+</div>
 
 Siete dashboards pre-construidos en `grafana/dashboards/`:
 
@@ -72,7 +120,11 @@ Siete dashboards pre-construidos en `grafana/dashboards/`:
 
 Detalle en `docs/obs/dashboards.md`.
 
-## Documentacion
+<div align="center">
+
+## 📚 Documentation
+
+</div>
 
 - `docs/obs/stack.md` - arquitectura, troubleshooting, retention
 - `docs/obs/dashboards.md` - catalogo panel-a-panel

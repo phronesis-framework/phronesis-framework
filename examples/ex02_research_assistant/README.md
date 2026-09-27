@@ -1,4 +1,6 @@
-#
+<div align="center">
+  <img src="../../public/assets/lockup/lockup-horizontal-dark.png" alt="ex02 - research_assistant" width="100%" />
+</div>
 
 <div align="center">
 
@@ -10,11 +12,23 @@
   Un agente que encadena tres tools (search -> fetch_url -> summarize) para responder a una pregunta.
 </div>
 
+<div align="center">
+  <a href="../../src/">source</a> · <a href="../../tests/">tests</a> · <a href="../../docs/">docs</a> · <a href="../">examples</a>
+</div>
+
+<br />
+
+<div align="center">
+  <a href="https://go-skill-icons.vercel.app/">
+    <img src="https://go-skill-icons.vercel.app/api/icons?i=python,typescript,react,nextjs,git&titles=true" alt="Technology stack" />
+  </a>
+</div>
+
 ---
 
 <div align="center">
 
-## Que demuestra
+## 🎯 Purpose
 
 </div>
 
@@ -27,7 +41,7 @@
 
 <div align="center">
 
-## Como correr
+## 🚀 Development setup
 
 </div>
 
@@ -42,7 +56,7 @@ CASSETTE_PATH=examples/ex02_research_assistant/cassette.jsonl \
 
 <div align="center">
 
-## Que esperar
+## ✅ Expected output
 
 </div>
 
@@ -53,3 +67,12 @@ Phronesis is a Python 3.11+ framework that gives developers the primitives to bu
 Los tools (`search`, `fetch_url`, `summarize`) son **stubs** que devuelven
 contenido fijo: el ejemplo se centra en el patron de encadenamiento, no en
 acceso a red real.
+
+<div align="center">
+
+## 📚 Documentation
+
+</div>
+
+- [Example implementation](main.py)
+- [Examples catalog](../README.md)

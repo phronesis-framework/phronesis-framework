@@ -1,11 +1,41 @@
+<div align="center">
+  <img src="../../public/assets/lockup/lockup-horizontal-dark.png" alt="trading_agents" width="100%" />
+</div>
+
+<div align="center">
+
 # trading_agents
+
+</div>
+
+<div align="center">
+  Practical wisdom for AI agent systems.
+</div>
+
+<div align="center">
+  <a href="../../src/">source</a> · <a href="../../tests/">tests</a> · <a href="../../docs/">docs</a> · <a href="../">examples</a>
+</div>
+
+<br />
+
+<div align="center">
+  <a href="https://go-skill-icons.vercel.app/">
+    <img src="https://go-skill-icons.vercel.app/api/icons?i=python,typescript,react,nextjs,git&titles=true" alt="Technology stack" />
+  </a>
+</div>
+
+---
+
+<div align="center">
+
+## 🎯 Purpose
+
+</div>
 
 Reproduce el organigrama del paper **TradingAgents** (Xiao et al., 2024) como
 una mini-app dentro del catalogo de ejemplos. No es un ejemplo numerado: es
 una composicion de 13 agentes en 5 fases que demuestra como encadenar
 `Sequence`, `Parallel` y `Debate` del runtime de Phronesis.
-
-## Que demuestra
 
 - `runtime.Sequence` como espina dorsal del pipeline.
 - `runtime.Parallel` para el equipo de analistas (fundamental, sentimiento,
@@ -16,7 +46,11 @@ una composicion de 13 agentes en 5 fases que demuestra como encadenar
 - `agent_node` y `callable_node` como adapters para encajar agentes y
   funciones puras dentro del grafo.
 
-## Organigrama
+<div align="center">
+
+## 🏗️ Architecture
+
+</div>
 
 ```mermaid
 flowchart TD
@@ -39,7 +73,11 @@ flowchart TD
     PM --> dec["DECISION: BUY | SELL | HOLD"]
 ```
 
-## Estructura
+<div align="center">
+
+## 📦 Project layout
+
+</div>
 
 ```
 examples/trading_agents/
@@ -61,7 +99,11 @@ examples/trading_agents/
     └── AAPL_2024-01-15.json      snapshot canned
 ```
 
-## Como correr
+<div align="center">
+
+## 🚀 Development setup
+
+</div>
 
 La mini-app trae un CLI minimo (argparse, sin dependencias extra). Se
 invoca con `uv run python -m examples.trading_agents`.
@@ -118,7 +160,19 @@ RECORD_CASSETTE=examples/trading_agents/cassette.jsonl \
 > el output final contiene una de las marcas `BUY|SELL|HOLD`, no texto
 > exacto.
 
-## Datos
+<div align="center">
+
+## ✅ Expected output
+
+</div>
+
+The example prints its execution result. The exact output depends on the selected provider and input; see [`main.py`](main.py) for the result handling.
+
+<div align="center">
+
+## 🔹 Data
+
+</div>
 
 - `data_cache/AAPL_2024-01-15.json` viene commiteado con valores plausibles,
   asi los tests no necesitan `yfinance` ni acceso a red.
@@ -130,7 +184,20 @@ RECORD_CASSETTE=examples/trading_agents/cassette.jsonl \
 
   La primera ejecucion descargara via `yfinance` y cacheara el JSON.
 
-## Fuera de alcance
+<div align="center">
+
+## 📚 Documentation
+
+</div>
+
+- [Example implementation](main.py)
+- [Examples catalog](../README.md)
+
+<div align="center">
+
+## 🔬 Scope and status
+
+</div>
 
 - Backtesting real o curvas P&L.
 - Position sizing real (el portfolio manager emite BUY/SELL/HOLD, no
